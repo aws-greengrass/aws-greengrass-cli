@@ -10,6 +10,9 @@ import picocli.CommandLine.Model.CommandSpec;
 
 import java.util.ResourceBundle;
 
+/**
+ * Main entry point into the command line.
+ */
 @Command(name = "cli", subcommands = {HelpCommand.class, Config.class, Health.class}, resourceBundle = "com.aws.iot.evergreen.cli.CLI_messages")
 public class CLI implements Runnable {
     @Option(names = "--host", defaultValue = "localhost")

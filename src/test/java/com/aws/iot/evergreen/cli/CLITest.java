@@ -2,19 +2,23 @@
  * SPDX-License-Identifier: Apache-2.0 */
 
 package com.aws.iot.evergreen.cli;
-import static org.junit.Assert.assertThat;
 
-import org.junit.Before;
-import org.junit.Test;
-import org.hamcrest.core.*;
-import static org.hamcrest.core.Is.is;
+import org.junit.jupiter.api.BeforeAll;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.DisplayName;
+import org.junit.jupiter.api.Test;
 import picocli.CommandLine;
 
+import static org.hamcrest.core.Is.is;
+import static org.hamcrest.MatcherAssert.assertThat;
+
+
+@DisplayName("CLI basic test")
 public class CLITest {
 
     CLI cli;
 
-    @Before
+    @BeforeEach
     public void setup() {
         cli = new CLI();
     }

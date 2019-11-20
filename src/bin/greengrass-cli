@@ -18,36 +18,7 @@ else
   JAVACMD="$JAVA_HOME/bin/java"
 fi
 
-if [ ! -x "$JAVACMD" ] ; then
-  echo "The JAVA_HOME environment variable is not defined correctly" >&2
-  echo "This environment variable is needed to run this program" >&2
-  echo "NB: JAVA_HOME should point to a JDK not a JRE" >&2
-  exit 1
-fi
-
-[ -n "$JAVA_OPTS" ] || JAVA_OPTS="-Xmx256M -Xms32M"
-
-declare -a java_args
-declare -a cli_args
-
-while [ $# -gt 0 ]; do
-  case "$1" in
-    -D*)
-      java_args=("${java_args[@]}" "$1")
-      shift
-      ;;
-    -J*)
-      java_args=("${java_args[@]}" "${1:2}")
-      shift
-      ;;
-    *)
-      cli_args=("${cli_args[@]}" "$1")
-      shift
-      ;;
-  esac
-done
-
 CLI_JAR="${CLI_HOME}/lib/evergreen-cli-1.0-SNAPSHOT.jar:${CLI_HOME}/lib/picocli-4.0.4.jar"
 CLI_LAUNCHER=com.aws.iot.evergreen.cli.CLI
 
-"$JAVACMD" $JAVA_OPTS "${java_args[@]}" -classpath "${CLI_JAR}" ${CLI_LAUNCHER} "${cli_args[@]}"
+"${JAVACMD:=java}" -classpath "${CLI_JAR}" ${CLI_LAUNCHER} "$@"

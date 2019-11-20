@@ -99,7 +99,8 @@
                             <descriptors>
                                 <descriptor>src/main/assembly/zip.xml</descriptor>
                             </descriptors>
-                        </configuration>                    </execution>
+                        </configuration>
+                    </execution>
                 </executions>
             </plugin>
         </plugins>

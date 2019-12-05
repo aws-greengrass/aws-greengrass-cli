@@ -29,7 +29,7 @@ public class CLITest {
 
     @Test
     public void helpCommand() {
-        int exitCode = runCommandLine("config", "get", "-p", "httpd.run,httpd.port,httpd");
+        int exitCode = runCommandLine("help");
         assertThat(exitCode, is(0));
         assertThat(cli.getHost(), is("localhost"));
         assertThat(cli.getPort(), is(8080));

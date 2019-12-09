@@ -31,6 +31,8 @@ import org.apache.http.util.EntityUtils;
 
 public class KernelAdapterHttpClientImpl implements KernelAdapter {
 
+    private static final String HTTP_ENDPOINT = "http://localhost:1441/";
+
     @Override
     public Map<String, String> getConfigs(Set<String> configPaths) {
         List<String> pathList = new ArrayList<>(configPaths);
@@ -38,7 +40,7 @@ public class KernelAdapterHttpClientImpl implements KernelAdapter {
 
         URI uri;
         try {
-            uri = new URI("http://localhost:1441/get.txt?" + query);
+            uri = new URI(HTTP_ENDPOINT + "get.txt?" + query);
         } catch (URISyntaxException e) {
             throw new RuntimeException("Failed to construct config get uri");
         }
@@ -64,7 +66,7 @@ public class KernelAdapterHttpClientImpl implements KernelAdapter {
     public void setConfigs(Map<String, String> configs) {
         URI uri;
         try {
-            URIBuilder uriBuilder = new URIBuilder("http://localhost:1441/set.txt");
+            URIBuilder uriBuilder = new URIBuilder(HTTP_ENDPOINT+ "set.txt");
             configs.forEach(uriBuilder::setParameter);
             uri = uriBuilder.build();
         } catch (URISyntaxException e) {
@@ -78,7 +80,7 @@ public class KernelAdapterHttpClientImpl implements KernelAdapter {
     public String healthPing() {
         URI uri;
         try {
-            uri = new URI("http://localhost:1441/health.json");
+            uri = new URI(HTTP_ENDPOINT + "health.json");
         } catch (URISyntaxException e) {
             throw new RuntimeException("Failed to construct health check uri");
         }
@@ -105,7 +107,7 @@ public class KernelAdapterHttpClientImpl implements KernelAdapter {
         String query = String.join("&", nameList);
 
         try {
-            return new URI("http://localhost:1441/services?" + query);
+            return new URI(HTTP_ENDPOINT + "services?" + query);
         } catch (URISyntaxException e) {
             throw new RuntimeException("Failed to construct service query uri");
         }

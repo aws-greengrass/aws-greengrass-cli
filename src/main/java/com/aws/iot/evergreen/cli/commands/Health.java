@@ -17,7 +17,6 @@ public class Health extends BaseCommand {
 
     @Override
     public void run() {
-        // TODO: do something
         String result = kernelAdapter.healthPing();
         System.out.println("Kernel health status:");
         System.out.println(result);

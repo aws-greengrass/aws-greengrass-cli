@@ -25,7 +25,6 @@ public class Config extends BaseCommand {
 
     @Command(name = "get")
     public int get(@Option(names = {"-p", "--path"}, paramLabel = "path", descriptionKey = "path", required = true) String path) {
-        // TODO: connect to Evergreen and retrieve config key
         String[] pathArray = path.split(" *[&,]+ *");
         Map<String, String> valueMap = kernelAdapter.getConfigs(new HashSet<>(Arrays.asList(pathArray)));
         valueMap.forEach((k, v) -> {
@@ -36,7 +35,6 @@ public class Config extends BaseCommand {
 
     @Command(name = "set")
     public int set(@Option(names = {"-p", "--path"}, paramLabel = "path", descriptionKey = "path", required = true) String path, @Option(names = {"-v", "--value"}, paramLabel = "value", required = true) String value) {
-        // TODO: connect to Evergreen and set config key to a value
         kernelAdapter.setConfigs(Collections.singletonMap(path, value));
         return 0;
     }

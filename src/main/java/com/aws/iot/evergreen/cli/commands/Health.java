@@ -2,6 +2,8 @@
  * SPDX-License-Identifier: Apache-2.0 */
 package com.aws.iot.evergreen.cli.commands;
 
+import com.aws.iot.evergreen.cli.adapter.KernelAdapter;
+import com.aws.iot.evergreen.cli.adapter.impl.KernelAdapterHttpClientImpl;
 import picocli.CommandLine.Command;
 import picocli.CommandLine.HelpCommand;
 
@@ -11,10 +13,13 @@ import picocli.CommandLine.HelpCommand;
 @Command(name = "health", resourceBundle = "com.aws.iot.evergreen.cli.CLI_messages", subcommands = HelpCommand.class)
 public class Health extends BaseCommand {
 
+    private KernelAdapter kernelAdapter = new KernelAdapterHttpClientImpl();
+
     @Override
     public void run() {
-
-        // TODO: do something
+        String result = kernelAdapter.healthPing();
+        System.out.println("Kernel health status:");
+        System.out.println(result);
     }
 
 }

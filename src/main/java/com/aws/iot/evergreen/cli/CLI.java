@@ -2,6 +2,12 @@
  * SPDX-License-Identifier: Apache-2.0 */
 package com.aws.iot.evergreen.cli;
 
+import com.google.inject.ConfigurationException;
+import com.google.inject.Guice;
+import com.google.inject.Injector;
+import com.google.inject.Module;
+
+import com.aws.iot.evergreen.cli.adapter.AdapterModule;
 import com.aws.iot.evergreen.cli.commands.Config;
 import com.aws.iot.evergreen.cli.commands.Health;
 import com.aws.iot.evergreen.cli.commands.Service;
@@ -25,7 +31,7 @@ public class CLI implements Runnable {
     CommandSpec spec;
 
     public static void main(String... args) {
-        int exitCode = new CommandLine(new CLI()).execute(args);
+        int exitCode = new CommandLine(new CLI(), new GuiceFactory(new AdapterModule())).execute(args);
         System.exit(exitCode);
     }
 
@@ -41,5 +47,23 @@ public class CLI implements Runnable {
     public void run() {
         String msg = ResourceBundle.getBundle("com.aws.iot.evergreen.cli.CLI_messages").getString("exception.missing.command");
         throw new ParameterException(spec.commandLine(), msg);
+    }
+
+
+    static class GuiceFactory implements IFactory {
+        private final Injector injector;
+
+        public GuiceFactory(Module... modules) {
+            injector = Guice.createInjector(modules);
+        }
+
+        @Override
+        public <K> K create(Class<K> aClass) throws Exception {
+            try {
+                return injector.getInstance(aClass);
+            } catch (ConfigurationException ex) {
+                return CommandLine.defaultFactory().create(aClass);
+            }
+        }
     }
 }

@@ -3,11 +3,11 @@
 package com.aws.iot.evergreen.cli.commands;
 
 import com.aws.iot.evergreen.cli.adapter.KernelAdapter;
-import com.aws.iot.evergreen.cli.adapter.impl.KernelAdapterHttpClientImpl;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashSet;
 import java.util.Map;
+import javax.inject.Inject;
 import picocli.CommandLine.Command;
 import picocli.CommandLine.HelpCommand;
 import picocli.CommandLine.Option;
@@ -21,7 +21,8 @@ import java.util.ResourceBundle;
 @Command(name = "config", resourceBundle = "com.aws.iot.evergreen.cli.CLI_messages", subcommands = HelpCommand.class)
 public class Config extends BaseCommand {
 
-    private KernelAdapter kernelAdapter = new KernelAdapterHttpClientImpl();
+    @Inject
+    private KernelAdapter kernelAdapter;
 
     @Command(name = "get")
     public int get(@Option(names = {"-p", "--path"}, paramLabel = "path", descriptionKey = "path", required = true) String path) {

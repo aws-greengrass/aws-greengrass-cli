@@ -21,7 +21,7 @@ import org.apache.http.client.entity.UrlEncodedFormEntity;
 import org.apache.http.client.methods.CloseableHttpResponse;
 import org.apache.http.client.methods.HttpDelete;
 import org.apache.http.client.methods.HttpGet;
-import org.apache.http.client.methods.HttpPost;
+import org.apache.http.client.methods.HttpPut;
 import org.apache.http.client.methods.HttpRequestBase;
 import org.apache.http.client.utils.URIBuilder;
 import org.apache.http.impl.client.CloseableHttpClient;
@@ -154,7 +154,7 @@ public class KernelAdapterHttpClientImpl implements KernelAdapter {
     }
 
     private String httpPut(URI uri, Map<String, String> paramMap) {
-        HttpPost request = new HttpPost(uri);
+        HttpPut request = new HttpPut(uri);
 
         if (paramMap != null && paramMap.size() > 0) {
             List<NameValuePair> params = new ArrayList<>();

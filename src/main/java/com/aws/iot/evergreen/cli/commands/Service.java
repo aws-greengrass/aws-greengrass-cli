@@ -1,16 +1,17 @@
 package com.aws.iot.evergreen.cli.commands;
 
 import com.aws.iot.evergreen.cli.adapter.KernelAdapter;
-import com.aws.iot.evergreen.cli.adapter.impl.KernelAdapterHttpClientImpl;
 import java.util.Arrays;
 import java.util.HashSet;
 import java.util.Map;
+import javax.inject.Inject;
 import picocli.CommandLine;
 
 @CommandLine.Command(name = "service", resourceBundle = "com.aws.iot.evergreen.cli.CLI_messages", subcommands = CommandLine.HelpCommand.class)
 public class Service extends BaseCommand {
 
-    private KernelAdapter kernelAdapter = new KernelAdapterHttpClientImpl();
+    @Inject
+    private KernelAdapter kernelAdapter;
 
     @CommandLine.Command(name = "status")
     public int status(@CommandLine.Option(names = {"-n", "--names"}, paramLabel = "names", descriptionKey = "names", required = true) String names) {

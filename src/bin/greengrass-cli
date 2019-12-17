@@ -18,7 +18,7 @@ else
   JAVACMD="$JAVA_HOME/bin/java"
 fi
 
-CLI_JAR="${CLI_HOME}/lib/evergreen-cli-1.0-SNAPSHOT.jar:${CLI_HOME}/lib/picocli-4.0.4.jar"
+CLI_JAR="${CLI_HOME}/lib/*"
 CLI_LAUNCHER=com.aws.iot.evergreen.cli.CLI
 
 "${JAVACMD:=java}" -classpath "${CLI_JAR}" ${CLI_LAUNCHER} "$@"

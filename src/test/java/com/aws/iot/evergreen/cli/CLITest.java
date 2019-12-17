@@ -3,27 +3,63 @@
 
 package com.aws.iot.evergreen.cli;
 
+import com.google.inject.AbstractModule;
+
+import com.aws.iot.evergreen.cli.adapter.KernelAdapter;
+import java.io.ByteArrayOutputStream;
+import java.io.PrintStream;
+import java.util.Collections;
+import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.Mock;
+import org.mockito.junit.jupiter.MockitoExtension;
 import picocli.CommandLine;
 
 import static org.hamcrest.core.Is.is;
 import static org.hamcrest.MatcherAssert.assertThat;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.when;
 
 
 @DisplayName("CLI basic test")
+@ExtendWith(MockitoExtension.class)
 public class CLITest {
 
-    CLI cli;
+    private CLI cli;
+
+    @Mock
+    private KernelAdapter kernelAdapter;
+
+    private final ByteArrayOutputStream outContent = new ByteArrayOutputStream();
+    private final ByteArrayOutputStream errContent = new ByteArrayOutputStream();
+    private final PrintStream originalOut = System.out;
+    private final PrintStream originalErr = System.out;
 
     @BeforeEach
-    public void setup() {
+    void setup() {
         cli = new CLI();
+
+        System.setOut(new PrintStream(outContent));
+        System.setErr(new PrintStream(errContent));
+    }
+
+    @AfterEach
+    void afterEach() {
+        System.setOut(originalOut);
+        System.setErr(originalErr);
     }
 
     int runCommandLine(String... args) {
-        return new CommandLine(cli).execute(args);
+        return new CommandLine(cli, new CLI.GuiceFactory(new AbstractModule() {
+            @Override
+            protected void configure() {
+                bind(KernelAdapter.class).toInstance(kernelAdapter);
+            }
+        })).execute(args);
     }
 
     @Test
@@ -36,15 +72,18 @@ public class CLITest {
 
     @Test
     public void getConfigCommand() {
-        int exitCode = runCommandLine("config", "get", "-p", "httpd.run,httpd.port,httpd");
+        when(kernelAdapter.getConfigs(any())).thenReturn(Collections.singletonMap("httpd.port", "1441"));
+        int exitCode = runCommandLine("config", "get", "-p", "httpd.run,httpd.port,main.run");
         assertThat(exitCode, is(0));
         assertThat(cli.getHost(), is("localhost"));
         assertThat(cli.getPort(), is(8080));
+
+        assertEquals("httpd.port: 1441\n", outContent.toString());
     }
 
     @Test
     public void setConfigCommand() {
-        int exitCode = runCommandLine("config", "set", "-p", "main", "-v", "haha");
+        int exitCode = runCommandLine("config", "set", "-p", "main.run", "-v", "/Users/zhengang/sprinting");
         assertThat(exitCode, is(0));
         assertThat(cli.getHost(), is("localhost"));
         assertThat(cli.getPort(), is(8080));
@@ -52,18 +91,49 @@ public class CLITest {
 
     @Test
     public void healthCommand() {
+        when(kernelAdapter.healthPing()).thenReturn("{\"status\": \"good\"}");
         int exitCode = runCommandLine("health");
         assertThat(exitCode, is(0));
         assertThat(cli.getHost(), is("localhost"));
         assertThat(cli.getPort(), is(8080));
+
+        assertEquals("Kernel health status:\n{\"status\": \"good\"}\n", outContent.toString());
     }
 
     @Test
     public void serviceStatusCommand() {
+        when(kernelAdapter.getServicesStatus(any()))
+                .thenReturn(Collections.singletonMap("main", Collections.singletonMap("status", "running")));
         int exitCode = runCommandLine("service", "status", "-n", "main,httpd");
         assertThat(exitCode, is(0));
         assertThat(cli.getHost(), is("localhost"));
         assertThat(cli.getPort(), is(8080));
+
+        assertEquals("main:\n    status: running\n", outContent.toString());
+    }
+
+    @Test
+    public void closeServiceCommand() {
+        when(kernelAdapter.closeServices(any()))
+                .thenReturn(Collections.singletonMap("main", Collections.singletonMap("status", "running")));
+        int exitCode = runCommandLine("service", "close", "-n", "main");
+        assertThat(exitCode, is(0));
+        assertThat(cli.getHost(), is("localhost"));
+        assertThat(cli.getPort(), is(8080));
+
+        assertEquals("main:\n    status: running\n", outContent.toString());
+    }
+
+    @Test
+    public void reloadServiceCommand() {
+        when(kernelAdapter.reloadServices(any()))
+                .thenReturn(Collections.singletonMap("main", Collections.singletonMap("status", "running")));
+        int exitCode = runCommandLine("service", "reload", "-n", "main");
+        assertThat(exitCode, is(0));
+        assertThat(cli.getHost(), is("localhost"));
+        assertThat(cli.getPort(), is(8080));
+
+        assertEquals("main:\n    status: running\n", outContent.toString());
     }
 
     @Test

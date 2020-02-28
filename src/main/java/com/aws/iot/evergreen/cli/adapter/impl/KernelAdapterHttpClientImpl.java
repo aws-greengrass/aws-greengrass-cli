@@ -93,12 +93,12 @@ public class KernelAdapterHttpClientImpl implements KernelAdapter {
     }
 
     @Override
-    public Map<String, Map<String, String>> reloadServices(Set<String> serviceNames) {
+    public Map<String, Map<String, String>> restartServices(Set<String> serviceNames) {
         return deserializeServicesStatus(httpPut(buildServiceOperationURI(serviceNames), null));
     }
 
     @Override
-    public Map<String, Map<String, String>> closeServices(Set<String> serviceNames) {
+    public Map<String, Map<String, String>> stopServices(Set<String> serviceNames) {
         return deserializeServicesStatus(httpDelete(buildServiceOperationURI(serviceNames)));
     }
 

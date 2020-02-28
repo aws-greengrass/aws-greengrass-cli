@@ -14,8 +14,8 @@ public interface KernelAdapter {
 
     Map<String, Map<String, String>> getServicesStatus(Set<String> serviceNames);
 
-    Map<String, Map<String, String>> reloadServices(Set<String> serviceNames);
+    Map<String, Map<String, String>> restartServices(Set<String> serviceNames);
 
-    Map<String, Map<String, String>> closeServices(Set<String> serviceNames);
+    Map<String, Map<String, String>> stopServices(Set<String> serviceNames);
 
 }

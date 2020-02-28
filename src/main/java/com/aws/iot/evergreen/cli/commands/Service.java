@@ -21,18 +21,18 @@ public class Service extends BaseCommand {
         return 0;
     }
 
-    @CommandLine.Command(name = "reload")
+    @CommandLine.Command(name = "restart")
     public int reload(@CommandLine.Option(names = {"-n", "--names"}, paramLabel = "names", descriptionKey = "names", required = true) String names) {
         String[] serviceNames = names.split(" *[&,]+ *");
-        Map<String, Map<String, String>> serviceStatusMap = kernelAdapter.reloadServices(new HashSet<>(Arrays.asList(serviceNames)));
+        Map<String, Map<String, String>> serviceStatusMap = kernelAdapter.restartServices(new HashSet<>(Arrays.asList(serviceNames)));
         printServicesStatus(serviceStatusMap);
         return 0;
     }
 
-    @CommandLine.Command(name = "close")
+    @CommandLine.Command(name = "stop")
     public int close(@CommandLine.Option(names = {"-n", "--names"}, paramLabel = "names", descriptionKey = "names", required = true) String names) {
         String[] serviceNames = names.split(" *[&,]+ *");
-        Map<String, Map<String, String>> serviceStatusMap = kernelAdapter.closeServices(new HashSet<>(Arrays.asList(serviceNames)));
+        Map<String, Map<String, String>> serviceStatusMap = kernelAdapter.stopServices(new HashSet<>(Arrays.asList(serviceNames)));
         printServicesStatus(serviceStatusMap);
         return 0;
     }

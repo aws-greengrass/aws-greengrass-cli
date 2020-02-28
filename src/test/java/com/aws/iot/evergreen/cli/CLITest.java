@@ -113,10 +113,10 @@ public class CLITest {
     }
 
     @Test
-    public void closeServiceCommand() {
-        when(kernelAdapter.closeServices(any()))
+    public void stopServiceCommand() {
+        when(kernelAdapter.stopServices(any()))
                 .thenReturn(Collections.singletonMap("main", Collections.singletonMap("status", "running")));
-        int exitCode = runCommandLine("service", "close", "-n", "main");
+        int exitCode = runCommandLine("service", "stop", "-n", "main");
         assertThat(exitCode, is(0));
         assertThat(cli.getHost(), is("localhost"));
         assertThat(cli.getPort(), is(8080));
@@ -125,10 +125,10 @@ public class CLITest {
     }
 
     @Test
-    public void reloadServiceCommand() {
-        when(kernelAdapter.reloadServices(any()))
+    public void restartServiceCommand() {
+        when(kernelAdapter.restartServices(any()))
                 .thenReturn(Collections.singletonMap("main", Collections.singletonMap("status", "running")));
-        int exitCode = runCommandLine("service", "reload", "-n", "main");
+        int exitCode = runCommandLine("service", "restart", "-n", "main");
         assertThat(exitCode, is(0));
         assertThat(cli.getHost(), is("localhost"));
         assertThat(cli.getPort(), is(8080));

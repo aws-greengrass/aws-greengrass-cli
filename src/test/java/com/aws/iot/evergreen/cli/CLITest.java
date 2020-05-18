@@ -3,12 +3,9 @@
 
 package com.aws.iot.evergreen.cli;
 
-import com.google.inject.AbstractModule;
-
 import com.aws.iot.evergreen.cli.adapter.KernelAdapter;
-import java.io.ByteArrayOutputStream;
-import java.io.PrintStream;
-import java.util.Collections;
+import com.aws.iot.evergreen.cli.adapter.LocalOverrideRequest;
+import com.google.inject.AbstractModule;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
@@ -18,10 +15,16 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import picocli.CommandLine;
 
-import static org.hamcrest.core.Is.is;
+import java.io.ByteArrayOutputStream;
+import java.io.PrintStream;
+import java.util.Arrays;
+import java.util.Collections;
+
 import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.core.Is.is;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 
@@ -134,6 +137,23 @@ public class CLITest {
         assertThat(cli.getPort(), is(8080));
 
         assertEquals("main:\n    status: running\n", outContent.toString());
+    }
+
+    @Test
+    public void deployServiceCommand() {
+        int exitCode =
+                runCommandLine("component", "deploy", "-n", "newComponent1", "--names", "newComponent2", "--recipe",
+                        "recipeFolderPath", "--artifact", "artifactFolderPath");
+
+        LocalOverrideRequest expectedRequest =
+                new LocalOverrideRequest(Arrays.asList("newComponent1", "newComponent2"), "recipeFolderPath",
+                        "artifactFolderPath");
+
+        verify(kernelAdapter).localOverride(expectedRequest);
+
+        assertThat(exitCode, is(0));
+        assertThat(cli.getHost(), is("localhost"));
+        assertThat(cli.getPort(), is(8080));
     }
 
     @Test

@@ -1,6 +1,7 @@
 package com.aws.iot.evergreen.cli.adapter.impl;
 
 import com.aws.iot.evergreen.cli.adapter.KernelAdapter;
+import com.aws.iot.evergreen.cli.adapter.LocalOverrideRequest;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import java.io.IOException;
@@ -100,6 +101,11 @@ public class KernelAdapterHttpClientImpl implements KernelAdapter {
     @Override
     public Map<String, Map<String, String>> stopServices(Set<String> serviceNames) {
         return deserializeServicesStatus(httpDelete(buildServiceOperationURI(serviceNames)));
+    }
+
+    @Override
+    public void localOverride(LocalOverrideRequest localOverrideRequest) {
+        // TODO Serialize and send the request over HTTP
     }
 
     private URI buildServiceOperationURI(Set<String> serviceNames) {

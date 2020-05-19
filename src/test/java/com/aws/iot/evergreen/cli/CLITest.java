@@ -137,16 +137,6 @@ public class CLITest {
     }
 
     @Test
-    public void deployServiceCommand() {
-        int exitCode = runCommandLine("service", "restart", "-n", "main");
-        assertThat(exitCode, is(0));
-        assertThat(cli.getHost(), is("localhost"));
-        assertThat(cli.getPort(), is(8080));
-
-        assertEquals("main:\n    status: running\n", outContent.toString());
-    }
-
-    @Test
     public void missingCommand() {
         int exitCode = runCommandLine();
         assertThat(exitCode, is(2));

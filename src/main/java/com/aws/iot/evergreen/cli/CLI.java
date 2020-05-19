@@ -32,7 +32,7 @@ import java.util.ResourceBundle;
 public class CLI implements Runnable {
     @Option(names = "--host", defaultValue = "localhost")
     String host;
-    @Option(names = "--port", defaultValue = "8081")
+    @Option(names = "--port", defaultValue = "8080")
     Integer port;
 
     @Spec
@@ -59,7 +59,7 @@ public class CLI implements Runnable {
     }
 
 
-    static class GuiceFactory implements IFactory {
+    public static class GuiceFactory implements IFactory {
         private final Injector injector;
 
         public GuiceFactory(Module... modules) {

@@ -9,6 +9,7 @@ import picocli.CommandLine;
 
 import java.util.Arrays;
 import java.util.Collections;
+import java.util.List;
 import javax.inject.Inject;
 
 @CommandLine.Command(name = "component", resourceBundle = "com.aws.iot.evergreen.cli.CLI_messages",
@@ -27,15 +28,18 @@ public class ComponentCommand extends BaseCommand {
                       @CommandLine.Option(names = {"-a", "--artifactDir"}, paramLabel = "artifactDir",
                               descriptionKey = "artifactDir") String artifactDir) {
 
-        // TODO validation
+        // TODO Validate folder exists and folder structure
 
-        LocalOverrideRequest localOverrideRequest = new LocalOverrideRequest(
-                rootComponentNames.length == 0 ? Collections.emptyList() : Arrays.asList(rootComponentNames), recipeDir,
-                artifactDir);
+        List<String> rootComponentList =
+                rootComponentNames == null || rootComponentNames.length == 0 ? Collections.emptyList()
+                        : Arrays.asList(rootComponentNames);
+
+
+        LocalOverrideRequest localOverrideRequest =
+                LocalOverrideRequest.builder().rootComponentNames(rootComponentList).recipeDir(recipeDir)
+                        .artifactDir(artifactDir).build();
 
         kernelAdapter.localOverride(localOverrideRequest);
-
-        // Exception handling
         return 0;
     }
 

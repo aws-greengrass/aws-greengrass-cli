@@ -3,10 +3,12 @@
 
 package com.aws.iot.evergreen.cli;
 
-import com.aws.iot.evergreen.cli.adapter.KernelAdapter;
-import com.aws.iot.evergreen.cli.adapter.LocalOverrideRequest;
-import com.aws.iot.evergreen.cli.adapter.impl.KernelAdapterHttpClientImpl;
 import com.google.inject.AbstractModule;
+
+import com.aws.iot.evergreen.cli.adapter.KernelAdapter;
+import java.io.ByteArrayOutputStream;
+import java.io.PrintStream;
+import java.util.Collections;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
@@ -16,16 +18,10 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import picocli.CommandLine;
 
-import java.io.ByteArrayOutputStream;
-import java.io.PrintStream;
-import java.util.Arrays;
-import java.util.Collections;
-
-import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.core.Is.is;
+import static org.hamcrest.MatcherAssert.assertThat;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 
@@ -47,8 +43,8 @@ public class CLITest {
     void setup() {
         cli = new CLI();
 
-//        System.setOut(new PrintStream(outContent));
-//        System.setErr(new PrintStream(errContent));
+        System.setOut(new PrintStream(outContent));
+        System.setErr(new PrintStream(errContent));
     }
 
     @AfterEach
@@ -142,29 +138,12 @@ public class CLITest {
 
     @Test
     public void deployServiceCommand() {
-
-       int exitCode = new CommandLine(cli, new CLI.GuiceFactory(new AbstractModule() {
-            @Override
-            protected void configure() {
-                bind(KernelAdapter.class).toInstance(new KernelAdapterHttpClientImpl());
-            }
-        })).execute("component", "deploy", "-n", "newComponent1", "--name", "newComponent2", "--recipeDir",
-               "recipeFolderPath", "--artifactDir", "artifactFolderPath");
-
-
-//        int exitCode =
-//                runCommandLine("component", "deploy", "-n", "newComponent1", "--names", "newComponent2", "--recipe",
-//                        "recipeFolderPath", "--artifact", "artifactFolderPath");
-
-        LocalOverrideRequest expectedRequest =
-                new LocalOverrideRequest(Arrays.asList("newComponent1", "newComponent2"), "recipeFolderPath",
-                        "artifactFolderPath");
-
-        verify(kernelAdapter).localOverride(expectedRequest);
-
+        int exitCode = runCommandLine("service", "restart", "-n", "main");
         assertThat(exitCode, is(0));
         assertThat(cli.getHost(), is("localhost"));
         assertThat(cli.getPort(), is(8080));
+
+        assertEquals("main:\n    status: running\n", outContent.toString());
     }
 
     @Test

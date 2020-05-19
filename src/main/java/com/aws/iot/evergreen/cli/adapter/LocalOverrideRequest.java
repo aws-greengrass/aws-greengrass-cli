@@ -3,53 +3,16 @@
 
 package com.aws.iot.evergreen.cli.adapter;
 
-import com.google.common.base.Objects;
+import lombok.Value;
 
 import java.util.List;
 
+@Value
 public class LocalOverrideRequest {
-    private List<String> rootComponentNames;
-
-    private String recipeFolder;
-    private String artifactFolder;
+    List<String> rootComponentNames;
+    String recipeDir;
+    String artifactDir;
 
     // TODO Does DeploymentService supports it?
     // private List<String> rootComponentNamesToRemove;
-
-
-    public LocalOverrideRequest(List<String> rootComponentNames, String recipeFolder, String artifactFolder) {
-        this.rootComponentNames = rootComponentNames;
-        this.recipeFolder = recipeFolder;
-        this.artifactFolder = artifactFolder;
-    }
-
-    public List<String> getRootComponentNames() {
-        return rootComponentNames;
-    }
-
-    public String getRecipeFolder() {
-        return recipeFolder;
-    }
-
-    public String getArtifactFolder() {
-        return artifactFolder;
-    }
-
-    @Override
-    public boolean equals(Object o) {
-        if (this == o) {
-            return true;
-        }
-        if (o == null || getClass() != o.getClass()) {
-            return false;
-        }
-        LocalOverrideRequest that = (LocalOverrideRequest) o;
-        return Objects.equal(rootComponentNames, that.rootComponentNames) && Objects
-                .equal(recipeFolder, that.recipeFolder) && Objects.equal(artifactFolder, that.artifactFolder);
-    }
-
-    @Override
-    public int hashCode() {
-        return Objects.hashCode(rootComponentNames, recipeFolder, artifactFolder);
-    }
 }

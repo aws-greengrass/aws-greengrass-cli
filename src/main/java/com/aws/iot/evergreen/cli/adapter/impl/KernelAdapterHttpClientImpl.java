@@ -22,9 +22,11 @@ import org.apache.http.client.entity.UrlEncodedFormEntity;
 import org.apache.http.client.methods.CloseableHttpResponse;
 import org.apache.http.client.methods.HttpDelete;
 import org.apache.http.client.methods.HttpGet;
+import org.apache.http.client.methods.HttpPost;
 import org.apache.http.client.methods.HttpPut;
 import org.apache.http.client.methods.HttpRequestBase;
 import org.apache.http.client.utils.URIBuilder;
+import org.apache.http.entity.StringEntity;
 import org.apache.http.impl.client.CloseableHttpClient;
 import org.apache.http.impl.client.HttpClients;
 import org.apache.http.message.BasicNameValuePair;
@@ -33,6 +35,8 @@ import org.apache.http.util.EntityUtils;
 public class KernelAdapterHttpClientImpl implements KernelAdapter {
 
     private static final String HTTP_ENDPOINT = "http://localhost:1441/";
+
+    private static final ObjectMapper SERIALZIER = new ObjectMapper();
 
     @Override
     public Map<String, String> getConfigs(Set<String> configPaths) {
@@ -106,6 +110,30 @@ public class KernelAdapterHttpClientImpl implements KernelAdapter {
     @Override
     public void localOverride(LocalOverrideRequest localOverrideRequest) {
         // TODO Serialize and send the request over HTTP
+        // build request
+
+        URI uri = null;
+
+        try {
+            uri = new URI(HTTP_ENDPOINT + "component/deploy");
+        } catch (URISyntaxException e) {
+            e.printStackTrace();
+        }
+
+        StringEntity entity = null;
+        try {
+            entity = new StringEntity(SERIALZIER.writeValueAsString(localOverrideRequest));
+        } catch (UnsupportedEncodingException | JsonProcessingException e) {
+            e.printStackTrace();
+        }
+
+        HttpPost httpPost = new HttpPost(uri);
+
+        httpPost.setEntity(entity);
+        httpPost.setHeader("Accept", "application/json");
+        httpPost.setHeader("Content-type", "application/json");
+
+        sendHttpRequest(httpPost);
     }
 
     private URI buildServiceOperationURI(Set<String> serviceNames) {
@@ -121,8 +149,8 @@ public class KernelAdapterHttpClientImpl implements KernelAdapter {
 
     private String sendHttpRequest(HttpRequestBase requestBase) {
         requestBase.addHeader(HttpHeaders.USER_AGENT, "evergreen-cli");
-
         try (CloseableHttpClient httpClient = HttpClients.createDefault();
+
              CloseableHttpResponse response = httpClient.execute(requestBase)) {
 
             // Get HttpResponse Status
@@ -178,9 +206,8 @@ public class KernelAdapterHttpClientImpl implements KernelAdapter {
     }
 
     private Map<String, Map<String, String>> deserializeServicesStatus(String json) {
-        ObjectMapper objectMapper = new ObjectMapper();
         try {
-            return objectMapper.readValue(json, Map.class);
+            return SERIALZIER.readValue(json, Map.class);
         } catch (JsonProcessingException e) {
             throw new RuntimeException("Failed to deserialize service status json " + json);
         }

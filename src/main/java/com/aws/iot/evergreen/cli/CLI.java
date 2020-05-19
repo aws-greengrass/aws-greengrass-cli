@@ -32,7 +32,7 @@ import java.util.ResourceBundle;
 public class CLI implements Runnable {
     @Option(names = "--host", defaultValue = "localhost")
     String host;
-    @Option(names = "--port", defaultValue = "8080")
+    @Option(names = "--port", defaultValue = "8081")
     Integer port;
 
     @Spec

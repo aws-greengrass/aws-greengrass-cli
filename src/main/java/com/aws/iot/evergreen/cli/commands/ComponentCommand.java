@@ -8,6 +8,7 @@ import com.aws.iot.evergreen.cli.adapter.LocalOverrideRequest;
 import picocli.CommandLine;
 
 import java.util.Arrays;
+import java.util.Collections;
 import javax.inject.Inject;
 
 @CommandLine.Command(name = "component", resourceBundle = "com.aws.iot.evergreen.cli.CLI_messages",
@@ -21,14 +22,16 @@ public class ComponentCommand extends BaseCommand {
     @CommandLine.Command(name = "deploy")
     public int deploy(@CommandLine.Option(names = {"-n", "--name"}, paramLabel = "name",
             descriptionKey = "name") String[] rootComponentNames,
-                      @CommandLine.Option(names = {"-r", "--recipe"}, paramLabel = "recipe",
-                              descriptionKey = "recipe") String recipeFolder,
-                      @CommandLine.Option(names = {"-a", "--artifact"}, paramLabel = "artifact",
-                              descriptionKey = "artifact") String artifactFolder) {
+                      @CommandLine.Option(names = {"-r", "--recipeDir"}, paramLabel = "recipeDir",
+                              descriptionKey = "recipeDir") String recipeDir,
+                      @CommandLine.Option(names = {"-a", "--artifactDir"}, paramLabel = "artifactDir",
+                              descriptionKey = "artifactDir") String artifactDir) {
 
         // TODO validation
-        LocalOverrideRequest localOverrideRequest = new LocalOverrideRequest(Arrays.asList(rootComponentNames),
-                recipeFolder, artifactFolder);
+
+        LocalOverrideRequest localOverrideRequest = new LocalOverrideRequest(
+                rootComponentNames.length == 0 ? Collections.emptyList() : Arrays.asList(rootComponentNames), recipeDir,
+                artifactDir);
 
         kernelAdapter.localOverride(localOverrideRequest);
 

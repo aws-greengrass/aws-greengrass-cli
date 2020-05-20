@@ -12,6 +12,6 @@ import java.util.List;
 @Builder
 public class LocalOverrideRequest {
     List<String> rootComponentNames;
-    String recipeDir;
+    String recipeFile;
     String artifactDir;
 }

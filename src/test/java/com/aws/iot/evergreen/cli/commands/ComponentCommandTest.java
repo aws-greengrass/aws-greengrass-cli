@@ -42,7 +42,7 @@ class ComponentCommandTest {
 
         LocalOverrideRequest expectedRequest =
                 LocalOverrideRequest.builder().rootComponentNames(Arrays.asList(NEW_COMPONENT_1, NEW_COMPONENT_2))
-                        .recipeDir(RECIPE_FOLDER_PATH_STR).artifactDir(ARTIFACT_FOLDER_PATH_STR).build();
+                        .recipeFile(RECIPE_FOLDER_PATH_STR).artifactDir(ARTIFACT_FOLDER_PATH_STR).build();
 
         verify(kernelAdapter).localOverride(expectedRequest);
 
@@ -51,12 +51,12 @@ class ComponentCommandTest {
 
     @Test
     void GIVEN_WHEN_names_not_provided_THEN_request_contain_empty_name_list() {
-        int exitCode = runCommandLine("component", "deploy", "--recipeDir", RECIPE_FOLDER_PATH_STR, "--artifactDir",
+        int exitCode = runCommandLine("component", "deploy", "--recipeFile", RECIPE_FOLDER_PATH_STR, "--artifactDir",
                 ARTIFACT_FOLDER_PATH_STR);
 
         LocalOverrideRequest expectedRequest =
                 LocalOverrideRequest.builder().rootComponentNames(Collections.emptyList())
-                        .recipeDir(RECIPE_FOLDER_PATH_STR).artifactDir(ARTIFACT_FOLDER_PATH_STR).build();
+                        .recipeFile(RECIPE_FOLDER_PATH_STR).artifactDir(ARTIFACT_FOLDER_PATH_STR).build();
 
         verify(kernelAdapter).localOverride(expectedRequest);
 
@@ -86,7 +86,7 @@ class ComponentCommandTest {
 
         LocalOverrideRequest expectedRequest =
                 LocalOverrideRequest.builder().rootComponentNames(Arrays.asList(NEW_COMPONENT_1, NEW_COMPONENT_2))
-                        .recipeDir(RECIPE_FOLDER_PATH_STR).build();
+                        .recipeFile(RECIPE_FOLDER_PATH_STR).build();
 
         verify(kernelAdapter).localOverride(expectedRequest);
 

@@ -2,19 +2,27 @@ package com.aws.iot.evergreen.cli.adapter.impl;
 
 import com.aws.iot.evergreen.cli.adapter.KernelAdapter;
 import com.aws.iot.evergreen.cli.adapter.LocalOverrideRequest;
+import com.aws.iot.evergreen.cli.model.DeploymentDocument;
+import com.aws.iot.evergreen.cli.model.DeploymentPackageConfiguration;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
+
 import java.io.IOException;
 import java.io.UnsupportedEncodingException;
 import java.net.URI;
 import java.net.URISyntaxException;
+import java.nio.file.Files;
+import java.nio.file.Paths;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collections;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
+import java.util.UUID;
+
 import org.apache.http.HttpEntity;
 import org.apache.http.HttpHeaders;
 import org.apache.http.NameValuePair;
@@ -71,7 +79,7 @@ public class KernelAdapterHttpClientImpl implements KernelAdapter {
     public void setConfigs(Map<String, String> configs) {
         URI uri;
         try {
-            URIBuilder uriBuilder = new URIBuilder(HTTP_ENDPOINT+ "set.txt");
+            URIBuilder uriBuilder = new URIBuilder(HTTP_ENDPOINT + "set.txt");
             configs.forEach(uriBuilder::setParameter);
             uri = uriBuilder.build();
         } catch (URISyntaxException e) {
@@ -109,31 +117,61 @@ public class KernelAdapterHttpClientImpl implements KernelAdapter {
 
     @Override
     public void localOverride(LocalOverrideRequest localOverrideRequest) {
-        // TODO Serialize and send the request over HTTP
-        // build request
-
         URI uri = null;
-
-        try {
-            uri = new URI(HTTP_ENDPOINT + "component/deploy");
-        } catch (URISyntaxException e) {
-            e.printStackTrace();
-        }
-
         StringEntity entity = null;
         try {
-            entity = new StringEntity(SERIALZIER.writeValueAsString(localOverrideRequest));
-        } catch (UnsupportedEncodingException | JsonProcessingException e) {
+            copyRecipeFileToPackageStorePath(localOverrideRequest);
+            uri = new URI(HTTP_ENDPOINT + "deploy");
+            //TODO: return deployment id
+            DeploymentDocument deploymentDocument = getDeploymentDocument(localOverrideRequest);
+            entity = new StringEntity(SERIALZIER.writeValueAsString(deploymentDocument));
+        } catch (Exception e) {
             e.printStackTrace();
         }
 
         HttpPost httpPost = new HttpPost(uri);
-
         httpPost.setEntity(entity);
         httpPost.setHeader("Accept", "application/json");
         httpPost.setHeader("Content-type", "application/json");
-
         sendHttpRequest(httpPost);
+    }
+
+    //TODO: copy artifacts folder
+    private void copyRecipeFileToPackageStorePath(LocalOverrideRequest localOverrideRequest) throws IOException {
+        String packageStorePath = getPackageStorePath();
+        System.out.println(packageStorePath);
+        String[] recipeFilePathParts = localOverrideRequest.getRecipeFile().split("/");
+        String recipeFileName = recipeFilePathParts[recipeFilePathParts.length - 1];
+        Files.copy(Paths.get(localOverrideRequest.getRecipeFile()), Paths.get(packageStorePath + "/recipes/" + recipeFileName));
+    }
+
+
+    //TODO: handle package parameters
+    private DeploymentDocument getDeploymentDocument(LocalOverrideRequest localOverrideRequest) throws JsonProcessingException {
+
+        List<String> rootPackages = new ArrayList<>();
+        List<DeploymentPackageConfiguration> packageConfiguration = new ArrayList<>();
+        for (String pkg : localOverrideRequest.getRootComponentNames()) {
+            String[] packageDetails = pkg.split("=");
+            rootPackages.add(packageDetails[0]);
+            packageConfiguration.add(new DeploymentPackageConfiguration(packageDetails[0], packageDetails[1], null, null));
+        }
+
+        return DeploymentDocument.builder().timestamp(System.currentTimeMillis())
+                        .deploymentId("Local-" + System.currentTimeMillis()).rootPackages(rootPackages)
+                        .deploymentPackageConfigurationList(packageConfiguration).build();
+
+    }
+
+    private String getPackageStorePath() {
+        URI uri;
+        try {
+            uri = new URI(HTTP_ENDPOINT + "deploy.json");
+        } catch (URISyntaxException e) {
+            throw new RuntimeException("Failed to construct config get uri");
+        }
+
+        return httpGet(uri);
     }
 
     private URI buildServiceOperationURI(Set<String> serviceNames) {

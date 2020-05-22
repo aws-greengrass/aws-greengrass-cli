@@ -26,6 +26,7 @@ import java.io.IOException;
 import java.io.UnsupportedEncodingException;
 import java.net.URI;
 import java.net.URISyntaxException;
+import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.Collections;
@@ -112,15 +113,20 @@ public class KernelAdapterHttpClientImpl implements KernelAdapter {
 
     @Override
     public void localOverride(LocalOverrideRequest localOverrideRequest) {
-        URI uri = null;
-        StringEntity entity = null;
+        StringEntity entity;
         try {
-            copyRecipeAndArtifactToPackageStore(localOverrideRequest.getRecipeDir(),
-                    localOverrideRequest.getArtifactDir());
-            uri = new URI(HTTP_ENDPOINT + "deploy");
             entity = new StringEntity(SERIALIZER.writeValueAsString(localOverrideRequest));
-        } catch (Exception e) {
-            e.printStackTrace();
+        } catch (UnsupportedEncodingException | JsonProcessingException e) {
+            throw new RuntimeException("Failed to serialize localOverrideRequest:", e);
+        }
+
+        copyRecipeAndArtifactToPackageStore(localOverrideRequest.getRecipeDir(), localOverrideRequest.getArtifactDir());
+
+        URI uri;
+        try {
+            uri = new URI(HTTP_ENDPOINT + "deploy");
+        } catch (URISyntaxException e) {
+            throw new RuntimeException("Failed to construct deploy uri", e);
         }
 
         HttpPost httpPost = new HttpPost(uri);
@@ -130,16 +136,38 @@ public class KernelAdapterHttpClientImpl implements KernelAdapter {
         sendHttpRequest(httpPost);
     }
 
-    private void copyRecipeAndArtifactToPackageStore(String recipeDir, String artifactDir) throws IOException {
+    private void copyRecipeAndArtifactToPackageStore(String recipeDir, String artifactDir) {
         String packageStorePath = getPackageStorePath();
-        System.out.println("Copying artifacts to package store: " + packageStorePath);
 
         if (recipeDir != null) {
-            FileUtils.copyFolderRecursively(Paths.get(recipeDir), Paths.get(packageStorePath, "recipes"));
+            Path recipeDirPath = Paths.get(recipeDir);
+            Path packageStoreRecipePath = Paths.get(packageStorePath, "recipes");
+
+            System.out.println(String.format("Copying provided recipes from: [%s] to Evergreen's package store: [%s]",
+                    recipeDirPath.toAbsolutePath().toString(), packageStoreRecipePath.toAbsolutePath().toString()));
+
+            try {
+                FileUtils.copyFolderRecursively(recipeDirPath, packageStoreRecipePath);
+            } catch (IOException e) {
+                throw new RuntimeException(
+                        "Encountered IO exceptions when copying provided recipes to Evergreen's package store.", e);
+            }
         }
 
         if (artifactDir != null) {
-            FileUtils.copyFolderRecursively(Paths.get(artifactDir), Paths.get(packageStorePath, "artifacts"));
+            Path artifactDirPath = Paths.get(artifactDir);
+            Path packageStoreRecipePath = Paths.get(packageStorePath, "artifacts");
+
+
+            System.out.println(String.format("Copying provided artifacts from: [%s] to Evergreen's package store: [%s]",
+                    artifactDirPath.toAbsolutePath().toString(), packageStoreRecipePath.toAbsolutePath().toString()));
+
+            try {
+                FileUtils.copyFolderRecursively(artifactDirPath, packageStoreRecipePath);
+            } catch (IOException e) {
+                throw new RuntimeException(
+                        "Encountered IO exceptions when copying provided artifacts to Evergreen's package store.", e);
+            }
         }
     }
 
@@ -147,9 +175,9 @@ public class KernelAdapterHttpClientImpl implements KernelAdapter {
     private String getPackageStorePath() {
         URI uri;
         try {
-            uri = new URI(HTTP_ENDPOINT + "deploy.json");
+            uri = new URI(HTTP_ENDPOINT + "deploy");
         } catch (URISyntaxException e) {
-            throw new RuntimeException("Failed to construct config get uri");
+            throw new RuntimeException("Failed to construct config get uri", e);
         }
 
         return httpGet(uri);

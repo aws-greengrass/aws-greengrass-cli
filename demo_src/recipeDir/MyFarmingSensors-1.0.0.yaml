@@ -1,0 +1,9 @@
+---
+RecipeTemplateVersion: '2020-01-25'
+PackageName: MyFarmingSensors
+Description: My Farming Sensors
+Publisher: Me
+Version: '1.0.0'
+Lifecycle:
+  run: node {{artifacts:path}}/hello-server.js
+  shutdown: kill $(lsof -t -i:8002)

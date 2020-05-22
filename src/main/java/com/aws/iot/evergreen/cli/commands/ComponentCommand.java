@@ -19,6 +19,8 @@ import javax.inject.Inject;
 @CommandLine.Command(name = "component", resourceBundle = "com.aws.iot.evergreen.cli.CLI_messages",
         subcommands = CommandLine.HelpCommand.class)
 public class ComponentCommand extends BaseCommand {
+    private static final ObjectMapper SERIALIZER = new ObjectMapper();
+
 
     @Inject
     private KernelAdapter kernelAdapter;
@@ -34,7 +36,6 @@ public class ComponentCommand extends BaseCommand {
                               paramLabel = "Key Value Pair") Map<String, String> parameters
 
     ) throws JsonProcessingException {
-
         // TODO Validate folder exists and folder structure
         Map<String, Map<String, Object>> componentNameToConfig = convertParameters(parameters);
 
@@ -45,10 +46,10 @@ public class ComponentCommand extends BaseCommand {
                 .requestTimestamp(System.currentTimeMillis()).build();
 
 
-        System.out.println(
-                "Submitting local override request: " + new ObjectMapper().writeValueAsString(localOverrideRequest));
+        System.out.println("Submitting local override request: " + SERIALIZER.writeValueAsString(localOverrideRequest));
 
         kernelAdapter.localOverride(localOverrideRequest);
+
         System.out.println("Local override request has been submitted!");
         return 0;
     }
@@ -56,8 +57,9 @@ public class ComponentCommand extends BaseCommand {
     /**
      * Convert parameters. For example: {Component.path.key: value} -> {Component: {path: {key: {value}}}}
      *
-     * @param params
-     * @return convertedParam
+     * @param params runtime parameters in the flat map
+     * @return converted runtime parameters map, with each key as component name and each value as the component's
+     *         configuration map
      */
     private Map<String, Map<String, Object>> convertParameters(Map<String, String> params) {
         if (params == null || params.isEmpty()) {

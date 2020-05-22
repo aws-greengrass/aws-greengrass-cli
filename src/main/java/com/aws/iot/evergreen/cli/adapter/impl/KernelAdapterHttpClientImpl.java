@@ -2,8 +2,6 @@ package com.aws.iot.evergreen.cli.adapter.impl;
 
 import com.aws.iot.evergreen.cli.adapter.KernelAdapter;
 import com.aws.iot.evergreen.cli.adapter.LocalOverrideRequest;
-import com.aws.iot.evergreen.cli.model.DeploymentDocument;
-import com.aws.iot.evergreen.cli.model.DeploymentPackageConfiguration;
 import com.aws.iot.evergreen.cli.util.FileUtils;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -41,7 +39,7 @@ public class KernelAdapterHttpClientImpl implements KernelAdapter {
 
     private static final String HTTP_ENDPOINT = "http://localhost:1441/";
 
-    private static final ObjectMapper SERIALZIER = new ObjectMapper();
+    private static final ObjectMapper SERIALIZER = new ObjectMapper();
 
     @Override
     public Map<String, String> getConfigs(Set<String> configPaths) {
@@ -117,9 +115,10 @@ public class KernelAdapterHttpClientImpl implements KernelAdapter {
         URI uri = null;
         StringEntity entity = null;
         try {
-            copyRecipeAndArtifactToPackageStore(localOverrideRequest.getRecipeDir(), localOverrideRequest.getArtifactDir());
+            copyRecipeAndArtifactToPackageStore(localOverrideRequest.getRecipeDir(),
+                    localOverrideRequest.getArtifactDir());
             uri = new URI(HTTP_ENDPOINT + "deploy");
-            entity = new StringEntity(SERIALZIER.writeValueAsString(localOverrideRequest));
+            entity = new StringEntity(SERIALIZER.writeValueAsString(localOverrideRequest));
         } catch (Exception e) {
             e.printStackTrace();
         }
@@ -131,8 +130,7 @@ public class KernelAdapterHttpClientImpl implements KernelAdapter {
         sendHttpRequest(httpPost);
     }
 
-    private void copyRecipeAndArtifactToPackageStore(String recipeDir,
-                                                     String artifactDir) throws IOException {
+    private void copyRecipeAndArtifactToPackageStore(String recipeDir, String artifactDir) throws IOException {
         String packageStorePath = getPackageStorePath();
         System.out.println("Copying artifacts to package store: " + packageStorePath);
 
@@ -228,7 +226,7 @@ public class KernelAdapterHttpClientImpl implements KernelAdapter {
 
     private Map<String, Map<String, String>> deserializeServicesStatus(String json) {
         try {
-            return SERIALZIER.readValue(json, Map.class);
+            return SERIALIZER.readValue(json, Map.class);
         } catch (JsonProcessingException e) {
             throw new RuntimeException("Failed to deserialize service status json " + json);
         }

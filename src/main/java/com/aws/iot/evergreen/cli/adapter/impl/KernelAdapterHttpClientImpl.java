@@ -4,25 +4,9 @@ import com.aws.iot.evergreen.cli.adapter.KernelAdapter;
 import com.aws.iot.evergreen.cli.adapter.LocalOverrideRequest;
 import com.aws.iot.evergreen.cli.model.DeploymentDocument;
 import com.aws.iot.evergreen.cli.model.DeploymentPackageConfiguration;
+import com.aws.iot.evergreen.cli.util.FileUtils;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
-
-import java.io.IOException;
-import java.io.UnsupportedEncodingException;
-import java.net.URI;
-import java.net.URISyntaxException;
-import java.nio.file.Files;
-import java.nio.file.Paths;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Collections;
-import java.util.LinkedHashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.Optional;
-import java.util.Set;
-import java.util.UUID;
-
 import org.apache.http.HttpEntity;
 import org.apache.http.HttpHeaders;
 import org.apache.http.NameValuePair;
@@ -39,6 +23,19 @@ import org.apache.http.impl.client.CloseableHttpClient;
 import org.apache.http.impl.client.HttpClients;
 import org.apache.http.message.BasicNameValuePair;
 import org.apache.http.util.EntityUtils;
+
+import java.io.IOException;
+import java.io.UnsupportedEncodingException;
+import java.net.URI;
+import java.net.URISyntaxException;
+import java.nio.file.Paths;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.LinkedHashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.Optional;
+import java.util.Set;
 
 public class KernelAdapterHttpClientImpl implements KernelAdapter {
 
@@ -120,11 +117,9 @@ public class KernelAdapterHttpClientImpl implements KernelAdapter {
         URI uri = null;
         StringEntity entity = null;
         try {
-            copyRecipeFileToPackageStorePath(localOverrideRequest);
+            copyRecipeAndArtifactToPackageStore(localOverrideRequest.getRecipeDir(), localOverrideRequest.getArtifactDir());
             uri = new URI(HTTP_ENDPOINT + "deploy");
-            //TODO: return deployment id
-            DeploymentDocument deploymentDocument = getDeploymentDocument(localOverrideRequest);
-            entity = new StringEntity(SERIALZIER.writeValueAsString(deploymentDocument));
+            entity = new StringEntity(SERIALZIER.writeValueAsString(localOverrideRequest));
         } catch (Exception e) {
             e.printStackTrace();
         }
@@ -136,32 +131,20 @@ public class KernelAdapterHttpClientImpl implements KernelAdapter {
         sendHttpRequest(httpPost);
     }
 
-    //TODO: copy artifacts folder
-    private void copyRecipeFileToPackageStorePath(LocalOverrideRequest localOverrideRequest) throws IOException {
+    private void copyRecipeAndArtifactToPackageStore(String recipeDir,
+                                                     String artifactDir) throws IOException {
         String packageStorePath = getPackageStorePath();
-        System.out.println(packageStorePath);
-        String[] recipeFilePathParts = localOverrideRequest.getRecipeFile().split("/");
-        String recipeFileName = recipeFilePathParts[recipeFilePathParts.length - 1];
-        Files.copy(Paths.get(localOverrideRequest.getRecipeFile()), Paths.get(packageStorePath + "/recipes/" + recipeFileName));
-    }
+        System.out.println("Copying artifacts to package store: " + packageStorePath);
 
-
-    //TODO: handle package parameters
-    private DeploymentDocument getDeploymentDocument(LocalOverrideRequest localOverrideRequest) throws JsonProcessingException {
-
-        List<String> rootPackages = new ArrayList<>();
-        List<DeploymentPackageConfiguration> packageConfiguration = new ArrayList<>();
-        for (String pkg : localOverrideRequest.getRootComponentNames()) {
-            String[] packageDetails = pkg.split("=");
-            rootPackages.add(packageDetails[0]);
-            packageConfiguration.add(new DeploymentPackageConfiguration(packageDetails[0], packageDetails[1], null, null));
+        if (recipeDir != null) {
+            FileUtils.copyFolderRecursively(Paths.get(recipeDir), Paths.get(packageStorePath, "recipes"));
         }
 
-        return DeploymentDocument.builder().timestamp(System.currentTimeMillis())
-                        .deploymentId("Local-" + System.currentTimeMillis()).rootPackages(rootPackages)
-                        .deploymentPackageConfigurationList(packageConfiguration).build();
-
+        if (artifactDir != null) {
+            FileUtils.copyFolderRecursively(Paths.get(artifactDir), Paths.get(packageStorePath, "artifacts"));
+        }
     }
+
 
     private String getPackageStorePath() {
         URI uri;
@@ -212,8 +195,8 @@ public class KernelAdapterHttpClientImpl implements KernelAdapter {
             }).orElse(null);
 
         } catch (IOException e) {
-            throw new RuntimeException(String.format("Failed to send http %s request, uri %s",
-                    requestBase.getMethod(), requestBase.getURI()));
+            throw new RuntimeException(String.format("Failed to send http %s request, uri %s", requestBase.getMethod(),
+                    requestBase.getURI()));
         }
     }
 

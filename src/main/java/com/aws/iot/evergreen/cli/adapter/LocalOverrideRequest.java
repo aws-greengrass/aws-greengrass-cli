@@ -7,11 +7,15 @@ import lombok.Builder;
 import lombok.Value;
 
 import java.util.List;
+import java.util.Map;
 
 @Value
 @Builder
 public class LocalOverrideRequest {
-    List<String> rootComponentNames;
-    String recipeFile;
+    Map<String, String> componentsToMerge;  // name to version
+    List<String> componentsToRemove; // remove just need name
+    String recipeDir;
     String artifactDir;
+
+    Map<String, Map<String, Object>> componentNameToConfig;
 }

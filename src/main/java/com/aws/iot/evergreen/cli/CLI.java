@@ -1,26 +1,34 @@
 /* Copyright 2019 Amazon.com, Inc. or its affiliates. All Rights Reserved.
  * SPDX-License-Identifier: Apache-2.0 */
+
 package com.aws.iot.evergreen.cli;
 
+import com.aws.iot.evergreen.cli.adapter.AdapterModule;
+import com.aws.iot.evergreen.cli.commands.ComponentCommand;
+import com.aws.iot.evergreen.cli.commands.Config;
+import com.aws.iot.evergreen.cli.commands.Health;
+import com.aws.iot.evergreen.cli.commands.Service;
 import com.google.inject.ConfigurationException;
 import com.google.inject.Guice;
 import com.google.inject.Injector;
 import com.google.inject.Module;
-
-import com.aws.iot.evergreen.cli.adapter.AdapterModule;
-import com.aws.iot.evergreen.cli.commands.Config;
-import com.aws.iot.evergreen.cli.commands.Health;
-import com.aws.iot.evergreen.cli.commands.Service;
 import picocli.CommandLine;
-import picocli.CommandLine.*;
+import picocli.CommandLine.Command;
+import picocli.CommandLine.HelpCommand;
+import picocli.CommandLine.IFactory;
 import picocli.CommandLine.Model.CommandSpec;
+import picocli.CommandLine.Option;
+import picocli.CommandLine.ParameterException;
+import picocli.CommandLine.Spec;
 
 import java.util.ResourceBundle;
 
 /**
  * Main entry point into the command line.
  */
-@Command(name = "cli", subcommands = {HelpCommand.class, Config.class, Health.class, Service.class}, resourceBundle = "com.aws.iot.evergreen.cli.CLI_messages")
+@Command(name = "cli",
+        subcommands = {HelpCommand.class, Config.class, Health.class, Service.class, ComponentCommand.class},
+        resourceBundle = "com.aws.iot.evergreen.cli.CLI_messages")
 public class CLI implements Runnable {
     @Option(names = "--host", defaultValue = "localhost")
     String host;
@@ -45,12 +53,13 @@ public class CLI implements Runnable {
 
     @Override
     public void run() {
-        String msg = ResourceBundle.getBundle("com.aws.iot.evergreen.cli.CLI_messages").getString("exception.missing.command");
+        String msg = ResourceBundle.getBundle("com.aws.iot.evergreen.cli.CLI_messages")
+                .getString("exception.missing.command");
         throw new ParameterException(spec.commandLine(), msg);
     }
 
 
-    static class GuiceFactory implements IFactory {
+    public static class GuiceFactory implements IFactory {
         private final Injector injector;
 
         public GuiceFactory(Module... modules) {

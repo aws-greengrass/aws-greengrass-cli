@@ -1,19 +1,10 @@
 package com.aws.iot.evergreen.cli.adapter.impl;
 
 import com.aws.iot.evergreen.cli.adapter.KernelAdapter;
+import com.aws.iot.evergreen.cli.adapter.LocalOverrideRequest;
+import com.aws.iot.evergreen.cli.util.FileUtils;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import java.io.IOException;
-import java.io.UnsupportedEncodingException;
-import java.net.URI;
-import java.net.URISyntaxException;
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.LinkedHashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.Optional;
-import java.util.Set;
 import org.apache.http.HttpEntity;
 import org.apache.http.HttpHeaders;
 import org.apache.http.NameValuePair;
@@ -21,17 +12,35 @@ import org.apache.http.client.entity.UrlEncodedFormEntity;
 import org.apache.http.client.methods.CloseableHttpResponse;
 import org.apache.http.client.methods.HttpDelete;
 import org.apache.http.client.methods.HttpGet;
+import org.apache.http.client.methods.HttpPost;
 import org.apache.http.client.methods.HttpPut;
 import org.apache.http.client.methods.HttpRequestBase;
 import org.apache.http.client.utils.URIBuilder;
+import org.apache.http.entity.StringEntity;
 import org.apache.http.impl.client.CloseableHttpClient;
 import org.apache.http.impl.client.HttpClients;
 import org.apache.http.message.BasicNameValuePair;
 import org.apache.http.util.EntityUtils;
 
+import java.io.IOException;
+import java.io.UnsupportedEncodingException;
+import java.net.URI;
+import java.net.URISyntaxException;
+import java.nio.file.Path;
+import java.nio.file.Paths;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.LinkedHashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.Optional;
+import java.util.Set;
+
 public class KernelAdapterHttpClientImpl implements KernelAdapter {
 
     private static final String HTTP_ENDPOINT = "http://localhost:1441/";
+
+    private static final ObjectMapper SERIALIZER = new ObjectMapper();
 
     @Override
     public Map<String, String> getConfigs(Set<String> configPaths) {
@@ -66,7 +75,7 @@ public class KernelAdapterHttpClientImpl implements KernelAdapter {
     public void setConfigs(Map<String, String> configs) {
         URI uri;
         try {
-            URIBuilder uriBuilder = new URIBuilder(HTTP_ENDPOINT+ "set.txt");
+            URIBuilder uriBuilder = new URIBuilder(HTTP_ENDPOINT + "set.txt");
             configs.forEach(uriBuilder::setParameter);
             uri = uriBuilder.build();
         } catch (URISyntaxException e) {
@@ -102,6 +111,78 @@ public class KernelAdapterHttpClientImpl implements KernelAdapter {
         return deserializeServicesStatus(httpDelete(buildServiceOperationURI(serviceNames)));
     }
 
+    @Override
+    public void localOverride(LocalOverrideRequest localOverrideRequest) {
+        StringEntity entity;
+        try {
+            entity = new StringEntity(SERIALIZER.writeValueAsString(localOverrideRequest));
+        } catch (UnsupportedEncodingException | JsonProcessingException e) {
+            throw new RuntimeException("Failed to serialize localOverrideRequest:", e);
+        }
+
+        copyRecipeAndArtifactToPackageStore(localOverrideRequest.getRecipeDir(), localOverrideRequest.getArtifactDir());
+
+        URI uri;
+        try {
+            uri = new URI(HTTP_ENDPOINT + "deploy");
+        } catch (URISyntaxException e) {
+            throw new RuntimeException("Failed to construct deploy uri", e);
+        }
+
+        HttpPost httpPost = new HttpPost(uri);
+        httpPost.setEntity(entity);
+        httpPost.setHeader("Accept", "application/json");
+        httpPost.setHeader("Content-type", "application/json");
+        sendHttpRequest(httpPost);
+    }
+
+    private void copyRecipeAndArtifactToPackageStore(String recipeDir, String artifactDir) {
+        String packageStorePath = getPackageStorePath();
+
+        if (recipeDir != null) {
+            Path recipeDirPath = Paths.get(recipeDir);
+            Path packageStoreRecipePath = Paths.get(packageStorePath, "recipes");
+
+            System.out.println(String.format("Copying provided recipes from: [%s] to Evergreen's package store: [%s]",
+                    recipeDirPath.toAbsolutePath().toString(), packageStoreRecipePath.toAbsolutePath().toString()));
+
+            try {
+                FileUtils.copyFolderRecursively(recipeDirPath, packageStoreRecipePath);
+            } catch (IOException e) {
+                throw new RuntimeException(
+                        "Encountered IO exceptions when copying provided recipes to Evergreen's package store.", e);
+            }
+        }
+
+        if (artifactDir != null) {
+            Path artifactDirPath = Paths.get(artifactDir);
+            Path packageStoreRecipePath = Paths.get(packageStorePath, "artifacts");
+
+
+            System.out.println(String.format("Copying provided artifacts from: [%s] to Evergreen's package store: [%s]",
+                    artifactDirPath.toAbsolutePath().toString(), packageStoreRecipePath.toAbsolutePath().toString()));
+
+            try {
+                FileUtils.copyFolderRecursively(artifactDirPath, packageStoreRecipePath);
+            } catch (IOException e) {
+                throw new RuntimeException(
+                        "Encountered IO exceptions when copying provided artifacts to Evergreen's package store.", e);
+            }
+        }
+    }
+
+
+    private String getPackageStorePath() {
+        URI uri;
+        try {
+            uri = new URI(HTTP_ENDPOINT + "deploy");
+        } catch (URISyntaxException e) {
+            throw new RuntimeException("Failed to construct config get uri", e);
+        }
+
+        return httpGet(uri);
+    }
+
     private URI buildServiceOperationURI(Set<String> serviceNames) {
         List<String> nameList = new ArrayList<>(serviceNames);
         String query = String.join("&", nameList);
@@ -115,8 +196,8 @@ public class KernelAdapterHttpClientImpl implements KernelAdapter {
 
     private String sendHttpRequest(HttpRequestBase requestBase) {
         requestBase.addHeader(HttpHeaders.USER_AGENT, "evergreen-cli");
-
         try (CloseableHttpClient httpClient = HttpClients.createDefault();
+
              CloseableHttpResponse response = httpClient.execute(requestBase)) {
 
             // Get HttpResponse Status
@@ -140,8 +221,8 @@ public class KernelAdapterHttpClientImpl implements KernelAdapter {
             }).orElse(null);
 
         } catch (IOException e) {
-            throw new RuntimeException(String.format("Failed to send http %s request, uri %s",
-                    requestBase.getMethod(), requestBase.getURI()));
+            throw new RuntimeException(String.format("Failed to send http %s request, uri %s", requestBase.getMethod(),
+                    requestBase.getURI()));
         }
     }
 
@@ -172,9 +253,8 @@ public class KernelAdapterHttpClientImpl implements KernelAdapter {
     }
 
     private Map<String, Map<String, String>> deserializeServicesStatus(String json) {
-        ObjectMapper objectMapper = new ObjectMapper();
         try {
-            return objectMapper.readValue(json, Map.class);
+            return SERIALIZER.readValue(json, Map.class);
         } catch (JsonProcessingException e) {
             throw new RuntimeException("Failed to deserialize service status json " + json);
         }

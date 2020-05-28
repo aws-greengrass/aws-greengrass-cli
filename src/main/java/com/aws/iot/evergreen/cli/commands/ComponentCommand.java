@@ -54,6 +54,15 @@ public class ComponentCommand extends BaseCommand {
         return 0;
     }
 
+    @CommandLine.Command(name = "list",
+            description = "Prints root level components names, component information and runtime parameters")
+    public int list() {
+        String componentsInfo = kernelAdapter.listComponents();
+        System.out.println("Applications currently running in Evergreen:");
+        System.out.println(componentsInfo);
+        return 0;
+    }
+
     /**
      * Convert parameters. For example: {Component.path.key: value} -> {Component: {path: {key: {value}}}}
      *

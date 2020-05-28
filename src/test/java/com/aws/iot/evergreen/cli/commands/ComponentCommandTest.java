@@ -178,6 +178,13 @@ class ComponentCommandTest {
         assertThat(exitCode, is(1));
     }
 
+    @Test
+    void WHEN_list_command_request_THEN_print_info_and_exit_0() {
+        int exitCode = runCommandLine("component", "list");
+        verify(kernelAdapter, only()).listComponents();
+        assertThat(exitCode, is(0));
+    }
+
     private int runCommandLine(String... args) {
         return new CommandLine(new CLI(), new CLI.GuiceFactory(new AbstractModule() {
             @Override

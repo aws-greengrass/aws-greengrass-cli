@@ -6,6 +6,7 @@
 package com.aws.iot.evergreen.cli.commands;
 
 import com.aws.iot.evergreen.cli.CLI;
+import com.aws.iot.evergreen.cli.adapter.AdapterModule;
 import com.aws.iot.evergreen.cli.adapter.KernelAdapter;
 import com.aws.iot.evergreen.cli.adapter.LocalOverrideRequest;
 import com.google.common.collect.ImmutableMap;
@@ -176,6 +177,13 @@ class ComponentCommandTest {
         int exitCode = runCommandLine("component", "update", "--param", "newComponent1=V1");
         verify(kernelAdapter, never()).localOverride(any());
         assertThat(exitCode, is(1));
+    }
+
+    @Test
+    void WHEN_list_components_called_THEN_print_info_and_exit_0(){
+        int exitCode = runCommandLine("component", "list");
+        verify(kernelAdapter, only()).listComponents();
+        assertThat(exitCode, is(0));
     }
 
     private int runCommandLine(String... args) {

@@ -2,8 +2,6 @@ package com.aws.iot.evergreen.cli.adapter.impl;
 
 import com.aws.iot.evergreen.cli.adapter.KernelAdapter;
 import com.aws.iot.evergreen.cli.adapter.LocalOverrideRequest;
-import com.aws.iot.evergreen.cli.model.DeploymentDocument;
-import com.aws.iot.evergreen.cli.model.DeploymentPackageConfiguration;
 import com.aws.iot.evergreen.cli.util.FileUtils;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -129,6 +127,17 @@ public class KernelAdapterHttpClientImpl implements KernelAdapter {
         httpPost.setHeader("Accept", "application/json");
         httpPost.setHeader("Content-type", "application/json");
         sendHttpRequest(httpPost);
+    }
+
+    @Override
+    public String listComponents() {
+        URI uri = null;
+        try {
+            uri = new URI(HTTP_ENDPOINT + "deploy");
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+        return httpDelete(uri);
     }
 
     private void copyRecipeAndArtifactToPackageStore(String recipeDir,

@@ -18,4 +18,6 @@ public interface KernelAdapter {
     Map<String, Map<String, String>> stopServices(Set<String> serviceNames);
 
     void localOverride(LocalOverrideRequest localOverrideRequest);
+
+    String listComponents();
 }

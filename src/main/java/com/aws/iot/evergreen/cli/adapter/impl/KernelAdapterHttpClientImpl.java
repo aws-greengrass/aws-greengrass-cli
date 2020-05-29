@@ -136,6 +136,17 @@ public class KernelAdapterHttpClientImpl implements KernelAdapter {
         sendHttpRequest(httpPost);
     }
 
+    @Override
+    public String listComponents() {
+        URI uri = null;
+        try {
+            uri = new URI(HTTP_ENDPOINT + "deploy");
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+        return httpDelete(uri);
+    }
+
     private void copyRecipeAndArtifactToPackageStore(String recipeDir, String artifactDir) {
         String packageStorePath = getPackageStorePath();
 

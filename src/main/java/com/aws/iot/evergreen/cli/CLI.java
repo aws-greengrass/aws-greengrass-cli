@@ -7,6 +7,7 @@ import com.aws.iot.evergreen.cli.adapter.AdapterModule;
 import com.aws.iot.evergreen.cli.commands.ComponentCommand;
 import com.aws.iot.evergreen.cli.commands.Config;
 import com.aws.iot.evergreen.cli.commands.Health;
+import com.aws.iot.evergreen.cli.commands.PromoteCommand;
 import com.aws.iot.evergreen.cli.commands.Service;
 import com.google.inject.ConfigurationException;
 import com.google.inject.Guice;
@@ -27,7 +28,8 @@ import java.util.ResourceBundle;
  * Main entry point into the command line.
  */
 @Command(name = "cli",
-        subcommands = {HelpCommand.class, Config.class, Health.class, Service.class, ComponentCommand.class},
+        subcommands = {HelpCommand.class, Config.class, Health.class, Service.class, ComponentCommand.class,
+                PromoteCommand.class},
         resourceBundle = "com.aws.iot.evergreen.cli.CLI_messages")
 public class CLI implements Runnable {
     @Option(names = "--host", defaultValue = "localhost")

@@ -15,8 +15,6 @@ import com.amazonaws.services.greengrasscomponentmanagement.model.CreateComponen
 import com.amazonaws.services.greengrasscomponentmanagement.model.CreateComponentArtifactUploadUrlResult;
 import com.amazonaws.services.greengrasscomponentmanagement.model.CreateComponentRequest;
 import com.amazonaws.services.greengrasscomponentmanagement.model.CreateComponentResult;
-import com.amazonaws.services.greengrasscomponentmanagement.model.InvalidInputException;
-import com.amazonaws.services.greengrasscomponentmanagement.model.ResourceAlreadyExistException;
 import com.amazonaws.services.greengrassfleetconfiguration.AWSGreengrassFleetConfiguration;
 import com.amazonaws.services.greengrassfleetconfiguration.AWSGreengrassFleetConfigurationClientBuilder;
 import com.amazonaws.services.greengrassfleetconfiguration.model.FailureHandlingPolicy;
@@ -25,22 +23,18 @@ import com.amazonaws.services.greengrassfleetconfiguration.model.PublishConfigur
 import com.amazonaws.services.greengrassfleetconfiguration.model.PublishConfigurationResult;
 import com.amazonaws.services.greengrassfleetconfiguration.model.SetConfigurationRequest;
 import com.amazonaws.services.greengrassfleetconfiguration.model.SetConfigurationResult;
+import com.fasterxml.jackson.core.JsonProcessingException;
 import picocli.CommandLine;
 
-import java.io.BufferedInputStream;
 import java.io.BufferedOutputStream;
 import java.io.File;
-import java.io.FileInputStream;
 import java.io.IOException;
 import java.net.HttpURLConnection;
 import java.net.URL;
 import java.nio.ByteBuffer;
 import java.nio.file.Files;
-import java.nio.file.Path;
 import java.nio.file.Paths;
-import java.util.Arrays;
-import java.util.List;
-import java.util.Objects;
+import java.util.Map;
 
 /**
  * Command for promoting local apps to Component Management Service, and trigger deployments via Fleet Configuration
@@ -55,57 +49,34 @@ public class PromoteCommand extends BaseCommand {
 
     private static final String THING_GROUP_TARGET_TYPE = "thinggroup";
 
-    @CommandLine.Command(name = "register-component",
+    @CommandLine.Command(name = "component",
             description = "Updates Evergreen applications with provided recipes, artifacts, and runtime parameters")
     public int component(
             @CommandLine.Option(names = {"-r", "--recipe-file"}, paramLabel = "File Path", required = true) String recipeFilePath,
-            @CommandLine.Option(names = {"-a", "--artifact-dir"}, paramLabel = "Folder", required = true) String artifactDir,
-            @CommandLine.Option(names = {"-c", "--component-name"}, paramLabel = "Component Name") String cname,
-            @CommandLine.Option(names = {"-v", "--component-version"}, paramLabel = "Component Version") String cversion
+            @CommandLine.Option(names = {"-a", "--artifact-dir"}, paramLabel = "Folder", required = true) String artifactDir
     ) throws IOException {
-        AWSGreengrassComponentManagement cmsClient = AWSGreengrassComponentManagementClientBuilder
-                .standard().withClientConfiguration(
-                        new ClientConfiguration().withRequestTimeout(50000).withClientExecutionTimeout(50000))
+        AWSGreengrassComponentManagement cmsClient =
+                AWSGreengrassComponentManagementClientBuilder.standard().withClientConfiguration(
+                new ClientConfiguration().withRequestTimeout(50000).withClientExecutionTimeout(50000))
                 .withEndpointConfiguration(new AwsClientBuilder.EndpointConfiguration(
                         CMS_BETA_ENDPOINT, BETA_REGION)).build();
         // 2.1. create-component
-        ByteBuffer recipeBuf;
-        recipeBuf = ByteBuffer.wrap(Files.readAllBytes(Paths.get(recipeFilePath)));
-        String componentName = null;
-        String componentVersion = null;
-        List<String> artifacts = null;
+        ByteBuffer recipeBuf = ByteBuffer.wrap(Files.readAllBytes(Paths.get(recipeFilePath)));
 
         CreateComponentRequest createComponentRequest = new CreateComponentRequest().withRecipe(recipeBuf);
-        try {
-            CreateComponentResult createComponentResult = cmsClient.createComponent(createComponentRequest);
-            System.out.println("Created component " + createComponentResult);
-            componentName = createComponentResult.getComponentName();
-            componentVersion = createComponentResult.getComponentVersion();
-            artifacts = createComponentResult.getArtifacts();
-        } catch (ResourceAlreadyExistException e) {
-            // TODO: seeing behaviors of duplicate requests in this call: getting failure message and creating
-            // components successfully at the same time.
-            // Not sure why ResourceAlreadyExistException on a brand new component. Need to follow up.
-            // As we know this component is created for the first time, we will just proceed with a workaround.
+        CreateComponentResult createComponentResult = cmsClient.createComponent(createComponentRequest);
 
-            // com.amazonaws.services.greengrasscomponentmanagement.model.ResourceAlreadyExistException:
-            // Package (HuiApp:1.0.0) already exist (Service: AWSGreengrassComponentManagement; Status Code: 409;
-            // Error Code: ResourceAlreadyExistException; Request ID: c1f4b9b8-54e0-4f7e-8221-aea4b7359823; Proxy: null)
-            System.out.println(e);
-
-            componentName = cname;
-            componentVersion = cversion;
-            artifacts = Arrays.asList(new File(artifactDir).list());
-        }
-        Objects.requireNonNull(componentName);
-        Objects.requireNonNull(componentVersion);
-        Objects.requireNonNull(artifacts);
+        System.out.println("Created component " + createComponentResult);
+        String componentName = createComponentResult.getComponentName();
+        String componentVersion = createComponentResult.getComponentVersion();
+        // TODO: follow up whether the result should contain artifacts list
+        // List<String> artifacts = createComponentResult.getArtifacts();
 
         // 2.2. create-component-artifact-upload-url
         // Assuming all artifacts are referenced by file name in the recipe
-        for (String artifactName : artifacts) {
-            Path artifact = Paths.get(artifactDir).resolve(artifactName);
-            System.out.println("Uploading [" + artifactName + "] from file://" + artifact.toAbsolutePath().toString());
+        for (File artifact : new File(artifactDir).listFiles()) {
+            String artifactName = artifact.getName();
+            System.out.println("Uploading [" + artifactName + "] from file://" + artifact.getAbsolutePath());
             CreateComponentArtifactUploadUrlRequest artifactUploadUrlRequest = new CreateComponentArtifactUploadUrlRequest()
                     .withArtifactName(artifactName)
                     .withComponentName(componentName)
@@ -118,52 +89,59 @@ public class PromoteCommand extends BaseCommand {
             connection.setRequestMethod("PUT");
             connection.connect();
             // read artifact from file
-            BufferedOutputStream bos = new BufferedOutputStream(connection.getOutputStream());
-            BufferedInputStream bis = new BufferedInputStream(new FileInputStream(artifact.toFile()));
-            int i;
-            // read byte by byte until end of stream
-            while ((i = bis.read()) > 0) {
-                bos.write(i);
+            try (BufferedOutputStream bos = new BufferedOutputStream(connection.getOutputStream())) {
+                long length = Files.copy(artifact.toPath(), bos);
+                System.out.println("File size: " + length);
             }
-            bis.close();
-            bos.close();
-            System.out.println(connection.getResponseMessage());
-            System.out.println("Uploaded");
+            System.out.println("Upload " + connection.getResponseMessage());
         }
 
         // 2.3. commit-component
-        try {
-            CommitComponentRequest commitComponentRequest = new CommitComponentRequest().withComponentName(componentName).withComponentVersion(componentVersion);
-            CommitComponentResult commitComponentResult = cmsClient.commitComponent(commitComponentRequest);
-            System.out.println("Committed component " + commitComponentResult);
-        } catch (InvalidInputException e) {
-            // TODO: also seeing behaviors of duplicate requests in this call: getting failure message and committing
-            // components successfully at the same time.
-
-            // com.amazonaws.services.greengrasscomponentmanagement.model.InvalidInputException:
-            // Package arn:aws:greengrass:us-east-1:634967961153:Package/HuiTestApp:1.0.0 is not in draft status, and
-            // only the draft package is allowed to be committed (Service: AWSGreengrassComponentManagement;
-            // Status Code: 400; Error Code: InvalidInputException; Request ID: 4aaa7de4-c94d-41c2-93d4-4134846bbc31;
-            // Proxy: null)
-            System.out.println(e);
-        }
+        CommitComponentRequest commitComponentRequest = new CommitComponentRequest().withComponentName(componentName)
+                .withComponentVersion(componentVersion);
+        CommitComponentResult commitComponentResult = cmsClient.commitComponent(commitComponentRequest);
+        System.out.println("Committed component " + commitComponentResult);
         return 0;
     }
 
-    @CommandLine.Command(name = "publish-configuration", description = "Deploy via Fleet Configuration Service")
+    @CommandLine.Command(name = "fleet-configuration", description = "Deploy via Fleet Configuration Service")
     public int configuration(
-            @CommandLine.Option(names = {"-n", "--thing-group-name"}, paramLabel = "thing-group-name", required = true) String thingGroupName) {
-        AWSGreengrassFleetConfiguration fcsClient = AWSGreengrassFleetConfigurationClientBuilder
-                .standard()
+            @CommandLine.Option(names = {"-n", "--thing-group-name"}, paramLabel = "thing-group-name",
+                    required = true) String thingGroupName,
+            @CommandLine.Option(names = {"-c", "--components"}, paramLabel = "Component and pinned version",
+                    required = true) Map<String, String> components,
+            @CommandLine.Option(names = {"-f", "--failure-handling-policy"}, paramLabel = "Failure Handling Policy",
+                    description = "Valid values: ${COMPLETION-CANDIDATES}", defaultValue = "DO_NOTHING")
+                    FailureHandlingPolicy policy,
+            @CommandLine.Option(names = {"-p", "--parameters"}, paramLabel = "Key Value Pairs")
+                    Map<String, String> parameters
+    ) throws JsonProcessingException {
+        Map<String, Map<String, Object>> componentNameToConfig = ComponentCommand.convertParameters(parameters);
+
+        AWSGreengrassFleetConfiguration fcsClient = AWSGreengrassFleetConfigurationClientBuilder.standard()
                 .withEndpointConfiguration(new AwsClientBuilder.EndpointConfiguration(
                         FCS_BETA_ENDPOINT, BETA_REGION)).build();
         // 3.1. set-configuration
-        // TODO: Update configuration
         SetConfigurationRequest setRequest = new SetConfigurationRequest()
                 .withTargetName(thingGroupName)
                 .withTargetType(THING_GROUP_TARGET_TYPE)
-                .withFailureHandlingPolicy(FailureHandlingPolicy.DO_NOTHING)
-                .addPackagesEntry("HuiTestApp", new PackageMetaData().withRootComponent(true).withVersion("1.0.0"));
+                .withFailureHandlingPolicy(policy);
+        for (Map.Entry<String, Map<String, Object>> entry : componentNameToConfig.entrySet()) {
+            String componentName = entry.getKey();
+            PackageMetaData metaData = new PackageMetaData();
+            if (components.containsKey(componentName)) {
+                metaData.withRootComponent(true).withVersion(components.get(componentName));
+            }
+            metaData.withConfiguration(ComponentCommand.SERIALIZER.writeValueAsString(entry.getValue()));
+            setRequest.addPackagesEntry(componentName, metaData);
+        }
+
+        components.keySet().removeAll(componentNameToConfig.keySet());
+        for (Map.Entry<String, String> entry : components.entrySet()) {
+            setRequest.addPackagesEntry(entry.getKey(),
+                    new PackageMetaData().withRootComponent(true).withVersion(entry.getValue()));
+        }
+
         SetConfigurationResult setResult = fcsClient.setConfiguration(setRequest);
         System.out.println("Created configuration " + setResult);
 

@@ -19,7 +19,7 @@ import javax.inject.Inject;
 @CommandLine.Command(name = "component", resourceBundle = "com.aws.iot.evergreen.cli.CLI_messages",
         subcommands = CommandLine.HelpCommand.class)
 public class ComponentCommand extends BaseCommand {
-    private static final ObjectMapper SERIALIZER = new ObjectMapper();
+    public static final ObjectMapper SERIALIZER = new ObjectMapper();
 
 
     @Inject
@@ -70,7 +70,7 @@ public class ComponentCommand extends BaseCommand {
      * @return converted runtime parameters map, with each key as component name and each value as the component's
      *         configuration map
      */
-    private Map<String, Map<String, Object>> convertParameters(Map<String, String> params) {
+    public static Map<String, Map<String, Object>> convertParameters(Map<String, String> params) {
         if (params == null || params.isEmpty()) {
             return Collections.emptyMap();
         }

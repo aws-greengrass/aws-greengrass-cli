@@ -33,7 +33,9 @@ import java.net.HttpURLConnection;
 import java.net.URL;
 import java.nio.ByteBuffer;
 import java.nio.file.Files;
+import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.util.List;
 import java.util.Map;
 
 /**
@@ -48,59 +50,25 @@ public class PromoteCommand extends BaseCommand {
     private static final String BETA_REGION = "us-east-1";
 
     private static final String THING_GROUP_TARGET_TYPE = "thinggroup";
+    private static final String COMPONENT_DIVIDER = "=====PROMOTE COMPONENT=====";
+    private static final String ARTIFACT_DIVIDER = "-----PROMOTE ARTIFACT------";
 
     @CommandLine.Command(name = "component",
             description = "Updates Evergreen applications with provided recipes, artifacts, and runtime parameters")
     public int component(
-            @CommandLine.Option(names = {"-r", "--recipe-file"}, paramLabel = "File Path", required = true) String recipeFilePath,
+            @CommandLine.Option(names = {"-r", "--recipe-file"}, paramLabel = "File Path", required = true) List<String> recipeFiles,
             @CommandLine.Option(names = {"-a", "--artifact-dir"}, paramLabel = "Folder", required = true) String artifactDir
     ) throws IOException {
+
         AWSGreengrassComponentManagement cmsClient =
                 AWSGreengrassComponentManagementClientBuilder.standard().withClientConfiguration(
                 new ClientConfiguration().withRequestTimeout(50000).withClientExecutionTimeout(50000))
                 .withEndpointConfiguration(new AwsClientBuilder.EndpointConfiguration(
                         CMS_BETA_ENDPOINT, BETA_REGION)).build();
-        // 2.1. create-component
-        ByteBuffer recipeBuf = ByteBuffer.wrap(Files.readAllBytes(Paths.get(recipeFilePath)));
-
-        CreateComponentRequest createComponentRequest = new CreateComponentRequest().withRecipe(recipeBuf);
-        CreateComponentResult createComponentResult = cmsClient.createComponent(createComponentRequest);
-
-        System.out.println("Created component " + createComponentResult);
-        String componentName = createComponentResult.getComponentName();
-        String componentVersion = createComponentResult.getComponentVersion();
-        // TODO: follow up whether the result should contain artifacts list
-        // List<String> artifacts = createComponentResult.getArtifacts();
-
-        // 2.2. create-component-artifact-upload-url
-        // Assuming all artifacts are referenced by file name in the recipe
-        for (File artifact : new File(artifactDir).listFiles()) {
-            String artifactName = artifact.getName();
-            System.out.println("Uploading [" + artifactName + "] from file://" + artifact.getAbsolutePath());
-            CreateComponentArtifactUploadUrlRequest artifactUploadUrlRequest = new CreateComponentArtifactUploadUrlRequest()
-                    .withArtifactName(artifactName)
-                    .withComponentName(componentName)
-                    .withComponentVersion(componentVersion);
-            CreateComponentArtifactUploadUrlResult artifactUploadUrlResult = cmsClient
-                    .createComponentArtifactUploadUrl(artifactUploadUrlRequest);
-            URL s3PreSignedURL = new URL(artifactUploadUrlResult.getUrl());
-            HttpURLConnection connection = (HttpURLConnection) s3PreSignedURL.openConnection();
-            connection.setDoOutput(true);
-            connection.setRequestMethod("PUT");
-            connection.connect();
-            // read artifact from file
-            try (BufferedOutputStream bos = new BufferedOutputStream(connection.getOutputStream())) {
-                long length = Files.copy(artifact.toPath(), bos);
-                System.out.println("File size: " + length);
-            }
-            System.out.println("Upload " + connection.getResponseMessage());
+        for (String recipeFilePath : recipeFiles) {
+            System.out.println(COMPONENT_DIVIDER);
+            promoteComponent(cmsClient, recipeFilePath, artifactDir);
         }
-
-        // 2.3. commit-component
-        CommitComponentRequest commitComponentRequest = new CommitComponentRequest().withComponentName(componentName)
-                .withComponentVersion(componentVersion);
-        CommitComponentResult commitComponentResult = cmsClient.commitComponent(commitComponentRequest);
-        System.out.println("Committed component " + commitComponentResult);
         return 0;
     }
 
@@ -151,8 +119,73 @@ public class PromoteCommand extends BaseCommand {
                 .withTargetType(setRequest.getTargetType())
                 .withRevisionId(setResult.getRevisionId());
         PublishConfigurationResult publishResult = fcsClient.publishConfiguration(publishRequest);
-        System.out.println("Published configuration " + publishResult);
+        System.out.println("\nPublished configuration " + publishResult);
         return 0;
     }
 
+    private void promoteComponent(AWSGreengrassComponentManagement cmsClient, String recipeFilePath,
+                                  String artifactDir) throws IOException {
+        // 2.1. create-component
+        ByteBuffer recipeBuf = ByteBuffer.wrap(Files.readAllBytes(Paths.get(recipeFilePath)));
+
+        CreateComponentRequest createComponentRequest = new CreateComponentRequest().withRecipe(recipeBuf);
+        CreateComponentResult createComponentResult = cmsClient.createComponent(createComponentRequest);
+
+        System.out.println("Created component " + createComponentResult);
+        String componentName = createComponentResult.getComponentName();
+        String componentVersion = createComponentResult.getComponentVersion();
+        // TODO: follow up whether the result should contain artifacts list
+        // List<String> artifacts = createComponentResult.getArtifacts();
+        CreateComponentArtifactUploadUrlRequest artifactUploadUrlRequest = new CreateComponentArtifactUploadUrlRequest()
+                .withComponentName(componentName)
+                .withComponentVersion(componentVersion);
+        Path artifactDirPath = Paths.get(artifactDir, componentName, componentVersion);
+        try {
+            File[] artifacts = artifactDirPath.toFile().listFiles();
+
+            // 2.2. create-component-artifact-upload-url
+            // Assuming all artifacts are referenced by file name in the recipe
+            for (File artifact : artifacts) {
+                if (skipArtifactUpload(artifact)) {
+                    continue;
+                }
+                uploadArtifact(cmsClient, artifact, artifactUploadUrlRequest.withArtifactName(artifact.getName()));
+            }
+        } catch (NullPointerException e) {
+            System.out.println("Skip artifact upload. No artifacts found at " + artifactDirPath.toAbsolutePath().toString());
+        }
+
+        // 2.3. commit-component
+        CommitComponentRequest commitComponentRequest = new CommitComponentRequest().withComponentName(componentName)
+                .withComponentVersion(componentVersion);
+        CommitComponentResult commitComponentResult = cmsClient.commitComponent(commitComponentRequest);
+        System.out.println("\nCommitted component " + commitComponentResult);
+    }
+
+    private boolean skipArtifactUpload(File artifact) {
+        if (artifact.getName().equals(".DS_Store") || artifact.isDirectory()) {
+            System.out.println("Skip artifact upload. Not a regular file: " + artifact.getAbsolutePath());
+            return true;
+        }
+        return false;
+    }
+
+    private void uploadArtifact(AWSGreengrassComponentManagement cmsClient, File artifact,
+                                CreateComponentArtifactUploadUrlRequest artifactUploadUrlRequest) throws IOException {
+        System.out.println(ARTIFACT_DIVIDER);
+        System.out.println("Uploading [" + artifact.getName() + "] from file://" + artifact.getAbsolutePath());
+        CreateComponentArtifactUploadUrlResult artifactUploadUrlResult = cmsClient
+                .createComponentArtifactUploadUrl(artifactUploadUrlRequest);
+        URL s3PreSignedURL = new URL(artifactUploadUrlResult.getUrl());
+        HttpURLConnection connection = (HttpURLConnection) s3PreSignedURL.openConnection();
+        connection.setDoOutput(true);
+        connection.setRequestMethod("PUT");
+        connection.connect();
+        // read artifact from file
+        try (BufferedOutputStream bos = new BufferedOutputStream(connection.getOutputStream())) {
+            long length = Files.copy(artifact.toPath(), bos);
+            System.out.println("File size: " + length);
+        }
+        System.out.println("Upload " + connection.getResponseMessage());
+    }
 }

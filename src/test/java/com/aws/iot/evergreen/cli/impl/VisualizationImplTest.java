@@ -19,7 +19,7 @@ public class VisualizationImplTest {
     void VisualizeHappyCase() {
         VisualizationImpl visualization = new VisualizationImpl();
         System.out.println(visualization.Visualize(logEntry));
-        assertEquals("2020 Jul 15 11:00:28 [DEBUG] (idle-connection-reaper) null: null. " +
+        assertEquals("2020 Jul 15 06:00:28 [DEBUG] (idle-connection-reaper) null: null. " +
                 "Closing connections idle longer than 60000 MILLISECONDS", visualization.Visualize(logEntry));
     }
 

@@ -22,7 +22,7 @@ public class FilterImplTest {
     private static final Timestamp beginTime1 = Timestamp.valueOf(LocalDateTime.parse("2020-07-14T00:00:00"));
     private static final Timestamp endTime1 = Timestamp.valueOf(LocalDateTime.parse("2020-07-14T01:00:00"));
 
-    private static final String goodTimeWindow = "2020-07-15T00:00:00,2020-07-15T12:00:00";
+    private static final String goodTimeWindow = "2020-07-14T00:00:00,2020-07-16T12:00:00";
     private static final String badTimeWindow = "2020-07-14T00:00:00,2020-07-14T12:00:00";
 
     private static final String[] goodFilterExpression = {"level=DEBUG,thread=dummy", "message=60000", "eventType=null"};

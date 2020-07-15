@@ -54,17 +54,10 @@ public class AggregationImplTest {
     @Test
     void TestReadLogInvalidPath() {
         String[] logFilePath = {"bad path"};
-        String[] logDirPath = {logDir.getPath() + "xxx"};
-
         Exception invalidLogFileException = assertThrows(RuntimeException.class,
                 () -> aggregation.ReadLog(logFilePath, null));
         assertTrue(invalidLogFileException.getMessage().contains("File path provided invalid: "
                 + logFilePath[0]));
-
-        Exception invalidLogDirException = assertThrows(RuntimeException.class,
-                () -> aggregation.ReadLog(null, logDirPath));
-        assertTrue(invalidLogDirException.getMessage().contains("Log dir provided invalid: "
-                + logDirPath[0]));
     }
 
     @Test
@@ -96,15 +89,6 @@ public class AggregationImplTest {
         assertEquals(logFile.getPath(), logFilePath.get(0).toString());
     }
 
-    @Test
-    void TestListLogInvalidDir() {
-        String[] logDirPath = {logDir.getPath() + "xxx"};
-
-        Exception invalidLogDirException = assertThrows(RuntimeException.class,
-                () -> aggregation.ListLog(logDirPath));
-        assertTrue(invalidLogDirException.getMessage().contains("Log dir provided invalid: "
-                + logDirPath[0]));
-    }
 
     @Test
     void TestListLogEmptyDir() {

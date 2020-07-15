@@ -12,6 +12,7 @@ import java.time.Instant;
 import java.util.Date;
 import java.util.Map;
 import java.util.Objects;
+import java.util.TimeZone;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
@@ -41,8 +42,10 @@ public class EvergreenStructuredLogMessage {
 
     @JsonIgnore
     public String getTextMessage() {
+        SimpleDateFormat dateFormat = new SimpleDateFormat("yyyy MMM dd hh:mm:ss");
+        dateFormat.setTimeZone(TimeZone.getTimeZone("UTC"));
         String msg = String.format("%s [%s] (%s) %s: %s",
-                new SimpleDateFormat("yyyy MMM dd hh:mm:ss").format(new Date(timestamp)),
+                dateFormat.format(new Date(timestamp)),
                 level, thread,
                 loggerName,
                 getFormattedMessage());

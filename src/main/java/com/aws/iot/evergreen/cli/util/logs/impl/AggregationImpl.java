@@ -28,35 +28,28 @@ public class AggregationImpl implements Aggregation {
          * TODO: implement Producer-Consumer model for ReadLog, which read lines into a shared BlockingQueue.
          */
         List<BufferedReader> logReaderList = new ArrayList<>();
-        //We keep this set to remove duplicates
-        Set<File> logFileSet = new HashSet<>();
 
-        // Reading files from --log-file into logFilePathList
+        // Scanning and reading files from logDir into logFilePathList
+        Set<File> logFileSet = new HashSet<>(listLog(logDir));
+
+        // Reading files from logFile into logFilePathList
         if (logFile != null) {
             for (String filePath : logFile) {
                 File file = new File(filePath);
                 if (!logFileSet.contains(file)) {
                     logFileSet.add(file);
-                    try {
-                        logReaderList.add(new BufferedReader(new FileReader(file)));
-                    } catch (FileNotFoundException e) {
-                        System.err.print(e.getMessage());
-                    }
                 }
+            }
+        }
+        // Construct BufferedReaders
+        for (File file : logFileSet) {
+            try {
+                logReaderList.add(new BufferedReader(new FileReader(file)));
+            } catch (FileNotFoundException e) {
+                System.err.print(e.getMessage());
             }
         }
 
-        // Scanning and reading files from directory --log-dir into logFilePathList
-        for (File file : listLog(logDir)) {
-            if (!logFileSet.contains(file)) {
-                logFileSet.add(file);
-                try {
-                    logReaderList.add(new BufferedReader(new FileReader(file)));
-                } catch (FileNotFoundException e) {
-                    System.err.print(e.getMessage());
-                }
-            }
-        }
         // Return BufferedReader
         if (logReaderList.isEmpty()) {
             if (logDir == null) {

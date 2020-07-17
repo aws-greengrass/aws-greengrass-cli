@@ -15,12 +15,14 @@ import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.PrintStream;
 import java.util.List;
+import java.util.Set;
 
 import static com.aws.iot.evergreen.cli.TestUtil.deleteDir;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.containsString;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 public class AggregationImplTest {
     private static final String logEntry = "{\"thread\":\"idle-connection-reaper\",\"level\":\"DEBUG\","
@@ -110,19 +112,19 @@ public class AggregationImplTest {
         writer.print(logEntry);
 
         String[] logDirPath = {logDir.getPath()};
-        List<File> logFileList = aggregation.listLog(logDirPath);
+        Set<File> logFileSet = aggregation.listLog(logDirPath);
 
-        assertEquals(1, logFileList.size());
-        assertEquals(logFile.getPath(), logFileList.get(0).toString());
+        assertEquals(1, logFileSet.size());
+        assertTrue(logFileSet.contains(logFile));
     }
 
 
     @Test
     void testListLogEmptyDir() {
         String[] logDirPath = {logDir.getPath()};
-        List<File> logFileList = aggregation.listLog(logDirPath);
+        Set<File> logFileSet = aggregation.listLog(logDirPath);
 
-        assertEquals(0, logFileList.size());
+        assertEquals(0, logFileSet.size());
     }
 
     @AfterEach

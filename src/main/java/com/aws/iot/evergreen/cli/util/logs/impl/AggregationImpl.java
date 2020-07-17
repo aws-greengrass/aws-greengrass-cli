@@ -33,17 +33,15 @@ public class AggregationImpl implements Aggregation {
          */
         List<BufferedReader> logReaderList = new ArrayList<>();
 
-        // Scanning and reading files from logDir into logFilePathList
-        Set<File> logFileSet = new HashSet<>(listLog(logDir));
+        Set<File> logFileSet = listLog(logDir);
 
-        // Reading files from logFile into logFilePathList
         if (logFile != null) {
             for (String filePath : logFile) {
                 File file = new File(filePath);
                 logFileSet.add(file);
             }
         }
-        // Construct BufferedReaders
+
         for (File file : logFileSet) {
             try {
                 logReaderList.add(new BufferedReader(new FileReader(file)));
@@ -52,7 +50,6 @@ public class AggregationImpl implements Aggregation {
             }
         }
 
-        // Return BufferedReader
         if (logReaderList.isEmpty()) {
             if (logDir == null) {
                 throw new RuntimeException("No valid log input. Please provide a log file or directory.");
@@ -65,14 +62,14 @@ public class AggregationImpl implements Aggregation {
     /*
      * List available log files from given directories.
      *
-     * @param logDir arguments of --log-dir or list-log-files
+     * @param logDir an array of file directories
      * @return a list of Path to each found log files
      */
     @Override
-    public List<File> listLog(String[] logDir) {
-        List<File> logFileList = new ArrayList<>();
+    public Set<File> listLog(String[] logDir) {
+        Set<File> logFileSet = new HashSet<>();
         if (logDir == null) {
-            return logFileList;
+            return logFileSet;
         }
         for (String dir : logDir) {
             try {
@@ -80,7 +77,7 @@ public class AggregationImpl implements Aggregation {
                 if (files != null) {
                     for (File file : files) {
                         if (isLogFile(file)) {
-                            logFileList.add(file);
+                            logFileSet.add(file);
                         }
                     }
                 }
@@ -92,7 +89,7 @@ public class AggregationImpl implements Aggregation {
                 throw new RuntimeException("Log dir provided invalid: " + dir, e);
             }
         }
-        return logFileList;
+        return logFileSet;
     }
 
     /*

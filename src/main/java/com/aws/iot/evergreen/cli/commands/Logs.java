@@ -19,6 +19,7 @@ import java.io.IOException;
 import java.io.PrintStream;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import javax.inject.Inject;
 
 @Command(name = "logs", resourceBundle = "com.aws.iot.evergreen.cli.CLI_messages", subcommands = HelpCommand.class)
@@ -77,13 +78,12 @@ public class Logs extends BaseCommand {
     @Command(name = "list-log-files")
     public int list_log(@CommandLine.Option(names = {"--log-dir"}, paramLabel = "Log Directory Paths")
                                     String[] logDir) {
-        List<File> logFilePathList = aggregation.listLog(logDir);
-        if (!logFilePathList.isEmpty()) {
-            for (File file : logFilePathList) {
+        Set<File> logFileSet = aggregation.listLog(logDir);
+        if (!logFileSet.isEmpty()) {
+            for (File file : logFileSet) {
                 printStream.println(file.getPath());
             }
-            printStream.format("Total %d files found.", logFilePathList.size());
-            printStream.close();
+            printStream.format("Total %d files found.", logFileSet.size());
             return 0;
         }
         printStream.println("No log file found.");

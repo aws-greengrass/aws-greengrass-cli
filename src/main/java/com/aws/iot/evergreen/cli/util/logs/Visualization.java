@@ -7,5 +7,5 @@ import com.aws.iot.evergreen.logging.impl.EvergreenStructuredLogMessage;
 
 
 public interface Visualization {
-    String visualize(EvergreenStructuredLogMessage eg);
+    String visualize(EvergreenStructuredLogMessage logMessage);
 }

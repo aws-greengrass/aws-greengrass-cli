@@ -11,7 +11,7 @@ public class VisualizationImpl implements Visualization {
      * Display a log entry in text format
      */
     @Override
-    public String visualize(EvergreenStructuredLogMessage eg) {
-        return eg.getTextMessage();
+    public String visualize(EvergreenStructuredLogMessage logMessage) {
+        return logMessage.getTextMessage();
     }
 }

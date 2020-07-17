@@ -4,11 +4,11 @@
 package com.aws.iot.evergreen.cli.util.logs;
 
 import java.io.BufferedReader;
-import java.nio.file.Path;
+import java.io.File;
 import java.util.List;
 
 public interface Aggregation {
     List<BufferedReader> readLog(String[] logFile, String[] logDir);
 
-    List<Path> listLog(String[] logDir);
+    List<File> listLog(String[] logDir);
 }

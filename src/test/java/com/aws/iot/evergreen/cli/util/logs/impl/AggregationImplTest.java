@@ -1,9 +1,8 @@
 /* Copyright Amazon.com, Inc. or its affiliates. All Rights Reserved.
  * SPDX-License-Identifier: Apache-2.0 */
 
-package com.aws.iot.evergreen.cli.impl;
+package com.aws.iot.evergreen.cli.util.logs.impl;
 
-import com.aws.iot.evergreen.cli.util.logs.impl.AggregationImpl;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -12,13 +11,13 @@ import org.junit.jupiter.api.io.TempDir;
 import java.io.BufferedReader;
 import java.io.File;
 import java.io.FileOutputStream;
+import java.io.IOException;
 import java.io.PrintStream;
-import java.nio.file.Path;
 import java.util.List;
 
+import static com.aws.iot.evergreen.cli.TestUtil.deleteDir;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
-import static org.junit.jupiter.api.Assertions.assertTrue;
 
 public class AggregationImplTest {
     private static final String logEntry = "{\"thread\":\"idle-connection-reaper\",\"level\":\"DEBUG\","
@@ -35,7 +34,7 @@ public class AggregationImplTest {
     }
 
     @Test
-    void testReadLogHappyCase() throws Exception {
+    void testReadLogHappyCase() throws IOException {
         logFile = new File(logDir.getPath() + "/evergreen.log");
         PrintStream writer = new PrintStream(new FileOutputStream(logFile));
         writer.print(logEntry);
@@ -56,12 +55,28 @@ public class AggregationImplTest {
     }
 
     @Test
+    void testReadLogDuplicateFile() throws IOException {
+        logFile = new File(logDir.getPath() + "/evergreen.log");
+        PrintStream writer = new PrintStream(new FileOutputStream(logFile));
+        writer.print(logEntry);
+
+        String[] logFilePath = {logFile.getAbsolutePath(), logFile.getAbsolutePath()};
+        String[] logDirPath = {logDir.getAbsolutePath()};
+
+        List<BufferedReader> readerArrayList = aggregation.readLog(logFilePath, logDirPath);
+        assertEquals(1, readerArrayList.size());
+
+        String line = readerArrayList.get(0).readLine();
+        assertEquals(line, logEntry);
+    }
+
+    @Test
     void testReadLogInvalidPath() {
         String[] logFilePath = {"bad path"};
         Exception invalidLogFileException = assertThrows(RuntimeException.class,
                 () -> aggregation.readLog(logFilePath, null));
-        assertTrue(invalidLogFileException.getMessage().contains("File path provided invalid: "
-                + logFilePath[0]));
+        assertEquals("No valid log input. Please provide a log file or directory.",
+                invalidLogFileException.getMessage());
     }
 
     @Test
@@ -70,7 +85,8 @@ public class AggregationImplTest {
 
         Exception emptyLogDirException = assertThrows(RuntimeException.class,
                 () -> aggregation.readLog(null, logDirPath));
-        assertEquals("Log directory provided contains no valid log files.", emptyLogDirException.getMessage());
+        assertEquals("Log directory provided contains no valid log files.",
+                emptyLogDirException.getMessage());
     }
 
     @Test
@@ -87,19 +103,19 @@ public class AggregationImplTest {
         writer.print(logEntry);
 
         String[] logDirPath = {logDir.getPath()};
-        List<Path> logFilePath = aggregation.listLog(logDirPath);
+        List<File> logFileList = aggregation.listLog(logDirPath);
 
-        assertEquals(1, logFilePath.size());
-        assertEquals(logFile.getPath(), logFilePath.get(0).toString());
+        assertEquals(1, logFileList.size());
+        assertEquals(logFile.getPath(), logFileList.get(0).toString());
     }
 
 
     @Test
     void testListLogEmptyDir() {
         String[] logDirPath = {logDir.getPath()};
-        List<Path> logFilePath = aggregation.listLog(logDirPath);
+        List<File> logFileList = aggregation.listLog(logDirPath);
 
-        assertEquals(0, logFilePath.size());
+        assertEquals(0, logFileList.size());
     }
 
     @AfterEach
@@ -107,13 +123,4 @@ public class AggregationImplTest {
         deleteDir(logDir);
     }
 
-    private void deleteDir(File file) {
-        File[] contents = file.listFiles();
-        if (contents != null) {
-            for (File f : contents) {
-                deleteDir(f);
-            }
-        }
-        file.delete();
-    }
 }

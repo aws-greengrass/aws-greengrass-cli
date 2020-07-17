@@ -14,14 +14,12 @@ import picocli.CommandLine.Command;
 import picocli.CommandLine.HelpCommand;
 
 import java.io.BufferedReader;
+import java.io.File;
 import java.io.IOException;
 import java.io.PrintStream;
-import java.io.PrintWriter;
-import java.nio.file.Path;
 import java.util.List;
 import java.util.Map;
 import javax.inject.Inject;
-
 
 @Command(name = "logs", resourceBundle = "com.aws.iot.evergreen.cli.CLI_messages", subcommands = HelpCommand.class)
 public class Logs extends BaseCommand {
@@ -42,62 +40,53 @@ public class Logs extends BaseCommand {
     @Setter
     private PrintStream printStream = new PrintStream(System.out);
 
+    @Setter
+    private PrintStream errorStream = new PrintStream(System.err);
+
     @Command(name = "get")
     public int get(@CommandLine.Option(names = {"--log-file"}, paramLabel = "Log File Paths") String[] logFile,
                    @CommandLine.Option(names = {"--log-dir"}, paramLabel = "Log Directory Paths") String[] logDir,
                    @CommandLine.Option(names = {"--time-window"}, paramLabel = "Time Window") String[] timeWindow,
-                   @CommandLine.Option(names = {"--filter"}, paramLabel = "Filter Expression") String[] filterExpressions
-    ) throws IOException {
-        PrintWriter writer = new PrintWriter(printStream);
+                   @CommandLine.Option(names = {"--filter"}, paramLabel = "Filter Expression")
+                               String[] filterExpressions) throws IOException {
         filter.composeRule(timeWindow, filterExpressions);
         List<BufferedReader> logReaderList = aggregation.readLog(logFile, logDir);
         for (BufferedReader reader : logReaderList) {
             String line = "";
             try {
                 while ((line = reader.readLine()) != null) {
+                    if (line.isEmpty()) {
+                        errorStream.println("Empty line from " + reader.toString());
+                        continue;
+                    }
                     if (filter.filter(line, mapper.readValue(line, Map.class))) {
-                        writer.println(visualization.visualize(
-                                mapper.readValue(line, EvergreenStructuredLogMessage.class)));
+                        printStream.println(visualization.visualize(mapper
+                                .readValue(line, EvergreenStructuredLogMessage.class)));
                     }
                 }
             } catch (IOException e) {
-                cleanUp(logReaderList, writer);
-                if (line.isEmpty()) {
-                    throw new RuntimeException("readLine() failed.", e);
-                }
-                /*
-                 * TODO: Separate into different error scenarios.
-                 * https://github.com/aws/aws-greengrass-cli/pull/14/files#r456012462
-                 * https://github.com/aws/aws-greengrass-cli/pull/14/files#r456015467
-                 */
-                throw new RuntimeException("Failed to serialize: " + line, e);
+                errorStream.println("Failed to serialize: " + line);
+                errorStream.println(e.getMessage());
+            } finally {
+                reader.close();
             }
         }
-        cleanUp(logReaderList, writer);
         return 0;
     }
 
     @Command(name = "list-log-files")
-    public int list_log(@CommandLine.Option(names = {"--log-dir"}, paramLabel = "Log Directory Paths") String[] logDir) {
-        List<Path> logFilePathList = aggregation.listLog(logDir);
-        PrintWriter writer = new PrintWriter(printStream);
+    public int list_log(@CommandLine.Option(names = {"--log-dir"}, paramLabel = "Log Directory Paths")
+                                    String[] logDir) {
+        List<File> logFilePathList = aggregation.listLog(logDir);
         if (!logFilePathList.isEmpty()) {
-            for (Path file : logFilePathList) {
-                writer.println(file);
+            for (File file : logFilePathList) {
+                printStream.println(file.getPath());
             }
-            writer.format("Total %d files found.", logFilePathList.size());
-            writer.close();
+            printStream.format("Total %d files found.", logFilePathList.size());
+            printStream.close();
             return 0;
         }
-        writer.println("No log file found.");
-        writer.close();
+        printStream.println("No log file found.");
         return 0;
-    }
-
-    private void cleanUp(List<BufferedReader> logReaderList, PrintWriter writer) throws IOException {
-        for (BufferedReader reader : logReaderList) {
-            reader.close();
-        }
-        writer.close();
     }
 }

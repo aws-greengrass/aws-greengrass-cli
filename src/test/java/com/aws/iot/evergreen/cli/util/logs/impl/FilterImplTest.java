@@ -1,11 +1,10 @@
 // Copyright Amazon.com, Inc. or its affiliates. All Rights Reserved.
 // SPDX-License-Identifier: Apache-2.0
 
-package com.aws.iot.evergreen.cli.impl;
+package com.aws.iot.evergreen.cli.util.logs.impl;
 
-import com.aws.iot.evergreen.cli.util.logs.impl.FilterImpl;
+import com.aws.iot.evergreen.cli.TestUtil;
 import com.fasterxml.jackson.core.JsonProcessingException;
-import com.fasterxml.jackson.databind.ObjectMapper;
 import org.junit.jupiter.api.Test;
 
 import java.sql.Timestamp;
@@ -45,7 +44,6 @@ public class FilterImplTest {
     private static final String invalidLogEntry = "{\"thread-idle-connection-reaper\",\"level\":\"DEBUG\","
             + "\"eventType\":\"null\",\"message\":\"Closing connections idle longer than 60000 MILLISECONDS\","
             + "\"timestamp\":1594836028088,\"cause\":null}";
-    private static final ObjectMapper mapper = new ObjectMapper();
 
     @Test
     public void testComposeRuleHappyCase() {
@@ -56,7 +54,7 @@ public class FilterImplTest {
         assertEquals(2, filter.getFilterMapCollection().size());
         assertEquals(2, filter.getParsedTimeWindowMap().size());
 
-        assertTrue(filter.getParsedTimeWindowMap().get(beginTime1).get(0).equals(endTime1));
+        assertTrue(filter.getParsedTimeWindowMap().get(beginTime1).equals(endTime1));
         assertTrue(filter.getFilterMapCollection().get(0).get("level").contains("DEBUG"));
         assertTrue(filter.getFilterMapCollection().get(0).get("level").contains("INFO"));
     }
@@ -75,9 +73,7 @@ public class FilterImplTest {
         assertEquals(2, filter2.getParsedTimeWindowMap().size());
 
         FilterImpl filter3 = new FilterImpl();
-        Exception emptyInputException = assertThrows(RuntimeException.class,
-                () -> filter3.composeRule(emptyTimeWindow, emptyFilterExpression));
-        assertEquals("No filter provided!", emptyInputException.getMessage());
+        filter3.composeRule(emptyTimeWindow, emptyFilterExpression);
         assertEquals(0, filter3.getFilterMapCollection().size());
         assertEquals(0, filter3.getParsedTimeWindowMap().size());
     }
@@ -99,7 +95,7 @@ public class FilterImplTest {
     @Test
     public void testFilterHappyCase() throws JsonProcessingException {
         FilterImpl filter = new FilterImpl();
-        Map<String, Object> parsedJsonMap = mapper.readValue(logEntry, Map.class);
+        Map<String, Object> parsedJsonMap = TestUtil.mapper.readValue(logEntry, Map.class);
 
         String[] timeWindow1 = {goodTimeWindow, badTimeWindow};
         filter.composeRule(timeWindow1, goodFilterExpression);
@@ -112,4 +108,13 @@ public class FilterImplTest {
         filter.composeRule(timeWindow1, badFilterExpression);
         assertFalse(filter.filter(logEntry, parsedJsonMap));
     }
+
+    @Test
+    public void testFilterEmptyCase() throws JsonProcessingException {
+        FilterImpl filter = new FilterImpl();
+        Map<String, Object> parsedJsonMap = TestUtil.mapper.readValue(logEntry, Map.class);
+        filter.composeRule(emptyTimeWindow, emptyFilterExpression);
+        assertTrue(filter.filter(logEntry, parsedJsonMap));
+    }
+
 }

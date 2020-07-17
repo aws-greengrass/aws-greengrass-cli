@@ -15,7 +15,7 @@ import java.util.Map;
 
 public class FilterImpl implements Filter {
     @Getter
-    private Map<Timestamp, List<Timestamp>> parsedTimeWindowMap = new HashMap<>();
+    private Map<Timestamp, Timestamp> parsedTimeWindowMap = new HashMap<>();
     @Getter
     private List<Map<String, List<String>>> filterMapCollection = new ArrayList<>();
 
@@ -28,7 +28,7 @@ public class FilterImpl implements Filter {
     }
 
     /*
-     * Parses time windows and filter expressions into parsedTimeWindow and filterMapCollection
+     * Parses time windows and filter expressions into parsedTimeWindow and filterMapCollection.
      *
      * @param timeWindow        arguments of --time-window beginTime,endTime
      * @param filterExpressions arguments of --filter key1=val1,key2-val2
@@ -37,68 +37,72 @@ public class FilterImpl implements Filter {
     public void composeRule(String[] timeWindow, String[] filterExpressions) {
         composeParsedTimeWindow(timeWindow);
         composeFilterMapCollection(filterExpressions);
-
-        if (filterMapCollection.isEmpty() && parsedTimeWindowMap.isEmpty()) {
-            throw new RuntimeException("No filter provided!");
-        }
     }
 
     /*
-     * Helper function to construct parsedTimeWindow
+     * Helper function to construct parsedTimeWindow.
      */
     private void composeParsedTimeWindow(String[] timeWindow) {
         /*
          *  TODO: Add support for simpler time window input. Handle time zone difference.
          *  https://github.com/aws/aws-greengrass-cli/pull/14#discussion_r455419380
          */
-
+        if (timeWindow == null) {
+            return;
+        }
         parsedTimeWindowMap.clear();
-        if (timeWindow != null) {
-            for (String window : timeWindow) {
-                String[] time = window.split(",");
+        for (String window : timeWindow) {
+            String[] time = window.split(",");
 
-                if (time.length != 2) {
-                    throw new RuntimeException("Time window provided invalid: " + window);
-                }
-
-                Timestamp beginTime = Timestamp.valueOf(LocalDateTime.parse(time[0]));
-                Timestamp endTime = Timestamp.valueOf(LocalDateTime.parse(time[1]));
-
-                if (!parsedTimeWindowMap.containsKey(beginTime)) {
-                    parsedTimeWindowMap.put(beginTime, new ArrayList<>());
-                }
-                parsedTimeWindowMap.get(beginTime).add(endTime);
+            if (time.length != 2) {
+                throw new RuntimeException("Time window provided invalid: " + window);
             }
+
+            Timestamp beginTime = Timestamp.valueOf(LocalDateTime.parse(time[0]));
+            Timestamp endTime = Timestamp.valueOf(LocalDateTime.parse(time[1]));
+
+            if (parsedTimeWindowMap.containsKey(beginTime)) {
+                if (parsedTimeWindowMap.get(beginTime).before(endTime)) {
+                    parsedTimeWindowMap.replace(beginTime, endTime);
+                }
+                continue;
+            }
+            parsedTimeWindowMap.put(beginTime, endTime);
         }
     }
 
     /*
-     * Helper function to construct filterMapCollection
+     * Helper function to construct filterMapCollection.
      */
     private void composeFilterMapCollection(String[] filterExpressions) {
-        //TODO: Add support for regex.
+        /*
+         * TODO: Add support for regex.
+         * TODO: Filtering by log level INFO should return all logs at INFO and above, instead of exactly at INFO level.
+         * https://github.com/aws/aws-greengrass-cli/pull/14#discussion_r456631858
+         */
+        if (filterExpressions == null) {
+            return;
+        }
+
         filterMapCollection.clear();
-        if (filterExpressions != null) {
-            for (String expression : filterExpressions) {
-                String[] parsedExpression = expression.split(",");
+        for (String expression : filterExpressions) {
+            String[] parsedExpression = expression.split(",");
 
-                Map<String, List<String>> filterMap = new HashMap<>();
+            Map<String, List<String>> filterMap = new HashMap<>();
 
-                for (String element : parsedExpression) {
-                    String[] parsedMap = element.split("=");
+            for (String element : parsedExpression) {
+                String[] parsedMap = element.split("=");
 
-                    if (parsedMap.length != 2) {
-                        throw new RuntimeException("Filter expression provided invalid: " + element);
-                    }
-
-                    if (!filterMap.containsKey(parsedMap[0])) {
-                        filterMap.put(parsedMap[0], new ArrayList<>());
-                    }
-                    filterMap.get(parsedMap[0]).add(parsedMap[1]);
+                if (parsedMap.length != 2) {
+                    throw new RuntimeException("Filter expression provided invalid: " + element);
                 }
 
-                filterMapCollection.add(filterMap);
+                if (!filterMap.containsKey(parsedMap[0])) {
+                    filterMap.put(parsedMap[0], new ArrayList<>());
+                }
+                filterMap.get(parsedMap[0]).add(parsedMap[1]);
             }
+            filterMapCollection.add(filterMap);
         }
     }
 
@@ -107,7 +111,7 @@ public class FilterImpl implements Filter {
      * Check if the data matches defined filter expression
      * "KEYWORD" defines keyword search
      * And-relation between filters
-     * Or-relation within filters
+     * Or-relation within filters.
      */
     private boolean checkFilterExpression(String logEntry, Map<String, Object> parsedJsonMap) {
         for (Map<String, List<String>> filterMap : filterMapCollection) {
@@ -133,19 +137,16 @@ public class FilterImpl implements Filter {
     }
 
     /*
-     * Check if the data matches defined time windows
+     * Check if the data matches defined time windows.
      */
     private boolean checkTimeWindow(Map<String, Object> parsedJsonMap) {
         if (parsedTimeWindowMap.isEmpty()) {
             return true;
         }
-        for (Map.Entry<Timestamp, List<Timestamp>> entry : parsedTimeWindowMap.entrySet()) {
-            for (Timestamp endTime : entry.getValue()) {
-                Timestamp dataTime = new Timestamp(Long.parseLong(parsedJsonMap.get("timestamp").toString()));
-
-                if (entry.getKey().before(dataTime) && endTime.after(dataTime)) {
-                    return true;
-                }
+        for (Map.Entry<Timestamp, Timestamp> entry : parsedTimeWindowMap.entrySet()) {
+            Timestamp dataTime = new Timestamp(Long.parseLong(parsedJsonMap.get("timestamp").toString()));
+            if (entry.getKey().before(dataTime) && entry.getValue().after(dataTime)) {
+                return true;
             }
         }
         return false;

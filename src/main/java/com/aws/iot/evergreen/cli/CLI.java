@@ -1,18 +1,26 @@
-/* Copyright 2019 Amazon.com, Inc. or its affiliates. All Rights Reserved.
- * SPDX-License-Identifier: Apache-2.0 */
-
+// Copyright Amazon.com, Inc. or its affiliates. All Rights Reserved.
+// SPDX-License-Identifier: Apache-2.0
 package com.aws.iot.evergreen.cli;
 
 import com.aws.iot.evergreen.cli.adapter.AdapterModule;
-import com.aws.iot.evergreen.cli.commands.*;
+import com.aws.iot.evergreen.cli.commands.ComponentCommand;
+import com.aws.iot.evergreen.cli.commands.Config;
+import com.aws.iot.evergreen.cli.commands.Health;
+import com.aws.iot.evergreen.cli.commands.Logs;
+import com.aws.iot.evergreen.cli.commands.Service;
 import com.aws.iot.evergreen.cli.util.logs.LogsModule;
 import com.google.inject.ConfigurationException;
 import com.google.inject.Guice;
 import com.google.inject.Injector;
 import com.google.inject.Module;
 import picocli.CommandLine;
-import picocli.CommandLine.*;
+import picocli.CommandLine.Command;
+import picocli.CommandLine.HelpCommand;
+import picocli.CommandLine.IFactory;
 import picocli.CommandLine.Model.CommandSpec;
+import picocli.CommandLine.Option;
+import picocli.CommandLine.ParameterException;
+import picocli.CommandLine.Spec;
 
 import java.util.ResourceBundle;
 

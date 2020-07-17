@@ -9,6 +9,7 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
 
 import java.io.BufferedReader;
+import java.io.ByteArrayOutputStream;
 import java.io.File;
 import java.io.FileOutputStream;
 import java.io.IOException;
@@ -16,6 +17,8 @@ import java.io.PrintStream;
 import java.util.List;
 
 import static com.aws.iot.evergreen.cli.TestUtil.deleteDir;
+import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.containsString;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 
@@ -27,10 +30,13 @@ public class AggregationImplTest {
     File logDir;
     private File logFile;
     private AggregationImpl aggregation;
+    private ByteArrayOutputStream errOutputStream;
 
     @BeforeEach
     void init() {
         aggregation = new AggregationImpl();
+        errOutputStream = new ByteArrayOutputStream();
+        aggregation.setErrorStream(new PrintStream(errOutputStream));
     }
 
     @Test
@@ -77,6 +83,7 @@ public class AggregationImplTest {
                 () -> aggregation.readLog(logFilePath, null));
         assertEquals("No valid log input. Please provide a log file or directory.",
                 invalidLogFileException.getMessage());
+        assertThat(errOutputStream.toString(), containsString("bad path (No such file or directory)"));
     }
 
     @Test

@@ -4,17 +4,21 @@
 package com.aws.iot.evergreen.cli.util.logs.impl;
 
 import com.aws.iot.evergreen.cli.util.logs.Aggregation;
+import lombok.Setter;
 
 import java.io.BufferedReader;
 import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.FileReader;
+import java.io.PrintStream;
 import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 
 public class AggregationImpl implements Aggregation {
+    @Setter
+    private PrintStream errorStream = new PrintStream(System.err);
     /*
      * Read log files from input commands.
      *
@@ -36,9 +40,7 @@ public class AggregationImpl implements Aggregation {
         if (logFile != null) {
             for (String filePath : logFile) {
                 File file = new File(filePath);
-                if (!logFileSet.contains(file)) {
-                    logFileSet.add(file);
-                }
+                logFileSet.add(file);
             }
         }
         // Construct BufferedReaders
@@ -46,7 +48,7 @@ public class AggregationImpl implements Aggregation {
             try {
                 logReaderList.add(new BufferedReader(new FileReader(file)));
             } catch (FileNotFoundException e) {
-                System.err.print(e.getMessage());
+                errorStream.println(e.getMessage());
             }
         }
 

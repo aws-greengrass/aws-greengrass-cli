@@ -13,9 +13,10 @@ import org.junit.jupiter.api.io.TempDir;
 
 import java.io.ByteArrayOutputStream;
 import java.io.File;
+import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
+import java.io.IOException;
 import java.io.PrintStream;
-import java.io.PrintWriter;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
@@ -40,7 +41,7 @@ public class LogsTest {
     @TempDir
     File logDir;
     private File logFile;
-    private ByteArrayOutputStream outContent;
+    private ByteArrayOutputStream byteArrayOutputStream;
 
     @BeforeEach
     void init() {
@@ -49,21 +50,27 @@ public class LogsTest {
         logs.setAggregation(new AggregationImpl());
         logs.setFilter(new FilterImpl());
         logs.setVisualization(new VisualizationImpl());
-        outContent = new ByteArrayOutputStream();
-        System.setOut(new PrintStream(outContent));
+        byteArrayOutputStream = new ByteArrayOutputStream();
+        logs.setPrintStream(new PrintStream(byteArrayOutputStream));
+        System.setOut(new PrintStream(byteArrayOutputStream));
+
     }
 
 
     @Test
-    void testGetHappyCase() throws Exception {
+    void testGetHappyCase() throws FileNotFoundException {
         String[] logFilePath = {logFile.getAbsolutePath()};
         PrintStream fileWriter = new PrintStream(new FileOutputStream(logFile));
         fileWriter.print(logEntry);
+        fileWriter.close();
+        try {
+            logs.get(logFilePath, null, timeWindow, filterExpression);
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
 
-        logs.get(logFilePath, null, timeWindow, filterExpression);
-        System.out.println(outContent.toString());
-        assertTrue(outContent.toString().contains("[DEBUG] (idle-connection-reaper) null: null. "
-                + "Closing connections idle longer than 60000 MILLISECONDS\n"));
+        assertTrue(byteArrayOutputStream.toString().contains("[DEBUG] (idle-connection-reaper) null: null. "
+                + "Closing connections idle longer than 60000 MILLISECONDS"));
     }
 
     @Test
@@ -71,6 +78,7 @@ public class LogsTest {
         String[] logFilePath = {logFile.getAbsolutePath()};
         PrintStream fileWriter = new PrintStream(new FileOutputStream(logFile));
         fileWriter.print(invalidLogEntry);
+        fileWriter.close();
 
         Exception invalidLogEntryException = assertThrows(RuntimeException.class,
                 () -> logs.get(logFilePath, null, timeWindow, filterExpression));
@@ -82,10 +90,11 @@ public class LogsTest {
         String[] logDirPath = {logDir.getAbsolutePath()};
         PrintStream fileWriter = new PrintStream(new FileOutputStream(logFile));
         fileWriter.print(logEntry);
+        fileWriter.close();
 
         logs.list_log(logDirPath);
         assertEquals(logFile.getAbsolutePath() + "\n" + "Total 1 files found.",
-                outContent.toString());
+                byteArrayOutputStream.toString());
     }
 
     @AfterEach

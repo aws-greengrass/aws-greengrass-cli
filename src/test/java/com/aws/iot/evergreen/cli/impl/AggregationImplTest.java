@@ -1,5 +1,6 @@
-// Copyright Amazon.com, Inc. or its affiliates. All Rights Reserved.
-// SPDX-License-Identifier: Apache-2.0
+/* Copyright Amazon.com, Inc. or its affiliates. All Rights Reserved.
+ * SPDX-License-Identifier: Apache-2.0 */
+
 package com.aws.iot.evergreen.cli.impl;
 
 import com.aws.iot.evergreen.cli.util.logs.impl.AggregationImpl;
@@ -20,11 +21,11 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 public class AggregationImplTest {
+    private static final String logEntry = "{\"thread\":\"idle-connection-reaper\",\"level\":\"DEBUG\","
+            + "\"eventType\":\"null\",\"message\":\"Closing connections idle longer than 60000 MILLISECONDS\","
+            + "\"timestamp\":1594836028088,\"cause\":null}";
     @TempDir
     File logDir;
-    private static final String logEntry = "{\"thread\":\"idle-connection-reaper\",\"level\":\"DEBUG\"," +
-            "\"eventType\":\"null\",\"message\":\"Closing connections idle longer than 60000 MILLISECONDS\"," +
-            "\"timestamp\":1594836028088,\"cause\":null}";
     private File testFolder;
     private File logFile;
     private AggregationImpl aggregation;
@@ -35,20 +36,20 @@ public class AggregationImplTest {
     }
 
     @Test
-    void TestReadLogHappyCase() throws Exception {
+    void testReadLogHappyCase() throws Exception {
         logFile = new File(logDir.getPath() + "/evergreen.log");
         PrintStream writer = new PrintStream(new FileOutputStream(logFile));
         writer.print(logEntry);
 
         String[] logFilePath = {logFile.getAbsolutePath()};
-        List<BufferedReader> readerArrayList = aggregation.ReadLog(logFilePath, null);
+        List<BufferedReader> readerArrayList = aggregation.readLog(logFilePath, null);
         assertEquals(1, readerArrayList.size());
 
         String line = readerArrayList.get(0).readLine();
         assertEquals(line, logEntry);
 
         String[] logDirPath = {logDir.getAbsolutePath()};
-        readerArrayList = aggregation.ReadLog(null, logDirPath);
+        readerArrayList = aggregation.readLog(null, logDirPath);
         assertEquals(1, readerArrayList.size());
 
         line = readerArrayList.get(0).readLine();
@@ -56,38 +57,38 @@ public class AggregationImplTest {
     }
 
     @Test
-    void TestReadLogInvalidPath() {
+    void testReadLogInvalidPath() {
         String[] logFilePath = {"bad path"};
         Exception invalidLogFileException = assertThrows(RuntimeException.class,
-                () -> aggregation.ReadLog(logFilePath, null));
+                () -> aggregation.readLog(logFilePath, null));
         assertTrue(invalidLogFileException.getMessage().contains("File path provided invalid: "
                 + logFilePath[0]));
     }
 
     @Test
-    void TestReadLogEmptyDir() {
+    void testReadLogEmptyDir() {
         String[] logDirPath = {logDir.getPath()};
 
         Exception emptyLogDirException = assertThrows(RuntimeException.class,
-                () -> aggregation.ReadLog(null, logDirPath));
+                () -> aggregation.readLog(null, logDirPath));
         assertEquals("Log directory provided contains no valid log files.", emptyLogDirException.getMessage());
     }
 
     @Test
-    void TestReadLogEmptyArg() {
+    void testReadLogEmptyArg() {
         Exception emptyArgException = assertThrows(RuntimeException.class,
-                () -> aggregation.ReadLog(null, null));
+                () -> aggregation.readLog(null, null));
         assertEquals("No valid log input. Please provide a log file or directory.", emptyArgException.getMessage());
     }
 
     @Test
-    void TestListLogHappyCase() throws Exception {
+    void testListLogHappyCase() throws Exception {
         logFile = new File(logDir.getPath() + "/evergreen.log");
         PrintStream writer = new PrintStream(new FileOutputStream(logFile));
         writer.print(logEntry);
 
         String[] logDirPath = {logDir.getPath()};
-        List<Path> logFilePath = aggregation.ListLog(logDirPath);
+        List<Path> logFilePath = aggregation.listLog(logDirPath);
 
         assertEquals(1, logFilePath.size());
         assertEquals(logFile.getPath(), logFilePath.get(0).toString());
@@ -95,9 +96,9 @@ public class AggregationImplTest {
 
 
     @Test
-    void TestListLogEmptyDir() {
+    void testListLogEmptyDir() {
         String[] logDirPath = {logDir.getPath()};
-        List<Path> logFilePath = aggregation.ListLog(logDirPath);
+        List<Path> logFilePath = aggregation.listLog(logDirPath);
 
         assertEquals(0, logFilePath.size());
     }

@@ -1,5 +1,6 @@
 // Copyright Amazon.com, Inc. or its affiliates. All Rights Reserved.
 // SPDX-License-Identifier: Apache-2.0
+
 package com.aws.iot.evergreen.cli.impl;
 
 import com.aws.iot.evergreen.cli.util.logs.impl.FilterImpl;
@@ -18,13 +19,15 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 
 public class FilterImplTest {
 
-    private static final String[] timeWindow = new String[]{"2020-07-14T00:00:00,2020-07-14T01:00:00", "2020-07-14T02:00:00,2020-07-16T03:00:00"};
+    private static final String[] timeWindow = new String[]{"2020-07-14T00:00:00,2020-07-14T01:00:00",
+            "2020-07-14T02:00:00,2020-07-16T03:00:00"};
     private static final String[] filterExpression = new String[]{"level=DEBUG,level=INFO", "thread=main-lifecycle"};
 
     private static final String[] emptyTimeWindow = new String[]{};
     private static final String[] emptyFilterExpression = new String[]{};
 
-    private static final String[] wrongTimeWindow = new String[]{"2020-07-14T00:00:992020-07-14T01:00:99", "2020-07-14T02:00:00,2020-07-14T03:00:00"};
+    private static final String[] wrongTimeWindow = new String[]{"2020-07-14T00:00:992020-07-14T01:00:99",
+            "2020-07-14T02:00:00,2020-07-14T03:00:00"};
     private static final String[] wrongFilterExpression = new String[]{"levelDEBUG,levelINFO", "threadmain-lifecycle"};
 
     private static final Timestamp beginTime1 = Timestamp.valueOf(LocalDateTime.parse("2020-07-14T00:00:00"));
@@ -36,12 +39,12 @@ public class FilterImplTest {
     private static final String[] goodFilterExpression = {"level=DEBUG,thread=dummy", "KEYWORD=60000", "eventType=null"};
     private static final String[] badFilterExpression = {"level=INFO", "KEYWORD=60000", "eventType=null"};
 
-    private static final String logEntry = "{\"thread\":\"idle-connection-reaper\",\"level\":\"DEBUG\"," +
-            "\"eventType\":\"null\",\"message\":\"Closing connections idle longer than 60000 MILLISECONDS\"," +
-            "\"timestamp\":1594836028088,\"cause\":null}";
-    private static final String invalidLogEntry = "{\"thread-idle-connection-reaper\",\"level\":\"DEBUG\"," +
-            "\"eventType\":\"null\",\"message\":\"Closing connections idle longer than 60000 MILLISECONDS\"," +
-            "\"timestamp\":1594836028088,\"cause\":null}";
+    private static final String logEntry = "{\"thread\":\"idle-connection-reaper\",\"level\":\"DEBUG\","
+            + "\"eventType\":\"null\",\"message\":\"Closing connections idle longer than 60000 MILLISECONDS\","
+            + "\"timestamp\":1594836028088,\"cause\":null}";
+    private static final String invalidLogEntry = "{\"thread-idle-connection-reaper\",\"level\":\"DEBUG\","
+            + "\"eventType\":\"null\",\"message\":\"Closing connections idle longer than 60000 MILLISECONDS\","
+            + "\"timestamp\":1594836028088,\"cause\":null}";
     private static final ObjectMapper mapper = new ObjectMapper();
 
     @Test
@@ -49,7 +52,7 @@ public class FilterImplTest {
 
         FilterImpl filter = new FilterImpl();
 
-        filter.ComposeRule(timeWindow, filterExpression);
+        filter.composeRule(timeWindow, filterExpression);
         assertEquals(2, filter.getFilterMapCollection().size());
         assertEquals(2, filter.getParsedTimeWindowMap().size());
 
@@ -62,18 +65,18 @@ public class FilterImplTest {
     public void testComposeRuleEmptyInput() {
 
         FilterImpl filter1 = new FilterImpl();
-        filter1.ComposeRule(emptyTimeWindow, filterExpression);
+        filter1.composeRule(emptyTimeWindow, filterExpression);
         assertEquals(2, filter1.getFilterMapCollection().size());
         assertEquals(0, filter1.getParsedTimeWindowMap().size());
 
         FilterImpl filter2 = new FilterImpl();
-        filter2.ComposeRule(timeWindow, emptyFilterExpression);
+        filter2.composeRule(timeWindow, emptyFilterExpression);
         assertEquals(0, filter2.getFilterMapCollection().size());
         assertEquals(2, filter2.getParsedTimeWindowMap().size());
 
         FilterImpl filter3 = new FilterImpl();
         Exception emptyInputException = assertThrows(RuntimeException.class,
-                () -> filter3.ComposeRule(emptyTimeWindow, emptyFilterExpression));
+                () -> filter3.composeRule(emptyTimeWindow, emptyFilterExpression));
         assertEquals("No filter provided!", emptyInputException.getMessage());
         assertEquals(0, filter3.getFilterMapCollection().size());
         assertEquals(0, filter3.getParsedTimeWindowMap().size());
@@ -85,11 +88,11 @@ public class FilterImplTest {
         FilterImpl filter = new FilterImpl();
 
         Exception timeWindowException = assertThrows(RuntimeException.class,
-                () -> filter.ComposeRule(wrongTimeWindow, filterExpression));
+                () -> filter.composeRule(wrongTimeWindow, filterExpression));
         assertEquals("Time window provided invalid: " + wrongTimeWindow[0], timeWindowException.getMessage());
 
         Exception filterExpressionException = assertThrows(RuntimeException.class,
-                () -> filter.ComposeRule(timeWindow, wrongFilterExpression));
+                () -> filter.composeRule(timeWindow, wrongFilterExpression));
         assertEquals("Filter expression provided invalid: " + "levelDEBUG", filterExpressionException.getMessage());
     }
 
@@ -99,14 +102,14 @@ public class FilterImplTest {
         Map<String, Object> parsedJsonMap = mapper.readValue(logEntry, Map.class);
 
         String[] timeWindow1 = {goodTimeWindow, badTimeWindow};
-        filter.ComposeRule(timeWindow1, goodFilterExpression);
-        assertTrue(filter.Filter(logEntry, parsedJsonMap));
+        filter.composeRule(timeWindow1, goodFilterExpression);
+        assertTrue(filter.filter(logEntry, parsedJsonMap));
 
         String[] timeWindow2 = {badTimeWindow};
-        filter.ComposeRule(timeWindow2, goodFilterExpression);
-        assertFalse(filter.Filter(logEntry, parsedJsonMap));
+        filter.composeRule(timeWindow2, goodFilterExpression);
+        assertFalse(filter.filter(logEntry, parsedJsonMap));
 
-        filter.ComposeRule(timeWindow1, badFilterExpression);
-        assertFalse(filter.Filter(logEntry, parsedJsonMap));
+        filter.composeRule(timeWindow1, badFilterExpression);
+        assertFalse(filter.filter(logEntry, parsedJsonMap));
     }
 }

@@ -1,5 +1,5 @@
-// Copyright Amazon.com, Inc. or its affiliates. All Rights Reserved.
-// SPDX-License-Identifier: Apache-2.0
+/* Copyright Amazon.com, Inc. or its affiliates. All Rights Reserved.
+ * SPDX-License-Identifier: Apache-2.0 */
 
 package com.aws.iot.evergreen.cli.util.logs.impl;
 
@@ -17,7 +17,7 @@ import java.util.ArrayList;
 import java.util.List;
 
 public class AggregationImpl implements Aggregation {
-    /**
+    /*
      * Read log files from input commands
      *
      * @param logFile arguments of --log-file
@@ -25,7 +25,7 @@ public class AggregationImpl implements Aggregation {
      * @return a list of BufferedReader, each reading one log file.
      */
     @Override
-    public List<BufferedReader> ReadLog(String[] logFile, String[] logDir) {
+    public List<BufferedReader> readLog(String[] logFile, String[] logDir) {
         /*
          * TODO: implement Producer-Consumer model for ReadLog, which read lines into a shared BlockingQueue.
          */
@@ -40,7 +40,7 @@ public class AggregationImpl implements Aggregation {
         }
 
         // Scanning and reading files from directory --log-dir into logFilePathList
-        logFilePathList.addAll(ListLog(logDir));
+        logFilePathList.addAll(listLog(logDir));
 
         // Return BufferedReader
         if (logFilePathList.isEmpty()) {
@@ -60,14 +60,14 @@ public class AggregationImpl implements Aggregation {
         return logReaderList;
     }
 
-    /**
+    /*
      * List available log files from given directories
      *
      * @param logDir arguments of --log-dir or list-log-files
      * @return a list of Path to each found log files.
      */
     @Override
-    public List<Path> ListLog(String[] logDir) {
+    public List<Path> listLog(String[] logDir) {
         List<Path> logFilePathList = new ArrayList<>();
         if (logDir != null) {
             for (String dir : logDir) {
@@ -75,8 +75,9 @@ public class AggregationImpl implements Aggregation {
                     File[] files = new File(dir).listFiles();
                     if (files != null) {
                         for (File file : files) {
-                            if (file.getName().contains("log"))
+                            if (file.getName().contains("log")) {
                                 logFilePathList.add(Paths.get(file.getPath()));
+                            }
                         }
                     }
                 } catch (Exception e) {

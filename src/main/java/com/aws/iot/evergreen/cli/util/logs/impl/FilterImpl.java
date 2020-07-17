@@ -1,5 +1,5 @@
-// Copyright Amazon.com, Inc. or its affiliates. All Rights Reserved.
-// SPDX-License-Identifier: Apache-2.0
+/* Copyright Amazon.com, Inc. or its affiliates. All Rights Reserved.
+ * SPDX-License-Identifier: Apache-2.0 */
 
 package com.aws.iot.evergreen.cli.util.logs.impl;
 
@@ -19,34 +19,34 @@ public class FilterImpl implements Filter {
     @Getter
     private List<Map<String, List<String>>> filterMapCollection = new ArrayList<>();
 
-    /**
+    /*
      * Determines if a log entry matches the defined filter.
      */
     @Override
-    public boolean Filter(String logEntry, Map<String, Object> parsedJsonMap) {
-        return CheckFilterExpression(logEntry, parsedJsonMap) && CheckTimeWindow(parsedJsonMap);
+    public boolean filter(String logEntry, Map<String, Object> parsedJsonMap) {
+        return checkFilterExpression(logEntry, parsedJsonMap) && checkTimeWindow(parsedJsonMap);
     }
 
-    /**
+    /*
      * Parses time windows and filter expressions into parsedTimeWindow and filterMapCollection
      *
      * @param timeWindow        arguments of --time-window beginTime,endTime
      * @param filterExpressions arguments of --filter key1=val1,key2-val2
      */
     @Override
-    public void ComposeRule(String[] timeWindow, String[] filterExpressions) {
-        ComposeParsedTimeWindow(timeWindow);
-        ComposeFilterMapCollection(filterExpressions);
+    public void composeRule(String[] timeWindow, String[] filterExpressions) {
+        composeParsedTimeWindow(timeWindow);
+        composeFilterMapCollection(filterExpressions);
 
         if (filterMapCollection.isEmpty() && parsedTimeWindowMap.isEmpty()) {
             throw new RuntimeException("No filter provided!");
         }
     }
 
-    /**
+    /*
      * Helper function to construct parsedTimeWindow
      */
-    private void ComposeParsedTimeWindow(String[] timeWindow) {
+    private void composeParsedTimeWindow(String[] timeWindow) {
         /*
          *  TODO: Add support for simpler time window input. Handle time zone difference.
          *  https://github.com/aws/aws-greengrass-cli/pull/14#discussion_r455419380
@@ -72,10 +72,10 @@ public class FilterImpl implements Filter {
         }
     }
 
-    /**
+    /*
      * Helper function to construct filterMapCollection
      */
-    private void ComposeFilterMapCollection(String[] filterExpressions) {
+    private void composeFilterMapCollection(String[] filterExpressions) {
         //TODO: Add support for regex.
         filterMapCollection.clear();
         if (filterExpressions != null) {
@@ -103,23 +103,23 @@ public class FilterImpl implements Filter {
     }
 
 
-    /**
+    /*
      * Check if the data matches defined filter expression
      * "KEYWORD" defines keyword search
      * And-relation between filters
      * Or-relation within filters
      */
-    private boolean CheckFilterExpression(String logEntry, Map<String, Object> parsedJsonMap) {
+    private boolean checkFilterExpression(String logEntry, Map<String, Object> parsedJsonMap) {
         for (Map<String, List<String>> filterMap : filterMapCollection) {
             boolean check = false;
-            for (String key : filterMap.keySet()) {
-                List<String> valArray = filterMap.get(key);
-                for (String val : valArray) {
-                    if (key.equals("KEYWORD") && logEntry.contains(val)) {
+            for (Map.Entry<String, List<String>> entry : filterMap.entrySet()) {
+                for (String val : entry.getValue()) {
+                    if (entry.getKey().equals("KEYWORD") && logEntry.contains(val)) {
                         check = true;
                         break;
                     }
-                    if (!key.equals("KEYWORD") && parsedJsonMap.containsKey(key) && parsedJsonMap.get(key).toString().equals(val)) {
+                    if (!entry.getKey().equals("KEYWORD") && parsedJsonMap.containsKey(entry.getKey())
+                            && parsedJsonMap.get(entry.getKey()).toString().equals(val)) {
                         check = true;
                         break;
                     }
@@ -132,19 +132,18 @@ public class FilterImpl implements Filter {
         return true;
     }
 
-    /**
+    /*
      * Check if the data matches defined time windows
      */
-    private boolean CheckTimeWindow(Map<String, Object> parsedJsonMap) {
+    private boolean checkTimeWindow(Map<String, Object> parsedJsonMap) {
         if (parsedTimeWindowMap.isEmpty()) {
             return true;
         }
         for (Map.Entry<Timestamp, List<Timestamp>> entry : parsedTimeWindowMap.entrySet()) {
-            Timestamp beginTime = entry.getKey();
             for (Timestamp endTime : entry.getValue()) {
                 Timestamp dataTime = new Timestamp(Long.parseLong(parsedJsonMap.get("timestamp").toString()));
 
-                if (beginTime.before(dataTime) && endTime.after(dataTime)) {
+                if (entry.getKey().before(dataTime) && endTime.after(dataTime)) {
                     return true;
                 }
             }

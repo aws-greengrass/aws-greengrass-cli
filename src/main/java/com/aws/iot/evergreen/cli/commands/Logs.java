@@ -15,6 +15,7 @@ import picocli.CommandLine.HelpCommand;
 
 import java.io.BufferedReader;
 import java.io.IOException;
+import java.io.PrintStream;
 import java.io.PrintWriter;
 import java.nio.file.Path;
 import java.util.List;
@@ -38,15 +39,18 @@ public class Logs extends BaseCommand {
     @Setter
     private Visualization visualization;
 
+    @Setter
+    private PrintStream printStream = new PrintStream(System.out);
+
     @Command(name = "get")
     public int get(@CommandLine.Option(names = {"--log-file"}, paramLabel = "Log File Paths") String[] logFile,
                    @CommandLine.Option(names = {"--log-dir"}, paramLabel = "Log Directory Paths") String[] logDir,
                    @CommandLine.Option(names = {"--time-window"}, paramLabel = "Time Window") String[] timeWindow,
                    @CommandLine.Option(names = {"--filter"}, paramLabel = "Filter Expression") String[] filterExpressions
     ) throws IOException {
-        PrintWriter writer = new PrintWriter(System.out);
-        List<BufferedReader> logReaderList = aggregation.readLog(logFile, logDir);
+        PrintWriter writer = new PrintWriter(printStream);
         filter.composeRule(timeWindow, filterExpressions);
+        List<BufferedReader> logReaderList = aggregation.readLog(logFile, logDir);
         for (BufferedReader reader : logReaderList) {
             String line = "";
             try {
@@ -76,7 +80,7 @@ public class Logs extends BaseCommand {
     @Command(name = "list-log-files")
     public int list_log(@CommandLine.Option(names = {"--log-dir"}, paramLabel = "Log Directory Paths") String[] logDir) {
         List<Path> logFilePathList = aggregation.listLog(logDir);
-        PrintWriter writer = new PrintWriter(System.out);
+        PrintWriter writer = new PrintWriter(printStream);
         if (!logFilePathList.isEmpty()) {
             for (Path file : logFilePathList) {
                 writer.println(file);

@@ -26,7 +26,6 @@ public class AggregationImplTest {
             + "\"timestamp\":1594836028088,\"cause\":null}";
     @TempDir
     File logDir;
-    private File testFolder;
     private File logFile;
     private AggregationImpl aggregation;
 

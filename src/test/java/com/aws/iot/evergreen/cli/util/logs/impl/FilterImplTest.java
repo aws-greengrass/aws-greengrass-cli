@@ -20,14 +20,13 @@ public class FilterImplTest {
 
     private static final String[] timeWindow = new String[]{"2020-07-14T00:00:00,2020-07-14T01:00:00",
             "2020-07-14T02:00:00,2020-07-16T03:00:00"};
-    private static final String[] filterExpression = new String[]{"level=DEBUG,level=INFO", "thread=main-lifecycle"};
+    private static final String[] filterExpression = new String[]{"level=DEBUG,cause=xxx", "thread=main-lifecycle"};
 
     private static final String[] emptyTimeWindow = new String[]{};
     private static final String[] emptyFilterExpression = new String[]{};
 
     private static final String[] wrongTimeWindow = new String[]{"2020-07-14T00:00:992020-07-14T01:00:99",
             "2020-07-14T02:00:00,2020-07-14T03:00:00"};
-    private static final String[] wrongFilterExpression = new String[]{"levelDEBUG,levelINFO", "threadmain-lifecycle"};
 
     private static final Timestamp beginTime1 = Timestamp.valueOf(LocalDateTime.parse("2020-07-14T00:00:00"));
     private static final Timestamp endTime1 = Timestamp.valueOf(LocalDateTime.parse("2020-07-14T01:00:00"));
@@ -35,13 +34,12 @@ public class FilterImplTest {
     private static final String goodTimeWindow = "2020-07-14T00:00:00,2020-07-16T12:00:00";
     private static final String badTimeWindow = "2020-07-14T00:00:00,2020-07-14T12:00:00";
 
-    private static final String[] goodFilterExpression = {"level=DEBUG,thread=dummy", "KEYWORD=60000", "eventType=null"};
-    private static final String[] badFilterExpression = {"level=INFO", "KEYWORD=60000", "eventType=null"};
+    private static final String[] goodFilterExpression = {"level=DEBUG,thread=dummy", "60000", "eventType=null"};
+    private static final String[] badFilterExpression = {"level=INFO", "60000", "eventType=null"};
+    private static final String[] logLevelFilterExpression = {"level=WARN", "60000", "eventType=null"};
+
 
     private static final String logEntry = "{\"thread\":\"idle-connection-reaper\",\"level\":\"DEBUG\","
-            + "\"eventType\":\"null\",\"message\":\"Closing connections idle longer than 60000 MILLISECONDS\","
-            + "\"timestamp\":1594836028088,\"cause\":null}";
-    private static final String invalidLogEntry = "{\"thread-idle-connection-reaper\",\"level\":\"DEBUG\","
             + "\"eventType\":\"null\",\"message\":\"Closing connections idle longer than 60000 MILLISECONDS\","
             + "\"timestamp\":1594836028088,\"cause\":null}";
 
@@ -51,45 +49,51 @@ public class FilterImplTest {
         FilterImpl filter = new FilterImpl();
 
         filter.composeRule(timeWindow, filterExpression);
-        assertEquals(2, filter.getFilterMapCollection().size());
+        assertEquals(2, filter.getFilterEntryCollection().size());
         assertEquals(2, filter.getParsedTimeWindowMap().size());
 
         assertTrue(filter.getParsedTimeWindowMap().get(beginTime1).equals(endTime1));
-        assertTrue(filter.getFilterMapCollection().get(0).get("level").contains("DEBUG"));
-        assertTrue(filter.getFilterMapCollection().get(0).get("level").contains("INFO"));
+        assertTrue(filter.getFilterEntryCollection().get(0).getFilterMap().get("level").contains("DEBUG"));
+        assertTrue(filter.getFilterEntryCollection().get(0).getFilterMap().get("level").contains("INFO"));
+        assertTrue(filter.getFilterEntryCollection().get(0).getFilterMap().get("cause").contains("xxx"));
     }
 
     @Test
     public void testComposeRuleEmptyInput() {
-
         FilterImpl filter1 = new FilterImpl();
         filter1.composeRule(emptyTimeWindow, filterExpression);
-        assertEquals(2, filter1.getFilterMapCollection().size());
+        assertEquals(2, filter1.getFilterEntryCollection().size());
         assertEquals(0, filter1.getParsedTimeWindowMap().size());
 
         FilterImpl filter2 = new FilterImpl();
         filter2.composeRule(timeWindow, emptyFilterExpression);
-        assertEquals(0, filter2.getFilterMapCollection().size());
+        assertEquals(0, filter2.getFilterEntryCollection().size());
         assertEquals(2, filter2.getParsedTimeWindowMap().size());
 
         FilterImpl filter3 = new FilterImpl();
         filter3.composeRule(emptyTimeWindow, emptyFilterExpression);
-        assertEquals(0, filter3.getFilterMapCollection().size());
+        assertEquals(0, filter3.getFilterEntryCollection().size());
         assertEquals(0, filter3.getParsedTimeWindowMap().size());
     }
 
     @Test
     public void testComposeRuleInvalidInput() {
-
         FilterImpl filter = new FilterImpl();
 
         Exception timeWindowException = assertThrows(RuntimeException.class,
                 () -> filter.composeRule(wrongTimeWindow, filterExpression));
         assertEquals("Time window provided invalid: " + wrongTimeWindow[0], timeWindowException.getMessage());
+    }
 
-        Exception filterExpressionException = assertThrows(RuntimeException.class,
-                () -> filter.composeRule(timeWindow, wrongFilterExpression));
-        assertEquals("Filter expression provided invalid: " + "levelDEBUG", filterExpressionException.getMessage());
+    @Test
+    public void testComposeRuleLogLevel() {
+        FilterImpl filter = new FilterImpl();
+        String[] timeWindow1 = {goodTimeWindow, badTimeWindow};
+        filter.composeRule(timeWindow1, logLevelFilterExpression);
+        assertFalse(filter.getFilterEntryCollection().get(0).getFilterMap().get("level").contains("INFO"));
+        assertTrue(filter.getFilterEntryCollection().get(0).getFilterMap().get("level").contains("WARN"));
+        assertTrue(filter.getFilterEntryCollection().get(0).getFilterMap().get("level").contains("ERROR"));
+
     }
 
     @Test

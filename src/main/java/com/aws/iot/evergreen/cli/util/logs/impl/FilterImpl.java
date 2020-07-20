@@ -30,8 +30,8 @@ public class FilterImpl implements Filter {
     /*
      * Parses time windows and filter expressions into parsedTimeWindow and filterMapCollection.
      *
-     * @param timeWindow        arguments of --time-window beginTime,endTime
-     * @param filterExpressions arguments of --filter key1=val1,key2-val2
+     * @param timeWindow array containing time windows in format "beginTime,endTime"
+     * @param filterExpressions array containing filter expressions in format "key1=val1,key2=val2"
      */
     @Override
     public void composeRule(String[] timeWindow, String[] filterExpressions) {

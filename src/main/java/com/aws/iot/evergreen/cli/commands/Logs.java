@@ -8,6 +8,7 @@ import com.aws.iot.evergreen.cli.util.logs.Filter;
 import com.aws.iot.evergreen.cli.util.logs.Visualization;
 import com.aws.iot.evergreen.logging.impl.EvergreenStructuredLogMessage;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import lombok.Getter;
 import lombok.Setter;
 import picocli.CommandLine;
 import picocli.CommandLine.Command;
@@ -39,10 +40,12 @@ public class Logs extends BaseCommand {
     private Visualization visualization;
 
     @Setter
-    private PrintStream printStream = new PrintStream(System.out);
+    @Getter
+    private PrintStream printStream = System.out;
 
     @Setter
-    private PrintStream errorStream = new PrintStream(System.err);
+    @Getter
+    private PrintStream errorStream = System.err;
 
     @Command(name = "get")
     public int get(@CommandLine.Option(names = {"--log-file"}, paramLabel = "Log File Paths") String[] logFile,

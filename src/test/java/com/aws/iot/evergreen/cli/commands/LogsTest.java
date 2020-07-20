@@ -115,5 +115,7 @@ public class LogsTest {
     @AfterEach
     void cleanup() {
         deleteDir(logDir);
+        logs.getPrintStream().close();
+        logs.getErrorStream().close();
     }
 }

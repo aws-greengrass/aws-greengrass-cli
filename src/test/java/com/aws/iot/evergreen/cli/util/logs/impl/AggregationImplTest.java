@@ -130,6 +130,7 @@ public class AggregationImplTest {
     @AfterEach
     void cleanup() {
         deleteDir(logDir);
+        aggregation.getErrorStream().close();
     }
 
 }

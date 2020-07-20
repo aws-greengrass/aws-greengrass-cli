@@ -8,7 +8,6 @@ import com.aws.iot.evergreen.cli.util.logs.Filter;
 import com.aws.iot.evergreen.cli.util.logs.Visualization;
 import com.aws.iot.evergreen.logging.impl.EvergreenStructuredLogMessage;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import lombok.Getter;
 import lombok.Setter;
 import picocli.CommandLine;
 import picocli.CommandLine.Command;
@@ -40,11 +39,9 @@ public class Logs extends BaseCommand {
     private Visualization visualization;
 
     @Setter
-    @Getter
     private PrintStream printStream = System.out;
 
     @Setter
-    @Getter
     private PrintStream errorStream = System.err;
 
     @Command(name = "get")

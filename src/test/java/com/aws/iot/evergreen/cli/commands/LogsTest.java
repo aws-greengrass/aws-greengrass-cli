@@ -45,9 +45,11 @@ public class LogsTest {
     @TempDir
     File logDir;
     private File logFile;
+
     private ByteArrayOutputStream byteArrayOutputStream;
     private ByteArrayOutputStream errOutputStream;
-
+    private PrintStream printStream;
+    private PrintStream errorStream;
 
     @BeforeEach
     void init() {
@@ -58,10 +60,11 @@ public class LogsTest {
         logs.setVisualization(new VisualizationImpl());
         byteArrayOutputStream = new ByteArrayOutputStream();
         errOutputStream = new ByteArrayOutputStream();
-        logs.setPrintStream(new PrintStream(byteArrayOutputStream));
-        logs.setErrorStream(new PrintStream(errOutputStream));
+        printStream = new PrintStream(byteArrayOutputStream);
+        errorStream = new PrintStream(errOutputStream);
+        logs.setPrintStream(printStream);
+        logs.setErrorStream(errorStream);
     }
-
 
     @Test
     void testGetHappyCase() throws IOException {
@@ -115,7 +118,7 @@ public class LogsTest {
     @AfterEach
     void cleanup() {
         deleteDir(logDir);
-        logs.getPrintStream().close();
-        logs.getErrorStream().close();
+        printStream.close();
+        errorStream.close();
     }
 }

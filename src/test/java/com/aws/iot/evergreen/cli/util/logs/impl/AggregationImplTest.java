@@ -33,12 +33,14 @@ public class AggregationImplTest {
     private File logFile;
     private AggregationImpl aggregation;
     private ByteArrayOutputStream errOutputStream;
+    private PrintStream errorStream;
 
     @BeforeEach
     void init() {
         aggregation = new AggregationImpl();
         errOutputStream = new ByteArrayOutputStream();
-        aggregation.setErrorStream(new PrintStream(errOutputStream));
+        errorStream = new PrintStream(errOutputStream);
+        aggregation.setErrorStream(errorStream);
     }
 
     @Test
@@ -130,7 +132,7 @@ public class AggregationImplTest {
     @AfterEach
     void cleanup() {
         deleteDir(logDir);
-        aggregation.getErrorStream().close();
+        errorStream.close();
     }
 
 }

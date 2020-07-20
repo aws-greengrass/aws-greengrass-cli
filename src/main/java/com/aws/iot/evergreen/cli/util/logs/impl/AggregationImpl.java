@@ -4,7 +4,6 @@
 package com.aws.iot.evergreen.cli.util.logs.impl;
 
 import com.aws.iot.evergreen.cli.util.logs.Aggregation;
-import lombok.Getter;
 import lombok.Setter;
 
 import java.io.BufferedReader;
@@ -19,7 +18,6 @@ import java.util.Set;
 
 public class AggregationImpl implements Aggregation {
     @Setter
-    @Getter
     private PrintStream errorStream = System.err;
     /*
      * Read log files from input commands.

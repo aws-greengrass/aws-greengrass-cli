@@ -25,6 +25,11 @@ public class FilterImpl implements Filter {
     @Getter
     private List<FilterEntry> filterEntryCollection = new ArrayList<>();
 
+    // defined delimiters to parse filter expressions and time windows.
+    private static final String filterDelimiter = ",";
+    private static final String timeWindowDelimiter = ",";
+    private static final String keyValDelimiter = "=";
+
     /*
      *  A helper entry class for filter expression
      */
@@ -69,7 +74,7 @@ public class FilterImpl implements Filter {
         }
         parsedTimeWindowMap.clear();
         for (String window : timeWindow) {
-            String[] time = window.split(",");
+            String[] time = window.split(timeWindowDelimiter);
 
             if (time.length != 2) {
                 throw new RuntimeException("Time window provided invalid: " + window);
@@ -99,14 +104,14 @@ public class FilterImpl implements Filter {
 
         filterEntryCollection.clear();
         for (String expression : filterExpressions) {
-            String[] parsedExpression = expression.split(",");
+            String[] parsedExpression = expression.split(filterDelimiter);
 
             Map<String, Set<String>> filterMap = new HashMap<>();
             List<Pattern> regexList = new ArrayList<>();
             for (String element : parsedExpression) {
                 // If it contains =, treat it as a key-val pair
                 if (element.contains("=")) {
-                    String[] parsedMap = element.split("=");
+                    String[] parsedMap = element.split(keyValDelimiter);
                     if (parsedMap.length != 2) {
                         throw new RuntimeException("Filter expression provided invalid: " + element);
                     }

@@ -3,6 +3,7 @@
 
 package com.aws.iot.evergreen.cli.util.logs.impl;
 
+import com.aws.iot.evergreen.cli.util.logs.LogsUtil;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -40,7 +41,7 @@ public class AggregationImplTest {
         aggregation = new AggregationImpl();
         errOutputStream = new ByteArrayOutputStream();
         errorStream = new PrintStream(errOutputStream);
-        aggregation.setErrorStream(errorStream);
+        LogsUtil.setErrorStream(errorStream);
     }
 
     @Test

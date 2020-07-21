@@ -4,13 +4,20 @@
 package com.aws.iot.evergreen.cli.util.logs.impl;
 
 import com.aws.iot.evergreen.cli.TestUtil;
+import com.aws.iot.evergreen.cli.util.logs.LogsUtil;
 import com.fasterxml.jackson.core.JsonProcessingException;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
+import java.io.ByteArrayOutputStream;
+import java.io.PrintStream;
 import java.sql.Timestamp;
 import java.time.LocalDateTime;
 import java.util.Map;
 
+import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.containsString;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertThrows;
@@ -37,17 +44,28 @@ public class FilterImplTest {
     private static final String[] goodFilterExpression = {"level=DEBUG,thread=dummy", "60000", "eventType=null"};
     private static final String[] badFilterExpression = {"level=INFO", "60000", "eventType=null"};
     private static final String[] logLevelFilterExpression = {"level=WARN", "60000", "eventType=null"};
+    private static final String[] invalidLogLevelFilterExpression = {"level=WARNING", "60000", "eventType=null"};
+
 
 
     private static final String logEntry = "{\"thread\":\"idle-connection-reaper\",\"level\":\"DEBUG\","
             + "\"eventType\":\"null\",\"message\":\"Closing connections idle longer than 60000 MILLISECONDS\","
             + "\"timestamp\":1594836028088,\"cause\":null}";
 
+    private FilterImpl filter;
+    private ByteArrayOutputStream errOutputStream;
+    private PrintStream errorStream;
+
+    @BeforeEach
+    void init() {
+        filter = new FilterImpl();
+        errOutputStream = new ByteArrayOutputStream();
+        errorStream = new PrintStream(errOutputStream);
+        LogsUtil.setErrorStream(errorStream);
+    }
+
     @Test
     public void testComposeRuleHappyCase() {
-
-        FilterImpl filter = new FilterImpl();
-
         filter.composeRule(timeWindow, filterExpression);
         assertEquals(2, filter.getFilterEntryCollection().size());
         assertEquals(2, filter.getParsedTimeWindowMap().size());
@@ -60,26 +78,21 @@ public class FilterImplTest {
 
     @Test
     public void testComposeRuleEmptyInput() {
-        FilterImpl filter1 = new FilterImpl();
-        filter1.composeRule(emptyTimeWindow, filterExpression);
-        assertEquals(2, filter1.getFilterEntryCollection().size());
-        assertEquals(0, filter1.getParsedTimeWindowMap().size());
+        filter.composeRule(emptyTimeWindow, filterExpression);
+        assertEquals(2, filter.getFilterEntryCollection().size());
+        assertEquals(0, filter.getParsedTimeWindowMap().size());
 
-        FilterImpl filter2 = new FilterImpl();
-        filter2.composeRule(timeWindow, emptyFilterExpression);
-        assertEquals(0, filter2.getFilterEntryCollection().size());
-        assertEquals(2, filter2.getParsedTimeWindowMap().size());
+        filter.composeRule(timeWindow, emptyFilterExpression);
+        assertEquals(0, filter.getFilterEntryCollection().size());
+        assertEquals(2, filter.getParsedTimeWindowMap().size());
 
-        FilterImpl filter3 = new FilterImpl();
-        filter3.composeRule(emptyTimeWindow, emptyFilterExpression);
-        assertEquals(0, filter3.getFilterEntryCollection().size());
-        assertEquals(0, filter3.getParsedTimeWindowMap().size());
+        filter.composeRule(emptyTimeWindow, emptyFilterExpression);
+        assertEquals(0, filter.getFilterEntryCollection().size());
+        assertEquals(0, filter.getParsedTimeWindowMap().size());
     }
 
     @Test
     public void testComposeRuleInvalidInput() {
-        FilterImpl filter = new FilterImpl();
-
         Exception timeWindowException = assertThrows(RuntimeException.class,
                 () -> filter.composeRule(wrongTimeWindow, filterExpression));
         assertEquals("Time window provided invalid: " + wrongTimeWindow[0], timeWindowException.getMessage());
@@ -87,19 +100,23 @@ public class FilterImplTest {
 
     @Test
     public void testComposeRuleLogLevel() {
-        FilterImpl filter = new FilterImpl();
-        String[] timeWindow1 = {goodTimeWindow, badTimeWindow};
-        filter.composeRule(timeWindow1, logLevelFilterExpression);
+        filter.composeRule(null, logLevelFilterExpression);
         assertFalse(filter.getFilterEntryCollection().get(0).getFilterMap().get("level").contains("INFO"));
         assertTrue(filter.getFilterEntryCollection().get(0).getFilterMap().get("level").contains("WARN"));
         assertTrue(filter.getFilterEntryCollection().get(0).getFilterMap().get("level").contains("ERROR"));
-
     }
 
     @Test
+    public void testComposeRuleInvalidLogLevel() {
+        filter.composeRule(null, invalidLogLevelFilterExpression);
+        assertTrue(filter.getFilterEntryCollection().get(0).getFilterMap().get("level").contains("WARNING"));
+        assertThat(errOutputStream.toString(), containsString("Invalid log level: WARNING"));
+    }
+
+
+    @Test
     public void testFilterHappyCase() throws JsonProcessingException {
-        FilterImpl filter = new FilterImpl();
-        Map<String, Object> parsedJsonMap = TestUtil.mapper.readValue(logEntry, Map.class);
+        Map<String, Object> parsedJsonMap = TestUtil.getMapper().readValue(logEntry, Map.class);
 
         String[] timeWindow1 = {goodTimeWindow, badTimeWindow};
         filter.composeRule(timeWindow1, goodFilterExpression);
@@ -115,10 +132,14 @@ public class FilterImplTest {
 
     @Test
     public void testFilterEmptyCase() throws JsonProcessingException {
-        FilterImpl filter = new FilterImpl();
-        Map<String, Object> parsedJsonMap = TestUtil.mapper.readValue(logEntry, Map.class);
+        Map<String, Object> parsedJsonMap = TestUtil.getMapper().readValue(logEntry, Map.class);
         filter.composeRule(emptyTimeWindow, emptyFilterExpression);
         assertTrue(filter.filter(logEntry, parsedJsonMap));
+    }
+
+    @AfterEach
+    void cleanup() {
+        errorStream.close();
     }
 
 }

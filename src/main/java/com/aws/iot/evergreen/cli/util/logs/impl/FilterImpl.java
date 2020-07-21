@@ -4,8 +4,10 @@
 package com.aws.iot.evergreen.cli.util.logs.impl;
 
 import com.aws.iot.evergreen.cli.util.logs.Filter;
+import com.aws.iot.evergreen.cli.util.logs.LogsUtil;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
+import org.slf4j.event.Level;
 
 import java.sql.Timestamp;
 import java.time.LocalDateTime;
@@ -22,8 +24,6 @@ public class FilterImpl implements Filter {
     private Map<Timestamp, Timestamp> parsedTimeWindowMap = new HashMap<>();
     @Getter
     private List<FilterEntry> filterEntryCollection = new ArrayList<>();
-
-    private static final String[] LEVELS = {"TRACE", "DEBUG", "INFO", "WARN", "ERROR", "FATAL"};
 
     /*
      *  A helper entry class for filter expression
@@ -186,14 +186,16 @@ public class FilterImpl implements Filter {
     Set<String> logLevelSet(String logLevel) {
         Set<String> levelSet = new HashSet<>();
         levelSet.add(logLevel);
-        boolean contained = false;
-        for (String level : LEVELS) {
-            if (contained) {
-                levelSet.add(level);
+        try {
+            Level level = Level.valueOf(logLevel);
+            for (Level l : Level.values()) {
+                if (l.compareTo(level) < 0) {
+                    levelSet.add(l.toString());
+                }
             }
-            if (level.equals(logLevel)) {
-                contained = true;
-            }
+        } catch (IllegalArgumentException e) {
+            LogsUtil.getErrorStream().println("Invalid log level: " + logLevel);
+            LogsUtil.getErrorStream().println(e.getMessage());
         }
         return levelSet;
     }

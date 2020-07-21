@@ -192,10 +192,9 @@ public class FilterImpl implements Filter {
         Set<String> levelSet = new HashSet<>();
         levelSet.add(logLevel);
         try {
-            Level level = Level.valueOf(logLevel);
-            for (Level l : Level.values()) {
-                if (l.compareTo(level) < 0) {
-                    levelSet.add(l.toString());
+            for (Level level : Level.values()) {
+                if (level.toInt() > Level.valueOf(logLevel).toInt()) {
+                    levelSet.add(level.toString());
                 }
             }
         } catch (IllegalArgumentException e) {

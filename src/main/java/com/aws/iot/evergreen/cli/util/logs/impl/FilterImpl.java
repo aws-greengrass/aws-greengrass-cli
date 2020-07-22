@@ -126,7 +126,10 @@ public class FilterImpl implements Filter {
                 // If the filter concerns log level, we need translate it into a slf4j.event.Level object
                 if (parsedMap[0].equals(levelKey)) {
                     try {
-                        logLevel = Level.valueOf(parsedMap[1]);
+                        Level level = Level.valueOf(parsedMap[1]);
+                        if (logLevel == null || level.toInt() < logLevel.toInt()) {
+                            logLevel = level;
+                        }
                         continue;
                     } catch (IllegalArgumentException e) {
                         //If the log level provided cannot be translated, we still default it as a key-val pair

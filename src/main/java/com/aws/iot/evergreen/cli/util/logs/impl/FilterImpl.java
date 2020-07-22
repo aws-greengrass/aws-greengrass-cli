@@ -69,10 +69,10 @@ public class FilterImpl implements Filter {
          *  TODO: Add support for simpler time window input. Handle time zone difference.
          *  https://github.com/aws/aws-greengrass-cli/pull/14#discussion_r455419380
          */
+        parsedTimeWindowMap.clear();
         if (timeWindow == null) {
             return;
         }
-        parsedTimeWindowMap.clear();
         for (String window : timeWindow) {
             String[] time = window.split(timeWindowDelimiter);
 
@@ -97,11 +97,10 @@ public class FilterImpl implements Filter {
      * Helper function to construct filterMapCollection.
      */
     private void composeFilterMapCollection(String[] filterExpressions) {
+        filterEntryCollection.clear();
         if (filterExpressions == null) {
             return;
         }
-
-        filterEntryCollection.clear();
         for (String expression : filterExpressions) {
             String[] parsedExpression = expression.split(filterDelimiter);
 
@@ -116,12 +115,11 @@ public class FilterImpl implements Filter {
                     regexList.add(regex);
                     continue;
                 }
-                // Otherwise treat it as a key-val pair
+                // Otherwise treat it as a key-val pair or a log level pair
                 String[] parsedMap = element.split(keyValDelimiter);
                 if (parsedMap.length != 2) {
                     throw new RuntimeException("Filter expression provided invalid: " + element);
                 }
-                filterMap.putIfAbsent(parsedMap[0], new HashSet<>());
 
                 // If the filter concerns log level, we need translate it into a slf4j.event.Level object
                 if (parsedMap[0].equals(levelKey)) {
@@ -138,6 +136,7 @@ public class FilterImpl implements Filter {
                     }
                 }
 
+                filterMap.putIfAbsent(parsedMap[0], new HashSet<>());
                 filterMap.get(parsedMap[0]).add(parsedMap[1]);
             }
             filterEntryCollection.add(new FilterEntry(filterMap, regexList, logLevel));
@@ -174,6 +173,7 @@ public class FilterImpl implements Filter {
                     break;
                 }
             }
+
             if (parsedJsonMap.containsKey(levelKey) && logLevel != null) {
                 try {
                     Level level = Level.valueOf(parsedJsonMap.get(levelKey).toString());

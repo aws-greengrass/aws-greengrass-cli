@@ -20,25 +20,25 @@ import java.util.Set;
 import java.util.regex.Pattern;
 
 public class FilterImpl implements Filter {
+    // defined delimiters to parse filter expressions and time windows.
+    private static final String filterDelimiter = ",";
+    private static final String timeWindowDelimiter = ",";
+    private static final String keyValDelimiter = "=";
+    private static final String levelKey = "level";
     @Getter
     private Map<Timestamp, Timestamp> parsedTimeWindowMap = new HashMap<>();
     @Getter
     private List<FilterEntry> filterEntryCollection = new ArrayList<>();
 
-    // defined delimiters to parse filter expressions and time windows.
-    private static final String filterDelimiter = ",";
-    private static final String timeWindowDelimiter = ",";
-    private static final String keyValDelimiter = "=";
-
     /*
      *  A helper entry class for filter expression
      */
     @AllArgsConstructor
+    @Getter
     public static class FilterEntry {
-        @Getter
         private Map<String, Set<String>> filterMap;
-        @Getter
         private List<Pattern> regexList;
+        private Level logLevel;
     }
 
     /*
@@ -97,7 +97,6 @@ public class FilterImpl implements Filter {
      * Helper function to construct filterMapCollection.
      */
     private void composeFilterMapCollection(String[] filterExpressions) {
-
         if (filterExpressions == null) {
             return;
         }
@@ -108,61 +107,82 @@ public class FilterImpl implements Filter {
 
             Map<String, Set<String>> filterMap = new HashMap<>();
             List<Pattern> regexList = new ArrayList<>();
+            Level logLevel = null;
+
             for (String element : parsedExpression) {
-                // If it contains =, treat it as a key-val pair
-                if (element.contains("=")) {
-                    String[] parsedMap = element.split(keyValDelimiter);
-                    if (parsedMap.length != 2) {
-                        throw new RuntimeException("Filter expression provided invalid: " + element);
-                    }
-                    if (!filterMap.containsKey(parsedMap[0])) {
-                        filterMap.put(parsedMap[0], new HashSet<>());
-                    }
-                    // If the filter concerns log level, we need include all log levels above the queried level
-                    if (parsedMap[0].equals("level")) {
-                        filterMap.get(parsedMap[0]).addAll(logLevelSet(parsedMap[1]));
-                        continue;
-                    }
-                    filterMap.get(parsedMap[0]).add(parsedMap[1]);
+                // If it doesn't contain the delimiter, treat it as a regex
+                if (!element.contains(keyValDelimiter)) {
+                    Pattern regex = Pattern.compile(element);
+                    regexList.add(regex);
+                    continue;
                 }
-                // Otherwise treat it as a REGEX
-                Pattern regex = Pattern.compile(element);
-                regexList.add(regex);
+                // Otherwise treat it as a key-val pair
+                String[] parsedMap = element.split(keyValDelimiter);
+                if (parsedMap.length != 2) {
+                    throw new RuntimeException("Filter expression provided invalid: " + element);
+                }
+                filterMap.putIfAbsent(parsedMap[0], new HashSet<>());
+
+                // If the filter concerns log level, we need translate it into a slf4j.event.Level object
+                if (parsedMap[0].equals(levelKey)) {
+                    try {
+                        logLevel = Level.valueOf(parsedMap[1]);
+                        continue;
+                    } catch (IllegalArgumentException e) {
+                        //If the log level provided cannot be translated, we still default it as a key-val pair
+                        LogsUtil.getErrorStream().println("Invalid log level: " + parsedMap[1]);
+                        LogsUtil.getErrorStream().println(e.getMessage());
+                    }
+                }
+
+                filterMap.get(parsedMap[0]).add(parsedMap[1]);
             }
-            filterEntryCollection.add(new FilterEntry(filterMap, regexList));
+            filterEntryCollection.add(new FilterEntry(filterMap, regexList, logLevel));
         }
     }
 
-
     /*
      * Check if the data matches defined filter expression
-     * "KEYWORD" defines keyword search
-     * And-relation between filters
-     * Or-relation within filters.
+     * And-relation between filterEntry
+     * Or-relation within each filterEntry.
      */
     private boolean checkFilterExpression(String logEntry, Map<String, Object> parsedJsonMap) {
         for (FilterEntry filterEntry : filterEntryCollection) {
-            Map<String, Set<String>> filterMap = filterEntry.filterMap;
-            List<Pattern> regexList = filterEntry.regexList;
-            boolean check = false;
+            Map<String, Set<String>> filterMap = filterEntry.getFilterMap();
+            List<Pattern> regexList = filterEntry.getRegexList();
+            Level logLevel = filterEntry.getLogLevel();
+
+            //Since Or-relation within filterEntry, any matched key-val pair or regex will set matchFilterEntry=true
+            boolean matchFilterEntry = false;
 
             for (Map.Entry<String, Set<String>> entry : filterMap.entrySet()) {
                 for (String val : entry.getValue()) {
                     if (parsedJsonMap.containsKey(entry.getKey())
                             && parsedJsonMap.get(entry.getKey()).toString().equals(val)) {
-                        check = true;
+                        matchFilterEntry = true;
                         break;
                     }
                 }
             }
+
             for (Pattern regex : regexList) {
                 if (regex.matcher(logEntry).find()) {
-                    check = true;
+                    matchFilterEntry = true;
                     break;
                 }
             }
-            // Since And-relation between filters, one filter fails -> return false
-            if (!check) {
+            if (parsedJsonMap.containsKey(levelKey) && logLevel != null) {
+                try {
+                    Level level = Level.valueOf(parsedJsonMap.get(levelKey).toString());
+                    if (level.toInt() >= logLevel.toInt()) {
+                        matchFilterEntry = true;
+                    }
+                } catch (IllegalArgumentException e) {
+                    LogsUtil.getErrorStream().println("Invalid log level from: " + logEntry);
+                }
+            }
+            // Since And-relation between filterEntry, one filter fails -> return false
+            if (!matchFilterEntry) {
                 return false;
             }
         }
@@ -183,24 +203,5 @@ public class FilterImpl implements Filter {
             }
         }
         return false;
-    }
-
-    /*
-     * Return a set containing all log levels above the input logLevel.
-     */
-    Set<String> logLevelSet(String logLevel) {
-        Set<String> levelSet = new HashSet<>();
-        levelSet.add(logLevel);
-        try {
-            for (Level level : Level.values()) {
-                if (level.toInt() > Level.valueOf(logLevel).toInt()) {
-                    levelSet.add(level.toString());
-                }
-            }
-        } catch (IllegalArgumentException e) {
-            LogsUtil.getErrorStream().println("Invalid log level: " + logLevel);
-            LogsUtil.getErrorStream().println(e.getMessage());
-        }
-        return levelSet;
     }
 }

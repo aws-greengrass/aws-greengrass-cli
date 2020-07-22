@@ -71,8 +71,7 @@ public class FilterImplTest {
         assertEquals(2, filter.getParsedTimeWindowMap().size());
 
         assertTrue(filter.getParsedTimeWindowMap().get(beginTime1).equals(endTime1));
-        assertTrue(filter.getFilterEntryCollection().get(0).getFilterMap().get("level").contains("DEBUG"));
-        assertTrue(filter.getFilterEntryCollection().get(0).getFilterMap().get("level").contains("INFO"));
+        assertEquals("DEBUG", filter.getFilterEntryCollection().get(0).getLogLevel().toString());
         assertTrue(filter.getFilterEntryCollection().get(0).getFilterMap().get("cause").contains("xxx"));
     }
 
@@ -101,9 +100,7 @@ public class FilterImplTest {
     @Test
     public void testComposeRuleLogLevel() {
         filter.composeRule(null, logLevelFilterExpression);
-        assertFalse(filter.getFilterEntryCollection().get(0).getFilterMap().get("level").contains("INFO"));
-        assertTrue(filter.getFilterEntryCollection().get(0).getFilterMap().get("level").contains("WARN"));
-        assertTrue(filter.getFilterEntryCollection().get(0).getFilterMap().get("level").contains("ERROR"));
+        assertEquals("WARN", filter.getFilterEntryCollection().get(0).getLogLevel().toString());
     }
 
     @Test

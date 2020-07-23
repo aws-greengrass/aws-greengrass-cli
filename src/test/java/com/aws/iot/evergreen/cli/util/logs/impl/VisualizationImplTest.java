@@ -20,7 +20,7 @@ public class VisualizationImplTest {
     void visualizeHappyCase() throws JsonProcessingException {
         VisualizationImpl visualization = new VisualizationImpl();
 
-        assertThat(visualization.visualize(TestUtil.mapper.readValue(logEntry, EvergreenStructuredLogMessage.class)),
+        assertThat(visualization.visualize(TestUtil.getMapper().readValue(logEntry, EvergreenStructuredLogMessage.class)),
                 containsString("[DEBUG] (idle-connection-reaper) null: null. "
                         + "Closing connections idle longer than 60000 MILLISECONDS"));
     }

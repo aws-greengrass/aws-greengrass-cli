@@ -5,6 +5,7 @@ package com.aws.iot.evergreen.cli.commands;
 
 import com.aws.iot.evergreen.cli.util.logs.Aggregation;
 import com.aws.iot.evergreen.cli.util.logs.Filter;
+import com.aws.iot.evergreen.cli.util.logs.LogsUtil;
 import com.aws.iot.evergreen.cli.util.logs.Visualization;
 import com.aws.iot.evergreen.logging.impl.EvergreenStructuredLogMessage;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -38,12 +39,6 @@ public class Logs extends BaseCommand {
     @Setter
     private Visualization visualization;
 
-    @Setter
-    private PrintStream printStream = System.out;
-
-    @Setter
-    private PrintStream errorStream = System.err;
-
     @Command(name = "get")
     public int get(@CommandLine.Option(names = {"--log-file"}, paramLabel = "Log File Paths") String[] logFile,
                    @CommandLine.Option(names = {"--log-dir"}, paramLabel = "Log Directory Paths") String[] logDir,
@@ -57,17 +52,17 @@ public class Logs extends BaseCommand {
             try {
                 while ((line = reader.readLine()) != null) {
                     if (line.isEmpty()) {
-                        errorStream.println("Empty line from " + reader.toString());
+                        LogsUtil.getErrorStream().println("Empty line from " + reader.toString());
                         continue;
                     }
                     if (filter.filter(line, mapper.readValue(line, Map.class))) {
-                        printStream.println(visualization.visualize(mapper
+                        LogsUtil.getPrintStream().println(visualization.visualize(mapper
                                 .readValue(line, EvergreenStructuredLogMessage.class)));
                     }
                 }
             } catch (IOException e) {
-                errorStream.println("Failed to serialize: " + line);
-                errorStream.println(e.getMessage());
+                LogsUtil.getErrorStream().println("Failed to serialize: " + line);
+                LogsUtil.getErrorStream().println(e.getMessage());
             } finally {
                 reader.close();
             }
@@ -81,12 +76,12 @@ public class Logs extends BaseCommand {
         Set<File> logFileSet = aggregation.listLog(logDir);
         if (!logFileSet.isEmpty()) {
             for (File file : logFileSet) {
-                printStream.println(file.getPath());
+                LogsUtil.getPrintStream().println(file.getPath());
             }
-            printStream.format("Total %d files found.", logFileSet.size());
+            LogsUtil.getPrintStream().format("Total %d files found.", logFileSet.size());
             return 0;
         }
-        printStream.println("No log file found.");
+        LogsUtil.getPrintStream().println("No log file found.");
         return 0;
     }
 }

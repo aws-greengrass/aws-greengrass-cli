@@ -3,6 +3,7 @@
 
 package com.aws.iot.evergreen.cli.commands;
 
+import com.aws.iot.evergreen.cli.util.logs.LogsUtil;
 import com.aws.iot.evergreen.cli.util.logs.impl.AggregationImpl;
 import com.aws.iot.evergreen.cli.util.logs.impl.FilterImpl;
 import com.aws.iot.evergreen.cli.util.logs.impl.VisualizationImpl;
@@ -62,8 +63,8 @@ public class LogsTest {
         errOutputStream = new ByteArrayOutputStream();
         printStream = new PrintStream(byteArrayOutputStream);
         errorStream = new PrintStream(errOutputStream);
-        logs.setPrintStream(printStream);
-        logs.setErrorStream(errorStream);
+        LogsUtil.setPrintStream(printStream);
+        LogsUtil.setErrorStream(errorStream);
     }
 
     @Test

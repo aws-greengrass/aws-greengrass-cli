@@ -107,7 +107,7 @@ public class FilterImplTest {
                 () -> filter.composeRule(wrongTimeWindow, goodFilterExpression));
         assertEquals("Time window provided invalid: " + wrongTimeWindow[0], timeWindowException.getMessage());
 
-        Exception filterExpressionException =  assertThrows(RuntimeException.class,
+        Exception filterExpressionException = assertThrows(RuntimeException.class,
                 () -> filter.composeRule(timeWindow, invalidFilterExpression));
         assertEquals("Filter expression provided invalid: " + invalidFilterExpression[0], filterExpressionException.getMessage());
 

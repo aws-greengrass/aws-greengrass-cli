@@ -21,6 +21,7 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 public class FilterImpl implements Filter {
@@ -29,13 +30,28 @@ public class FilterImpl implements Filter {
     private static final String TIME_WINDOW_DELIMITER = ",";
     private static final String KEY_VAL_DELIMITER = "=";
     private static final String LEVEL_KEY = "level";
-    // defined formats for input time windows
+
+    // defined formats for input time windows.
     private static final String[] TIME_FORMAT = new String[] {"yyyyMMdd'T'HH:mm:ss", "yyyyMMdd'T'HH:mm:ssSSS",
             "yyyyMMdd", "MMdd", "HH:mm:ssSSS", "HH:mm:ss", "HH:mm"};
+
+    private static final Pattern OFFSET_PATTERN;
+
+    // static initialization regex pattern for detecting relative offset.
+    static {
+        StringBuilder regex = new StringBuilder("^");
+        for (String unit : new String[]{"d|day", "h|hr|hour", "m|min|minute", "s|sec|second"}) {
+            regex.append(String.format("(?:([+\\-]?[0-9]+)(?:%s)s?)?", unit));
+        }
+        regex.append("$");
+        OFFSET_PATTERN = Pattern.compile(regex.toString());
+    }
+
     @Getter
     private Map<Timestamp, Timestamp> parsedTimeWindowMap = new HashMap<>();
     @Getter
     private List<FilterEntry> filterEntryCollection = new ArrayList<>();
+    private Calendar calendar = Calendar.getInstance();
 
     /*
      *  A helper entry class for filter expression
@@ -88,8 +104,8 @@ public class FilterImpl implements Filter {
             }
             // if ony one of beginTime and engTime is provided, treat the other one as currentTime.
             Timestamp currentTime = Timestamp.valueOf(LocalDateTime.now());
-            Timestamp beginTime = (time[0].isEmpty()) ? currentTime : composeTimeFromString(time[0]);
-            Timestamp endTime = (time.length == 1) ? currentTime : composeTimeFromString(time[1]);
+            Timestamp beginTime = (time[0].isEmpty()) ? currentTime : composeTimeFromString(time[0], currentTime);
+            Timestamp endTime = (time.length == 1) ? currentTime : composeTimeFromString(time[1], currentTime);
 
             if (parsedTimeWindowMap.containsKey(beginTime)) {
                 if (parsedTimeWindowMap.get(beginTime).before(endTime)) {
@@ -232,13 +248,30 @@ public class FilterImpl implements Filter {
     /*
      * Helper function to compose timestamp from a time string.
      */
-    private Timestamp composeTimeFromString(String timeString) {
+    private Timestamp composeTimeFromString(String timeString, Timestamp currentTime) {
+        // relative offset
         if (timeString.contains("-") || timeString.contains("+")) {
-            //TODO: support relative offset
-            throw new RuntimeException("Cannot parse: " + timeString);
+            Matcher matcher = OFFSET_PATTERN.matcher(timeString);
+            if (!matcher.find()) {
+                throw new RuntimeException("Cannot parse offset: " + timeString);
+            }
+            calendar.setTime(currentTime);
+            if (matcher.group(1) != null) {
+                calendar.add(Calendar.DATE, Integer.parseInt(matcher.group(1)));
+            }
+            if (matcher.group(2) != null) {
+                calendar.add(Calendar.HOUR, Integer.parseInt(matcher.group(2)));
+            }
+            if (matcher.group(3) != null) {
+                calendar.add(Calendar.MINUTE, Integer.parseInt(matcher.group(3)));
+            }
+            if (matcher.group(4) != null) {
+                calendar.add(Calendar.SECOND, Integer.parseInt(matcher.group(4)));
+            }
+            return new Timestamp(calendar.getTime().getTime());
         }
 
-        Calendar calendar = Calendar.getInstance();
+        // exact time
         for (String formatString : TIME_FORMAT) {
             try {
                 calendar.setTime(new SimpleDateFormat(formatString).parse(timeString));

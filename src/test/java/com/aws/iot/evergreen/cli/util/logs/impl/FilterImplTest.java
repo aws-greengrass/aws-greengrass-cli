@@ -32,11 +32,17 @@ public class FilterImplTest {
 
 
     private static final String[] emptyArgumentTimeWindow = new String[] {"20200714T00:00:00", ",20200714T00:00:00"};
-    private static final String[] wrongTimeWindow = new String[]{"o20200714T00:00:9920200714T01:00:99",
+    private static final String[] wrongTimeWindow1 = new String[]{"o20200714T00:00:9920200714T01:00:99",
+            "20200714T02:00:00,20200714T03:00:00"};
+    private static final String[] wrongTimeWindow2 = new String[]{"20200714T00:00:99,,20200714T01:00:99",
             "20200714T02:00:00,20200714T03:00:00"};
     private static final String[] formatTimeWindow1 = new String[]{"20200714T00:00:00", "20200714T00:00:00000",
             "20200714T00:00:00", "20200714", "0714"};
     private static final String[] formatTimeWindow2 = new String[] {"12:34:00000", "12:34:00", "12:34"};
+    private static final String[] offsetTimeWindow = new String[] {"-1days-2hours-3minutes-4seconds,+1d+2h+3m+4s",
+            "-1day-28hr-6min-8sec", "-187567s,+1s"};
+    private static final String[] badOffsetTimeWindow = new String[] {"+1.5days"};
+
 
     private static final Timestamp beginTime1 = Timestamp.valueOf(LocalDateTime.parse("2020-07-14T00:00:00"));
     private static final Timestamp endTime1 = Timestamp.valueOf(LocalDateTime.parse("2020-07-14T01:00:00"));
@@ -107,9 +113,14 @@ public class FilterImplTest {
 
     @Test
     public void testComposeRuleInvalidInput() {
-        Exception timeWindowException = assertThrows(RuntimeException.class,
-                () -> filter.composeRule(wrongTimeWindow, goodFilterExpression));
-        assertThat(timeWindowException.getMessage(), containsString("Cannot parse: " + wrongTimeWindow[0]));
+        Exception timeWindowException1 = assertThrows(RuntimeException.class,
+                () -> filter.composeRule(wrongTimeWindow1, goodFilterExpression));
+        assertThat(timeWindowException1.getMessage(), containsString("Cannot parse: " + wrongTimeWindow1[0]));
+
+        Exception timeWindowException2 = assertThrows(RuntimeException.class,
+                () -> filter.composeRule(wrongTimeWindow2, goodFilterExpression));
+        assertThat(timeWindowException2.getMessage(), containsString("Time window provided invalid: " + wrongTimeWindow2[0]));
+
 
         Exception filterExpressionException = assertThrows(RuntimeException.class,
                 () -> filter.composeRule(timeWindow, invalidFilterExpression));
@@ -134,6 +145,20 @@ public class FilterImplTest {
 
         filter.composeRule(formatTimeWindow2, emptyFilterExpression);
         assertEquals(1, filter.getParsedTimeWindowMap().size());
+    }
+
+    @Test
+    public void testTimeWindowOffset() {
+        filter.composeRule(offsetTimeWindow, emptyFilterExpression);
+        assertEquals(3, filter.getParsedTimeWindowMap().size());
+        for (Map.Entry<Timestamp,Timestamp> entry : filter.getParsedTimeWindowMap().entrySet()) {
+            // (86400*2+3600*4+60*6+8)*1000 = 187568000
+            assertEquals(-187568000,entry.getKey().getTime() - entry.getValue().getTime());
+        }
+
+        Exception offsetException = assertThrows(RuntimeException.class,
+                () -> filter.composeRule(badOffsetTimeWindow, emptyFilterExpression));
+        assertEquals("Cannot parse offset: " + badOffsetTimeWindow[0], offsetException.getMessage());
     }
 
     @Test
@@ -179,7 +204,6 @@ public class FilterImplTest {
         filter.composeRule(timeWindow1, goodFilterExpression);
         assertFalse(filter.filter(logEntry, parsedJsonMap));
         assertThat(errOutputStream.toString(), containsString("Invalid log level from: "));
-
     }
 
     @AfterEach

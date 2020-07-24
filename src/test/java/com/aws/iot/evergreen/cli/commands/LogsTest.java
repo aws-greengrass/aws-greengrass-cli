@@ -26,8 +26,8 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 
 
 public class LogsTest {
-    private static final String[] timeWindow = new String[]{"20200714T00:00:00,20200714T01:00:00",
-            "20200714T02:00:00,20200716T03:00:00"};
+    private static final String[] timeWindow = new String[]{"2020-07-14T00:00:00,2020-07-14T01:00:00",
+            "2020-07-14T02:00:00,2020-07-16T03:00:00"};
     private static final String[] filterExpression = new String[]{"level=DEBUG,level=INFO",
             "thread=idle-connection-reaper"};
 

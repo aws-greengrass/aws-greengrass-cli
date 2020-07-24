@@ -25,19 +25,19 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 
 public class FilterImplTest {
 
-    private static final String[] timeWindow = new String[]{"20200714,20200714T01:00:00",
-            "20200714T02:00:00,20200716T03:00:00"};
+    private static final String[] timeWindow = new String[]{"2020-07-14,2020-07-14T01:00:00",
+            "2020-07-14T02:00:00,2020-07-16T03:00:00"};
     private static final String[] emptyTimeWindow = new String[]{};
     private static final String[] emptyFilterExpression = new String[]{};
 
 
-    private static final String[] emptyArgumentTimeWindow = new String[] {"20200714T00:00:00", ",20200714T00:00:00"};
-    private static final String[] wrongTimeWindow1 = new String[]{"o20200714T00:00:9920200714T01:00:99",
-            "20200714T02:00:00,20200714T03:00:00"};
-    private static final String[] wrongTimeWindow2 = new String[]{"20200714T00:00:99,,20200714T01:00:99",
-            "20200714T02:00:00,20200714T03:00:00"};
-    private static final String[] formatTimeWindow1 = new String[]{"20200714T00:00:00", "20200714T00:00:00000",
-            "20200714T00:00:00", "20200714", "0714"};
+    private static final String[] emptyArgumentTimeWindow = new String[] {"2020-07-14T00:00:00", ",2020-07-14T00:00:00"};
+    private static final String[] wrongTimeWindow1 = new String[]{"o2020-07-14T00:00:992020-07-14T01:00:99",
+            "2020-07-14T02:00:00,2020-07-14T03:00:00"};
+    private static final String[] wrongTimeWindow2 = new String[]{"2020-07-14T00:00:99,,2020-07-14T01:00:99",
+            "2020-07-14T02:00:00,2020-07-14T03:00:00"};
+    private static final String[] formatTimeWindow1 = new String[]{"2020-07-14T00:00:00", "2020-07-14T00:00:00000",
+            "2020-07-14T00:00:00", "2020-07-14", "07-14"};
     private static final String[] formatTimeWindow2 = new String[] {"12:34:00000", "12:34:00", "12:34"};
     private static final String[] offsetTimeWindow = new String[] {"-1days-2hours-3minutes-4seconds,+1d+2h+3m+4s",
             "-1day-28hr-6min-8sec", "-187567s,+1s"};
@@ -47,9 +47,9 @@ public class FilterImplTest {
     private static final Timestamp beginTime1 = Timestamp.valueOf(LocalDateTime.parse("2020-07-14T00:00:00"));
     private static final Timestamp endTime1 = Timestamp.valueOf(LocalDateTime.parse("2020-07-14T01:00:00"));
 
-    private static final String goodTimeWindow = "20200714T00:00:00,20200716";
-    private static final String badTimeWindow1 = "20200714T00:00:00,20200714T12:00:00";
-    private static final String badTimeWindow2 = "20200716T12:00:00,20200716T12:00:00";
+    private static final String goodTimeWindow = "2020-07-14T00:00:00,2020-07-16";
+    private static final String badTimeWindow1 = "2020-07-14T00:00:00,2020-07-14T12:00:00";
+    private static final String badTimeWindow2 = "2020-07-16T12:00:00,2020-07-16T12:00:00";
 
 
     private static final String[] goodFilterExpression = {"level=DEBUG", "thread=idle-connection-reaper", "60000", "60*"};
@@ -140,6 +140,7 @@ public class FilterImplTest {
     @Test
     public void testTimeWindowMultipleFormat() {
         filter.composeRule(formatTimeWindow1, emptyFilterExpression);
+        System.out.println(filter.getParsedTimeWindowMap());
         assertEquals(1, filter.getParsedTimeWindowMap().size());
         assertTrue(filter.getParsedTimeWindowMap().containsKey(Timestamp.valueOf("2020-07-14 00:00:00")));
 
@@ -158,7 +159,7 @@ public class FilterImplTest {
 
         Exception offsetException = assertThrows(RuntimeException.class,
                 () -> filter.composeRule(badOffsetTimeWindow, emptyFilterExpression));
-        assertEquals("Cannot parse offset: " + badOffsetTimeWindow[0], offsetException.getMessage());
+        assertEquals("Cannot parse: " + badOffsetTimeWindow[0], offsetException.getMessage());
     }
 
     @Test

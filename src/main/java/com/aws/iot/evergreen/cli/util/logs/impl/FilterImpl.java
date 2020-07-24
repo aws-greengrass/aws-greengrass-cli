@@ -32,8 +32,8 @@ public class FilterImpl implements Filter {
     private static final String LEVEL_KEY = "level";
 
     // defined formats for input time windows.
-    private static final String[] TIME_FORMAT = new String[] {"yyyyMMdd'T'HH:mm:ss", "yyyyMMdd'T'HH:mm:ssSSS",
-            "yyyyMMdd", "MMdd", "HH:mm:ssSSS", "HH:mm:ss", "HH:mm"};
+    private static final String[] TIME_FORMAT = new String[] {"yyyy-MM-dd'T'HH:mm:ss", "yyyy-MM-dd'T'HH:mm:ssSSS",
+            "yyyy-MM-dd", "MM-dd", "HH:mm:ssSSS", "HH:mm:ss", "HH:mm"};
 
     private static final Pattern OFFSET_PATTERN;
 
@@ -99,7 +99,7 @@ public class FilterImpl implements Filter {
         for (String window : timeWindow) {
             String[] time = window.split(TIME_WINDOW_DELIMITER);
 
-            if (time.length > 2 || window.equals(",")) {
+            if (time.length > 2 || time.length == 0 || window.equals(",")) {
                 throw new RuntimeException("Time window provided invalid: " + window);
             }
             // if ony one of beginTime and engTime is provided, treat the other one as currentTime.
@@ -250,11 +250,8 @@ public class FilterImpl implements Filter {
      */
     private Timestamp composeTimeFromString(String timeString, Timestamp currentTime) {
         // relative offset
-        if (timeString.contains("-") || timeString.contains("+")) {
-            Matcher matcher = OFFSET_PATTERN.matcher(timeString);
-            if (!matcher.find()) {
-                throw new RuntimeException("Cannot parse offset: " + timeString);
-            }
+        Matcher matcher = OFFSET_PATTERN.matcher(timeString);
+        if (matcher.find()) {
             calendar.setTime(currentTime);
             if (matcher.group(1) != null) {
                 calendar.add(Calendar.DATE, Integer.parseInt(matcher.group(1)));
@@ -283,7 +280,7 @@ public class FilterImpl implements Filter {
                         //Calendar and LocalDate use different index for Month value.
                         calendar.set(Calendar.MONTH, LocalDate.now().getMonthValue() - 1);
                         calendar.set(Calendar.DATE, LocalDate.now().getDayOfMonth());
-                    case "MMdd":
+                    case "MM-dd":
                         calendar.set(Calendar.YEAR, LocalDate.now().getYear());
                     default:
                         return new Timestamp(calendar.getTime().getTime());

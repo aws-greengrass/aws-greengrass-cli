@@ -33,18 +33,32 @@ public class FilterImpl implements Filter {
 
     // defined formats for input time windows.
     private static final String[] TIME_FORMAT = new String[] {"yyyy-MM-dd'T'HH:mm:ss", "yyyy-MM-dd'T'HH:mm:ssSSS",
-            "yyyy-MM-dd", "MM-dd", "HH:mm:ssSSS", "HH:mm:ss", "HH:mm"};
+            "yyyy-MM-dd", "MM-dd", "HH:mm:ssSSS", "HH:mm:ss", "HH:mm", "yyyyMMdd"};
 
+    private static final List<SimpleDateFormat> DATE_FORMAT_LIST;
     private static final Pattern OFFSET_PATTERN;
 
     // static initialization regex pattern for detecting relative offset.
     static {
         StringBuilder regex = new StringBuilder("^");
+        /*
+         * regular expression for converting relative offset (e.g. "+1days-3hr") to integer
+         * possible relative offset are any combinations of the following concatenated by + or -:
+         * XXdays    or XXd
+         * XXhours   or XXhrs or XXh
+         * XXminutes or XXmin or XXm
+         * XXseconds or XXsec or XXs
+         */
         for (String unit : new String[]{"d|day", "h|hr|hour", "m|min|minute", "s|sec|second"}) {
             regex.append(String.format("(?:([+\\-]?[0-9]+)(?:%s)s?)?", unit));
         }
         regex.append("$");
         OFFSET_PATTERN = Pattern.compile(regex.toString());
+
+        DATE_FORMAT_LIST = new ArrayList<>();
+        for (String formatString : TIME_FORMAT) {
+            DATE_FORMAT_LIST.add(new SimpleDateFormat(formatString));
+        }
     }
 
     @Getter
@@ -269,11 +283,11 @@ public class FilterImpl implements Filter {
         }
 
         // exact time
-        for (String formatString : TIME_FORMAT) {
+        for (SimpleDateFormat format : DATE_FORMAT_LIST) {
             try {
-                calendar.setTime(new SimpleDateFormat(formatString).parse(timeString));
+                calendar.setTime(format.parse(timeString));
                 //If year, month, or date is not specified, we use current time
-                switch (formatString) {
+                switch (format.toLocalizedPattern()) {
                     case "HH:mm:ssSSS":
                     case "HH:mm:ss":
                     case "HH:mm":
@@ -285,7 +299,10 @@ public class FilterImpl implements Filter {
                     default:
                         return new Timestamp(calendar.getTime().getTime());
                 }
-            } catch (ParseException ignore) { }
+            } catch (ParseException ignore) {
+                //This exception is expected whenever a format is not matched.
+                //If none of the format is matched, we throw a RuntimeException in the next block.
+            }
         }
         throw new RuntimeException("Cannot parse: " + timeString);
     }

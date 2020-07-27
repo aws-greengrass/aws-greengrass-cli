@@ -30,7 +30,6 @@ public class FilterImplTest {
     private static final String[] emptyTimeWindow = new String[]{};
     private static final String[] emptyFilterExpression = new String[]{};
 
-
     private static final String[] emptyArgumentTimeWindow = new String[] {"2020-07-14T00:00:00", ",2020-07-14T00:00:00"};
     private static final String[] wrongTimeWindow1 = new String[]{"o2020-07-14T00:00:992020-07-14T01:00:99",
             "2020-07-14T02:00:00,2020-07-14T03:00:00"};
@@ -43,11 +42,10 @@ public class FilterImplTest {
             "-1day-28hr-6min-8sec", "-187567s,+1s"};
     private static final String[] badOffsetTimeWindow = new String[] {"+1.5days"};
 
-
     private static final Timestamp beginTime1 = Timestamp.valueOf(LocalDateTime.parse("2020-07-14T00:00:00"));
     private static final Timestamp endTime1 = Timestamp.valueOf(LocalDateTime.parse("2020-07-14T01:00:00"));
 
-    private static final String goodTimeWindow = "2020-07-14T00:00:00,2020-07-16";
+    private static final String goodTimeWindow = "2020-07-14T00:00:00,20200716";
     private static final String badTimeWindow1 = "2020-07-14T00:00:00,2020-07-14T12:00:00";
     private static final String badTimeWindow2 = "2020-07-16T12:00:00,2020-07-16T12:00:00";
 
@@ -140,7 +138,6 @@ public class FilterImplTest {
     @Test
     public void testTimeWindowMultipleFormat() {
         filter.composeRule(formatTimeWindow1, emptyFilterExpression);
-        System.out.println(filter.getParsedTimeWindowMap());
         assertEquals(1, filter.getParsedTimeWindowMap().size());
         assertTrue(filter.getParsedTimeWindowMap().containsKey(Timestamp.valueOf("2020-07-14 00:00:00")));
 
@@ -154,7 +151,7 @@ public class FilterImplTest {
         assertEquals(3, filter.getParsedTimeWindowMap().size());
         for (Map.Entry<Timestamp,Timestamp> entry : filter.getParsedTimeWindowMap().entrySet()) {
             // (86400*2+3600*4+60*6+8)*1000 = 187568000
-            assertEquals(-187568000,entry.getKey().getTime() - entry.getValue().getTime());
+            assertEquals(-187568000, entry.getKey().getTime() - entry.getValue().getTime());
         }
 
         Exception offsetException = assertThrows(RuntimeException.class,

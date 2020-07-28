@@ -10,12 +10,12 @@ import lombok.Getter;
 import org.slf4j.event.Level;
 
 import java.sql.Timestamp;
-import java.text.ParseException;
-import java.text.SimpleDateFormat;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
+import java.time.LocalTime;
+import java.time.format.DateTimeFormatter;
+import java.time.format.DateTimeParseException;
 import java.util.ArrayList;
-import java.util.Calendar;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
@@ -32,13 +32,15 @@ public class FilterImpl implements Filter {
     private static final String LEVEL_KEY = "level";
 
     // defined formats for input time windows.
-    private static final String[] TIME_FORMAT = new String[] {"yyyy-MM-dd'T'HH:mm:ss", "yyyy-MM-dd'T'HH:mm:ssSSS",
-            "yyyy-MM-dd", "MM-dd", "HH:mm:ssSSS", "HH:mm:ss", "HH:mm", "yyyyMMdd"};
+    private static final DateTimeFormatter[] DATE_TIME_FORMATTERS = {DateTimeFormatter.ofPattern("yyyy-MM-dd'T'HH:mm:ssSSS"),
+            DateTimeFormatter.ISO_INSTANT, DateTimeFormatter.ISO_LOCAL_DATE_TIME};
+    private static final DateTimeFormatter[] DATE_FORMATTERS = {DateTimeFormatter.ISO_LOCAL_DATE,
+            DateTimeFormatter.BASIC_ISO_DATE};
+    private static final DateTimeFormatter[] TIME_FORMATTERS = {DateTimeFormatter.ISO_LOCAL_TIME,
+            DateTimeFormatter.ofPattern("HH:mm:ssSSS")};
 
-    private static final List<SimpleDateFormat> DATE_FORMAT_LIST;
+    // regex pattern for detecting relative offset.
     private static final Pattern OFFSET_PATTERN;
-
-    // static initialization regex pattern for detecting relative offset.
     static {
         StringBuilder regex = new StringBuilder("^");
         /*
@@ -54,18 +56,12 @@ public class FilterImpl implements Filter {
         }
         regex.append("$");
         OFFSET_PATTERN = Pattern.compile(regex.toString());
-
-        DATE_FORMAT_LIST = new ArrayList<>();
-        for (String formatString : TIME_FORMAT) {
-            DATE_FORMAT_LIST.add(new SimpleDateFormat(formatString));
-        }
     }
 
     @Getter
-    private Map<Timestamp, Timestamp> parsedTimeWindowMap = new HashMap<>();
+    private Map<LocalDateTime, LocalDateTime> parsedTimeWindowMap = new HashMap<>();
     @Getter
     private List<FilterEntry> filterEntryCollection = new ArrayList<>();
-    private Calendar calendar = Calendar.getInstance();
 
     /*
      *  A helper entry class for filter expression
@@ -117,12 +113,12 @@ public class FilterImpl implements Filter {
                 throw new RuntimeException("Time window provided invalid: " + window);
             }
             // if ony one of beginTime and engTime is provided, treat the other one as currentTime.
-            Timestamp currentTime = Timestamp.valueOf(LocalDateTime.now());
-            Timestamp beginTime = (time[0].isEmpty()) ? currentTime : composeTimeFromString(time[0], currentTime);
-            Timestamp endTime = (time.length == 1) ? currentTime : composeTimeFromString(time[1], currentTime);
+            LocalDateTime currentTime = LocalDateTime.now();
+            LocalDateTime beginTime = (time[0].isEmpty()) ? currentTime : composeTimeFromString(time[0], currentTime);
+            LocalDateTime endTime = (time.length == 1) ? currentTime : composeTimeFromString(time[1], currentTime);
 
             if (parsedTimeWindowMap.containsKey(beginTime)) {
-                if (parsedTimeWindowMap.get(beginTime).before(endTime)) {
+                if (parsedTimeWindowMap.get(beginTime).isBefore(endTime)) {
                     parsedTimeWindowMap.replace(beginTime, endTime);
                 }
                 continue;
@@ -188,9 +184,10 @@ public class FilterImpl implements Filter {
         if (parsedTimeWindowMap.isEmpty()) {
             return true;
         }
-        for (Map.Entry<Timestamp, Timestamp> entry : parsedTimeWindowMap.entrySet()) {
-            Timestamp dataTime = new Timestamp(Long.parseLong(parsedJsonMap.get("timestamp").toString()));
-            if (entry.getKey().before(dataTime) && entry.getValue().after(dataTime)) {
+        for (Map.Entry<LocalDateTime, LocalDateTime> entry : parsedTimeWindowMap.entrySet()) {
+            LocalDateTime dataTime = new Timestamp(Long.parseLong(parsedJsonMap.get("timestamp").toString()))
+                    .toLocalDateTime();
+            if (entry.getKey().isBefore(dataTime) && entry.getValue().isAfter(dataTime)) {
                 return true;
             }
         }
@@ -262,46 +259,47 @@ public class FilterImpl implements Filter {
     /*
      * Helper function to compose timestamp from a time string.
      */
-    private Timestamp composeTimeFromString(String timeString, Timestamp currentTime) {
-        // relative offset
+    private LocalDateTime composeTimeFromString(String timeString, LocalDateTime currentTime) {
+        // Relative offset.
         Matcher matcher = OFFSET_PATTERN.matcher(timeString);
         if (matcher.find()) {
-            calendar.setTime(currentTime);
             if (matcher.group(1) != null) {
-                calendar.add(Calendar.DATE, Integer.parseInt(matcher.group(1)));
+                currentTime = currentTime.plusDays(Integer.parseInt(matcher.group(1)));
             }
             if (matcher.group(2) != null) {
-                calendar.add(Calendar.HOUR, Integer.parseInt(matcher.group(2)));
+                currentTime = currentTime.plusHours(Integer.parseInt(matcher.group(2)));
             }
             if (matcher.group(3) != null) {
-                calendar.add(Calendar.MINUTE, Integer.parseInt(matcher.group(3)));
+                currentTime = currentTime.plusMinutes(Integer.parseInt(matcher.group(3)));
             }
             if (matcher.group(4) != null) {
-                calendar.add(Calendar.SECOND, Integer.parseInt(matcher.group(4)));
+                currentTime = currentTime.plusSeconds(Integer.parseInt(matcher.group(4)));
             }
-            return new Timestamp(calendar.getTime().getTime());
+            return currentTime;
         }
 
-        // exact time
-        for (SimpleDateFormat format : DATE_FORMAT_LIST) {
+        // Exact time.
+        // parsing is not exact match hence we need to try DATE_TIME_FORMATTERS first.
+        for (DateTimeFormatter formatter : DATE_TIME_FORMATTERS) {
             try {
-                calendar.setTime(format.parse(timeString));
-                //If year, month, or date is not specified, we use current time
-                switch (format.toLocalizedPattern()) {
-                    case "HH:mm:ssSSS":
-                    case "HH:mm:ss":
-                    case "HH:mm":
-                        //Calendar and LocalDate use different index for Month value.
-                        calendar.set(Calendar.MONTH, LocalDate.now().getMonthValue() - 1);
-                        calendar.set(Calendar.DATE, LocalDate.now().getDayOfMonth());
-                    case "MM-dd":
-                        calendar.set(Calendar.YEAR, LocalDate.now().getYear());
-                    default:
-                        return new Timestamp(calendar.getTime().getTime());
-                }
-            } catch (ParseException ignore) {
+                return LocalDateTime.parse(timeString, formatter);
+            } catch (DateTimeParseException ignore) {
                 //This exception is expected whenever a format is not matched.
-                //If none of the format is matched, we throw a RuntimeException in the next block.
+                //If none of the format is matched, we throw a RuntimeException in the last block.
+            }
+        }
+        for (DateTimeFormatter formatter : DATE_FORMATTERS) {
+            try {
+                return LocalDate.parse(timeString, formatter).atStartOfDay();
+            } catch (DateTimeParseException ignore) {
+                //Same as above.
+            }
+        }
+        for (DateTimeFormatter formatter : TIME_FORMATTERS) {
+            try {
+                return LocalTime.parse(timeString, formatter).atDate(currentTime.toLocalDate());
+            } catch (DateTimeParseException ignore) {
+                //Same as above.
             }
         }
         throw new RuntimeException("Cannot parse: " + timeString);

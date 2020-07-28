@@ -12,7 +12,7 @@ import org.junit.jupiter.api.Test;
 
 import java.io.ByteArrayOutputStream;
 import java.io.PrintStream;
-import java.sql.Timestamp;
+import java.time.Duration;
 import java.time.LocalDateTime;
 import java.util.Map;
 
@@ -36,14 +36,14 @@ public class FilterImplTest {
     private static final String[] wrongTimeWindow2 = new String[]{"2020-07-14T00:00:99,,2020-07-14T01:00:99",
             "2020-07-14T02:00:00,2020-07-14T03:00:00"};
     private static final String[] formatTimeWindow1 = new String[]{"2020-07-14T00:00:00", "2020-07-14T00:00:00000",
-            "2020-07-14T00:00:00", "2020-07-14", "07-14"};
+            "2020-07-14T00:00:00", "2020-07-14"};
     private static final String[] formatTimeWindow2 = new String[] {"12:34:00000", "12:34:00", "12:34"};
     private static final String[] offsetTimeWindow = new String[] {"-1days-2hours-3minutes-4seconds,+1d+2h+3m+4s",
             "-1day-28hr-6min-8sec", "-187567s,+1s"};
     private static final String[] badOffsetTimeWindow = new String[] {"+1.5days"};
 
-    private static final Timestamp beginTime1 = Timestamp.valueOf(LocalDateTime.parse("2020-07-14T00:00:00"));
-    private static final Timestamp endTime1 = Timestamp.valueOf(LocalDateTime.parse("2020-07-14T01:00:00"));
+    private static final LocalDateTime beginTime1 = LocalDateTime.parse("2020-07-14T00:00:00");
+    private static final LocalDateTime endTime1 = LocalDateTime.parse("2020-07-14T01:00:00");
 
     private static final String goodTimeWindow = "2020-07-14T00:00:00,20200716";
     private static final String badTimeWindow1 = "2020-07-14T00:00:00,2020-07-14T12:00:00";
@@ -87,7 +87,7 @@ public class FilterImplTest {
                 & filter.getFilterEntryCollection().get(2).getRegexList().size()
                 & filter.getFilterEntryCollection().get(3).getRegexList().size());
 
-        assertTrue(filter.getParsedTimeWindowMap().get(beginTime1).equals(endTime1));
+        assertEquals(filter.getParsedTimeWindowMap().get(beginTime1), endTime1);
         assertEquals("DEBUG", filter.getFilterEntryCollection().get(0).getLogLevel().toString());
         assertTrue(filter.getFilterEntryCollection().get(1).getFilterMap().get("thread").contains("idle-connection-reaper"));
         assertEquals("60000", filter.getFilterEntryCollection().get(2).getRegexList().get(0).toString());
@@ -139,7 +139,7 @@ public class FilterImplTest {
     public void testTimeWindowMultipleFormat() {
         filter.composeRule(formatTimeWindow1, emptyFilterExpression);
         assertEquals(1, filter.getParsedTimeWindowMap().size());
-        assertTrue(filter.getParsedTimeWindowMap().containsKey(Timestamp.valueOf("2020-07-14 00:00:00")));
+        assertTrue(filter.getParsedTimeWindowMap().containsKey(LocalDateTime.parse("2020-07-14T00:00:00")));
 
         filter.composeRule(formatTimeWindow2, emptyFilterExpression);
         assertEquals(1, filter.getParsedTimeWindowMap().size());
@@ -149,9 +149,9 @@ public class FilterImplTest {
     public void testTimeWindowOffset() {
         filter.composeRule(offsetTimeWindow, emptyFilterExpression);
         assertEquals(3, filter.getParsedTimeWindowMap().size());
-        for (Map.Entry<Timestamp,Timestamp> entry : filter.getParsedTimeWindowMap().entrySet()) {
+        for (Map.Entry<LocalDateTime,LocalDateTime> entry : filter.getParsedTimeWindowMap().entrySet()) {
             // (86400*2+3600*4+60*6+8)*1000 = 187568000
-            assertEquals(-187568000, entry.getKey().getTime() - entry.getValue().getTime());
+            assertEquals(187568000, Duration.between(entry.getKey(), entry.getValue()).toMillis());
         }
 
         Exception offsetException = assertThrows(RuntimeException.class,

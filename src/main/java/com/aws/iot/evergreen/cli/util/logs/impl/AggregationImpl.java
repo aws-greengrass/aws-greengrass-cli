@@ -74,21 +74,20 @@ public class AggregationImpl implements Aggregation {
 
         @Override
         public void run() {
-            try {
-                BufferedReader reader = new BufferedReader(new java.io.FileReader(fileToRead));
+            try (BufferedReader reader = new BufferedReader(new java.io.FileReader(fileToRead))) {
                 String line;
                 //TODO: Follow live updates of log file
                 while ((line = reader.readLine()) != null) {
                     try {
                         queue.put(new LogsUtil.LogEntry(line, LogsUtil.getMapper().readValue(line, Map.class)));
                     } catch (InterruptedException e) {
-                        LogsUtil.getErrorStream().println(e.getMessage());
+                        Thread.currentThread().interrupt();
+                        throw new RuntimeException(e);
                     } catch (IOException e) {
                         LogsUtil.getErrorStream().println("Failed to serialize: " + line);
                         LogsUtil.getErrorStream().println(e.getMessage());
                     }
                 }
-                reader.close();
             } catch (FileNotFoundException e) {
                 LogsUtil.getErrorStream().println("Cannot open file: " + fileToRead);
             } catch (IOException e) {

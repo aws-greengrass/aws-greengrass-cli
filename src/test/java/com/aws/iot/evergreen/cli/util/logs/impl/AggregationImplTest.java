@@ -9,16 +9,17 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
 
-import java.io.BufferedReader;
 import java.io.ByteArrayOutputStream;
 import java.io.File;
+import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.PrintStream;
-import java.util.List;
 import java.util.Set;
+import java.util.concurrent.BlockingQueue;
 
 import static com.aws.iot.evergreen.cli.TestUtil.deleteDir;
+import static java.lang.Thread.sleep;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.containsString;
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -29,72 +30,130 @@ public class AggregationImplTest {
     private static final String logEntry = "{\"thread\":\"idle-connection-reaper\",\"level\":\"DEBUG\","
             + "\"eventType\":\"null\",\"message\":\"Closing connections idle longer than 60000 MILLISECONDS\","
             + "\"timestamp\":1594836028088,\"cause\":null}";
+
+    private static final String logEntry2 = "{\"thread\":\"idle-connection-reaper\",\"level\":\"DEBUG\","
+            + "\"eventType\":\"null\",\"message\":\"Closing connections idle longer than 60000 MILLISECONDS\","
+            + "\"timestamp\":1594836028089,\"cause\":null}";
+
+    private static final String logEntry3 = "{\"thread\":\"idle-connection-reaper\",\"level\":\"DEBUG\","
+            + "\"eventType\":\"null\",\"message\":\"Closing connections idle longer than 60000 MILLISECONDS\","
+            + "\"timestamp\":0,\"cause\":null}";
+
+    private static final String invalidLogEntry = "{\"thread-idle-connection-reaper\",\"level\":\"DEBUG\","
+            + "\"eventType\":\"null\",\"message\":\"Closing connections idle longer than 60000 MILLISECONDS\","
+            + "\"timestamp\":1594836028088,\"cause\":null}";
+
     @TempDir
     File logDir;
     private File logFile;
     private AggregationImpl aggregation;
     private ByteArrayOutputStream errOutputStream;
     private PrintStream errorStream;
-
+    private PrintStream writer;
+    private BlockingQueue<LogsUtil.LogEntry> logQueue;
     @BeforeEach
-    void init() {
+    void init() throws FileNotFoundException {
         aggregation = new AggregationImpl();
         errOutputStream = new ByteArrayOutputStream();
         errorStream = new PrintStream(errOutputStream);
         LogsUtil.setErrorStream(errorStream);
+        logFile = new File(logDir.getPath() + "/evergreen.log");
+        writer = new PrintStream(new FileOutputStream(logFile));
     }
 
     @Test
-    void testReadLogHappyCase() throws IOException {
-        logFile = new File(logDir.getPath() + "/evergreen.log");
-        PrintStream writer = new PrintStream(new FileOutputStream(logFile));
+    void testReadLogHappyCase() throws IOException, InterruptedException {
+        logFile = new File(logDir.getPath() + "/evergreen.log");writer = new PrintStream(new FileOutputStream(logFile));
         writer.print(logEntry);
 
         String[] logFilePath = {logFile.getAbsolutePath()};
-        List<BufferedReader> readerArrayList = aggregation.readLog(logFilePath, null);
-        assertEquals(1, readerArrayList.size());
+        logQueue = aggregation.readLog(logFilePath, null);
+        assertEquals(1, aggregation.getReadLogFutureList().size());
 
-        String line = readerArrayList.get(0).readLine();
-        assertEquals(line, logEntry);
+        assertEquals(logEntry, logQueue.take().getLine());
 
         String[] logDirPath = {logDir.getAbsolutePath()};
-        readerArrayList = aggregation.readLog(null, logDirPath);
-        assertEquals(1, readerArrayList.size());
+        logQueue = aggregation.readLog(null, logDirPath);
+        assertEquals(1, aggregation.getReadLogFutureList().size());
 
-        line = readerArrayList.get(0).readLine();
-        assertEquals(line, logEntry);
+        assertEquals(logEntry, logQueue.take().getLine());
     }
 
     @Test
-    void testReadLogDuplicateFile() throws IOException {
-        logFile = new File(logDir.getPath() + "/evergreen.log");
-        PrintStream writer = new PrintStream(new FileOutputStream(logFile));
+    void testReadLogInvalidLine() throws InterruptedException {
+        writer.print(invalidLogEntry);
+
+        String[] logFilePath = {logFile.getAbsolutePath()};
+
+        logQueue = aggregation.readLog(logFilePath, null);
+        while (aggregation.isAlive()) {
+            sleep(1);
+        }
+        assertThat(errOutputStream.toString(), containsString("Failed to serialize: " + invalidLogEntry));
+    }
+
+    @Test
+    void testReadLogEmptyLine() throws InterruptedException {
+        writer.print("\n");
+
+        String[] logFilePath = {logFile.getAbsolutePath()};
+
+        logQueue = aggregation.readLog(logFilePath, null);
+        while (aggregation.isAlive()) {
+            sleep(1);
+        }
+        assertThat(errOutputStream.toString(), containsString("Failed to serialize: "));
+    }
+
+    @Test
+    void testReadLogDuplicateFile() throws InterruptedException {
         writer.print(logEntry);
 
         String[] logFilePath = {logFile.getAbsolutePath(), logFile.getAbsolutePath()};
-        String[] logDirPath = {logDir.getAbsolutePath()};
 
-        List<BufferedReader> readerArrayList = aggregation.readLog(logFilePath, logDirPath);
-        assertEquals(1, readerArrayList.size());
-
-        String line = readerArrayList.get(0).readLine();
-        assertEquals(line, logEntry);
+        logQueue = aggregation.readLog(logFilePath, null);
+        assertEquals(1, aggregation.getReadLogFutureList().size());
+        assertEquals(logEntry, logQueue.take().getLine());
     }
 
     @Test
-    void testReadLogInvalidPath() {
+    void testReadLogMultipleFile() throws IOException, InterruptedException {
+        writer.print(logEntry);
+        File logFile2 = new File(logDir.getPath() + "/evergreen.log2");
+        writer = new PrintStream(new FileOutputStream(logFile2));
+        writer.print(logEntry2);
+
+        File logFile3 = new File(logDir.getPath() + "/evergreen.log3");
+        writer = new PrintStream(new FileOutputStream(logFile3));
+        writer.print(logEntry3);
+
+        String[] logFilePath = {logFile.getAbsolutePath(), logFile2.getAbsolutePath(), logFile3.getPath()};
+
+        logQueue = aggregation.readLog(logFilePath, null);
+        assertEquals(3, aggregation.getReadLogFutureList().size());
+        while (aggregation.isAlive()) {
+            sleep(1);
+        }
+        assertEquals(logEntry3, logQueue.take().getLine());
+        assertEquals(logEntry, logQueue.take().getLine());
+        assertEquals(logEntry2, logQueue.take().getLine());
+        assertTrue(logQueue.isEmpty());
+    }
+
+    @Test
+    void testReadLogInvalidPath() throws InterruptedException {
         String[] logFilePath = {"bad path"};
-        Exception invalidLogFileException = assertThrows(RuntimeException.class,
-                () -> aggregation.readLog(logFilePath, null));
-        assertEquals("No valid log input. Please provide a log file or directory.",
-                invalidLogFileException.getMessage());
-        assertThat(errOutputStream.toString(), containsString("bad path (No such file or directory)"));
+        aggregation.readLog(logFilePath, null);
+        while (aggregation.isAlive()) {
+            sleep(1);
+        }
+        assertThat(errOutputStream.toString(), containsString("Cannot open file: bad path"));
     }
 
     @Test
     void testReadLogEmptyDir() {
-        String[] logDirPath = {logDir.getPath()};
-
+        File Dir = new File(logDir.getPath() + "/x");
+        String[] logDirPath = {Dir.getPath()};
         Exception emptyLogDirException = assertThrows(RuntimeException.class,
                 () -> aggregation.readLog(null, logDirPath));
         assertEquals("Log directory provided contains no valid log files.",
@@ -109,9 +168,7 @@ public class AggregationImplTest {
     }
 
     @Test
-    void testListLogHappyCase() throws Exception {
-        logFile = new File(logDir.getPath() + "/evergreen.log");
-        PrintStream writer = new PrintStream(new FileOutputStream(logFile));
+    void testListLogHappyCase() {
         writer.print(logEntry);
 
         String[] logDirPath = {logDir.getPath()};
@@ -124,15 +181,29 @@ public class AggregationImplTest {
 
     @Test
     void testListLogEmptyDir() {
-        String[] logDirPath = {logDir.getPath()};
+        File Dir = new File(logDir.getPath() + "/x");
+        String[] logDirPath = {Dir.getPath()};
         Set<File> logFileSet = aggregation.listLog(logDirPath);
 
         assertEquals(0, logFileSet.size());
     }
 
+    @Test
+    void testListLogInvalidDir() {
+        String[] logDirPath = {"BadPath"};
+        Set<File> logFileSet = aggregation.listLog(logDirPath);
+
+        assertEquals(0, logFileSet.size());
+        assertThat(errOutputStream.toString(), containsString("Log dir provided invalid: BadPath"));
+
+    }
+
+
     @AfterEach
     void cleanup() {
+        logFile.delete();
         deleteDir(logDir);
+        writer.close();
         errorStream.close();
     }
 

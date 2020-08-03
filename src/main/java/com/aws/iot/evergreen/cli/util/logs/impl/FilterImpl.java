@@ -41,6 +41,7 @@ public class FilterImpl implements Filter {
 
     // regex pattern for detecting relative offset.
     private static final Pattern OFFSET_PATTERN;
+
     static {
         StringBuilder regex = new StringBuilder("^");
         /*
@@ -98,10 +99,6 @@ public class FilterImpl implements Filter {
      * Helper function to construct parsedTimeWindow.
      */
     private void composeParsedTimeWindow(String[] timeWindow) {
-        /*
-         *  TODO: Add support for simpler time window input. Handle time zone difference.
-         *  https://github.com/aws/aws-greengrass-cli/pull/14#discussion_r455419380
-         */
         parsedTimeWindowMap.clear();
         if (timeWindow == null) {
             return;

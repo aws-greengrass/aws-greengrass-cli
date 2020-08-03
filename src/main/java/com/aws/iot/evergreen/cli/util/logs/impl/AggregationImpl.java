@@ -5,35 +5,44 @@ package com.aws.iot.evergreen.cli.util.logs.impl;
 
 import com.aws.iot.evergreen.cli.util.logs.Aggregation;
 import com.aws.iot.evergreen.cli.util.logs.LogsUtil;
-import lombok.Setter;
+import lombok.Getter;
 
 import java.io.BufferedReader;
 import java.io.File;
 import java.io.FileNotFoundException;
-import java.io.FileReader;
-import java.io.PrintStream;
+import java.io.IOException;
 import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
+import java.util.concurrent.BlockingQueue;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.Future;
+import java.util.concurrent.PriorityBlockingQueue;
 
 public class AggregationImpl implements Aggregation {
+    //TODO: Add limit on maximum number of threads and capacity of queue.
+    private final ExecutorService executorService = Executors.newCachedThreadPool();
+    private BlockingQueue<LogsUtil.LogEntry> queue;
+    @Getter
+    private List<Future<?>> readLogFutureList;
+
     /*
      * Read log files from input commands.
      *
      * @param logFile an array of file paths
      * @param logDir an array of file directories
-     * @return a list of BufferedReader, each reading one log file
+     * @return a PriorityBlockingQueue containing log entries.
      */
     @Override
-    public List<BufferedReader> readLog(String[] logFile, String[] logDir) {
-        /*
-         * TODO: implement Producer-Consumer model for ReadLog, which read lines into a shared BlockingQueue.
-         */
-        List<BufferedReader> logReaderList = new ArrayList<>();
+    public BlockingQueue<LogsUtil.LogEntry> readLog(String[] logFile, String[] logDir) {
+        if (logFile == null && logDir == null) {
+            throw new RuntimeException("No valid log input. Please provide a log file or directory.");
+        }
 
         Set<File> logFileSet = listLog(logDir);
-
         if (logFile != null) {
             for (String filePath : logFile) {
                 File file = new File(filePath);
@@ -41,21 +50,52 @@ public class AggregationImpl implements Aggregation {
             }
         }
 
+        if (logFileSet.isEmpty() && logDir != null) {
+            throw new RuntimeException("Log directory provided contains no valid log files.");
+        }
+
+        readLogFutureList = new ArrayList<>();
+        queue = new PriorityBlockingQueue<>();
         for (File file : logFileSet) {
+            readLogFutureList.add(executorService.submit(new FileReader(file)));
+        }
+        return queue;
+    }
+
+    /*
+     * Runnable class responsible of reading a single log file
+     */
+    public class FileReader implements Runnable {
+        private final File fileToRead;
+
+        public FileReader(File file) {
+            fileToRead = file;
+        }
+
+        @Override
+        public void run() {
             try {
-                logReaderList.add(new BufferedReader(new FileReader(file)));
+                BufferedReader reader = new BufferedReader(new java.io.FileReader(fileToRead));
+                String line;
+                //TODO: Follow live updates of log file
+                while ((line = reader.readLine()) != null) {
+                    try {
+                        queue.put(new LogsUtil.LogEntry(line, LogsUtil.getMapper().readValue(line, Map.class)));
+                    } catch (InterruptedException e) {
+                        LogsUtil.getErrorStream().println(e.getMessage());
+                    } catch (IOException e) {
+                        LogsUtil.getErrorStream().println("Failed to serialize: " + line);
+                        LogsUtil.getErrorStream().println(e.getMessage());
+                    }
+                }
+                reader.close();
             } catch (FileNotFoundException e) {
+                LogsUtil.getErrorStream().println("Cannot open file: " + fileToRead);
+            } catch (IOException e) {
+                LogsUtil.getErrorStream().println(fileToRead + "readLine() failed.");
                 LogsUtil.getErrorStream().println(e.getMessage());
             }
         }
-
-        if (logReaderList.isEmpty()) {
-            if (logDir == null) {
-                throw new RuntimeException("No valid log input. Please provide a log file or directory.");
-            }
-            throw new RuntimeException("Log directory provided contains no valid log files.");
-        }
-        return logReaderList;
     }
 
     /*
@@ -71,24 +111,32 @@ public class AggregationImpl implements Aggregation {
             return logFileSet;
         }
         for (String dir : logDir) {
-            try {
-                File[] files = new File(dir).listFiles();
-                if (files != null) {
-                    for (File file : files) {
-                        if (isLogFile(file)) {
-                            logFileSet.add(file);
-                        }
-                    }
+            File[] files = new File(dir).listFiles();
+            if (files == null) {
+                LogsUtil.getErrorStream().println("Log dir provided invalid: " + dir);
+                continue;
+            }
+            for (File file : files) {
+                if (isLogFile(file)) {
+                    logFileSet.add(file);
                 }
-            } catch (Exception e) {
-                /*
-                 * TODO: process other directories when one is invalid
-                 * https://github.com/aws/aws-greengrass-cli/pull/14/files#r456008055
-                 */
-                throw new RuntimeException("Log dir provided invalid: " + dir, e);
             }
         }
         return logFileSet;
+    }
+
+    /*
+     * Check if readLog is active.
+     */
+    @Override
+    public Boolean isAlive() {
+        for (Future<?> future: readLogFutureList) {
+            if (!future.isDone()) {
+                return true;
+            }
+        }
+        executorService.shutdown();
+        return false;
     }
 
     /*

@@ -35,10 +35,6 @@ public class LogsTest {
             + "\"eventType\":\"null\",\"message\":\"Closing connections idle longer than 60000 MILLISECONDS\","
             + "\"timestamp\":1594836028088,\"cause\":null}";
 
-    private static final String invalidLogEntry = "{\"thread-idle-connection-reaper\",\"level\":\"DEBUG\","
-            + "\"eventType\":\"null\",\"message\":\"Closing connections idle longer than 60000 MILLISECONDS\","
-            + "\"timestamp\":1594836028088,\"cause\":null}";
-
     /*
      * TODO: use mocks for LogsTest.
      */
@@ -77,31 +73,6 @@ public class LogsTest {
         logs.get(logFilePath, null, timeWindow, filterExpression);
         assertThat(byteArrayOutputStream.toString(), containsString("[DEBUG] (idle-connection-reaper) "
                 + "null: null. Closing connections idle longer than 60000 MILLISECONDS"));
-    }
-
-    @Test
-    void testGetInvalidLogEntry() throws IOException {
-        PrintStream fileWriter = new PrintStream(new FileOutputStream(logFile));
-        fileWriter.print(invalidLogEntry);
-        fileWriter.close();
-
-        String[] logFilePath = {logFile.getAbsolutePath()};
-        logs.get(logFilePath, null, timeWindow, filterExpression);
-        assertThat(errOutputStream.toString(), containsString("Failed to serialize: " + invalidLogEntry));
-    }
-
-    @Test
-    void testGetEmptyLine() throws IOException {
-        PrintStream fileWriter = new PrintStream(new FileOutputStream(logFile));
-        fileWriter.print(logEntry);
-        fileWriter.println("\n");
-        fileWriter.close();
-
-        String[] logFilePath = {logFile.getAbsolutePath()};
-        logs.get(logFilePath, null, timeWindow, filterExpression);
-        assertThat(byteArrayOutputStream.toString(), containsString("[DEBUG] (idle-connection-reaper) "
-                + "null: null. Closing connections idle longer than 60000 MILLISECONDS"));
-        assertThat(errOutputStream.toString(), containsString("Empty line"));
     }
 
     @Test

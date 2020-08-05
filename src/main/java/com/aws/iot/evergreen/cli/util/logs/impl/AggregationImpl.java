@@ -110,7 +110,7 @@ public class AggregationImpl implements Aggregation {
      */
     @Override
     public void close() {
-        executorService.shutdown();
+        executorService.shutdownNow();
     }
 
     /*

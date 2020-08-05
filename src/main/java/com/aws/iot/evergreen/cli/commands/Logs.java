@@ -8,6 +8,7 @@ import com.aws.iot.evergreen.cli.util.logs.Filter;
 import com.aws.iot.evergreen.cli.util.logs.LogEntry;
 import com.aws.iot.evergreen.cli.util.logs.LogsUtil;
 import com.aws.iot.evergreen.cli.util.logs.Visualization;
+import lombok.Getter;
 import lombok.Setter;
 import picocli.CommandLine;
 import picocli.CommandLine.Command;
@@ -25,6 +26,7 @@ public class Logs extends BaseCommand {
     // setters created only for unit tests
     @Inject
     @Setter
+    @Getter
     private Aggregation aggregation;
     // setters created only for unit tests
     @Inject
@@ -35,14 +37,13 @@ public class Logs extends BaseCommand {
     @Setter
     private Visualization visualization;
 
-
-
     @Command(name = "get")
     public int get(@CommandLine.Option(names = {"--log-file"}, paramLabel = "Log File Paths") String[] logFile,
                    @CommandLine.Option(names = {"--log-dir"}, paramLabel = "Log Directory Paths") String[] logDir,
                    @CommandLine.Option(names = {"--time-window"}, paramLabel = "Time Window") String[] timeWindow,
                    @CommandLine.Option(names = {"--filter"}, paramLabel = "Filter Expression")
                            String[] filterExpressions) throws IOException {
+        Runtime.getRuntime().addShutdownHook(new Thread(aggregation::close));
         filter.composeRule(timeWindow, filterExpressions);
         BlockingQueue<LogEntry> logQueue = aggregation.readLog(logFile, logDir);
 
@@ -56,8 +57,6 @@ public class Logs extends BaseCommand {
                 }
             }
         }
-
-        aggregation.close();
         return 0;
     }
 

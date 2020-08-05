@@ -72,7 +72,9 @@ public class LogsTest {
 
         String[] logFilePath = {logFile.getAbsolutePath()};
         logs.get(logFilePath, null, timeWindow, filterExpression);
-        sleep(10);
+        while (logs.getAggregation().isAlive()) {
+            sleep(1);
+        }
         assertThat(byteArrayOutputStream.toString(), containsString("[DEBUG] (idle-connection-reaper) "
                 + "null: null. Closing connections idle longer than 60000 MILLISECONDS"));
     }

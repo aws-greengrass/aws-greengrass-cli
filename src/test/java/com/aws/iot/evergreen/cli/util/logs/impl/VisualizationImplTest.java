@@ -4,7 +4,6 @@
 package com.aws.iot.evergreen.cli.util.logs.impl;
 
 import com.aws.iot.evergreen.cli.TestUtil;
-import com.aws.iot.evergreen.logging.impl.EvergreenStructuredLogMessage;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import org.junit.jupiter.api.Test;
 
@@ -20,7 +19,7 @@ public class VisualizationImplTest {
     void visualizeHappyCase() throws JsonProcessingException {
         VisualizationImpl visualization = new VisualizationImpl();
 
-        assertThat(visualization.visualize(TestUtil.getMapper().readValue(logEntry, EvergreenStructuredLogMessage.class)),
+        assertThat(visualization.visualize(TestUtil.getEvergreenStructuredLogReader().readValue(logEntry)),
                 containsString("[DEBUG] (idle-connection-reaper) null: null. "
                         + "Closing connections idle longer than 60000 MILLISECONDS"));
     }

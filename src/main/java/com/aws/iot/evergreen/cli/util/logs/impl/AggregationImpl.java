@@ -4,18 +4,17 @@
 package com.aws.iot.evergreen.cli.util.logs.impl;
 
 import com.aws.iot.evergreen.cli.util.logs.Aggregation;
+import com.aws.iot.evergreen.cli.util.logs.FileReader;
+import com.aws.iot.evergreen.cli.util.logs.LogEntry;
 import com.aws.iot.evergreen.cli.util.logs.LogsUtil;
 import lombok.Getter;
 
-import java.io.BufferedReader;
 import java.io.File;
-import java.io.FileNotFoundException;
-import java.io.IOException;
 import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
-import java.util.Map;
 import java.util.Set;
+import java.util.concurrent.ArrayBlockingQueue;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
@@ -23,9 +22,11 @@ import java.util.concurrent.Future;
 import java.util.concurrent.PriorityBlockingQueue;
 
 public class AggregationImpl implements Aggregation {
-    //TODO: Add limit on maximum number of threads and capacity of queue.
+    // TODO: Add limit on maximum number of threads and capacity of queue.
+    // We define the max number here as a space holder, and will expand it in the next iteration.
+    private static final int MAX_NUM_LOG_ENTRY = 50;
+
     private final ExecutorService executorService = Executors.newCachedThreadPool();
-    private BlockingQueue<LogsUtil.LogEntry> queue;
     @Getter
     private List<Future<?>> readLogFutureList;
 
@@ -37,7 +38,7 @@ public class AggregationImpl implements Aggregation {
      * @return a PriorityBlockingQueue containing log entries.
      */
     @Override
-    public BlockingQueue<LogsUtil.LogEntry> readLog(String[] logFile, String[] logDir) {
+    public BlockingQueue<LogEntry> readLog(String[] logFile, String[] logDir) {
         if (logFile == null && logDir == null) {
             throw new RuntimeException("No valid log input. Please provide a log file or directory.");
         }
@@ -55,46 +56,13 @@ public class AggregationImpl implements Aggregation {
         }
 
         readLogFutureList = new ArrayList<>();
-        queue = new PriorityBlockingQueue<>();
+        BlockingQueue<LogEntry> queue = new PriorityBlockingQueue<>();
+        BlockingQueue<LogEntry> logEntryArray = new ArrayBlockingQueue<>(MAX_NUM_LOG_ENTRY, true);
+
         for (File file : logFileSet) {
-            readLogFutureList.add(executorService.submit(new FileReader(file)));
+            readLogFutureList.add(executorService.submit(new FileReader(file, queue, logEntryArray)));
         }
         return queue;
-    }
-
-    /*
-     * Runnable class responsible of reading a single log file
-     */
-    public class FileReader implements Runnable {
-        private final File fileToRead;
-
-        public FileReader(File file) {
-            fileToRead = file;
-        }
-
-        @Override
-        public void run() {
-            try (BufferedReader reader = new BufferedReader(new java.io.FileReader(fileToRead))) {
-                String line;
-                //TODO: Follow live updates of log file
-                while ((line = reader.readLine()) != null) {
-                    try {
-                        queue.put(new LogsUtil.LogEntry(line, LogsUtil.getMapper().readValue(line, Map.class)));
-                    } catch (InterruptedException e) {
-                        Thread.currentThread().interrupt();
-                        throw new RuntimeException(e);
-                    } catch (IOException e) {
-                        LogsUtil.getErrorStream().println("Failed to serialize: " + line);
-                        LogsUtil.getErrorStream().println(e.getMessage());
-                    }
-                }
-            } catch (FileNotFoundException e) {
-                LogsUtil.getErrorStream().println("Cannot open file: " + fileToRead);
-            } catch (IOException e) {
-                LogsUtil.getErrorStream().println(fileToRead + "readLine() failed.");
-                LogsUtil.getErrorStream().println(e.getMessage());
-            }
-        }
     }
 
     /*
@@ -134,8 +102,15 @@ public class AggregationImpl implements Aggregation {
                 return true;
             }
         }
-        executorService.shutdown();
         return false;
+    }
+
+    /*
+     * Close the resources.
+     */
+    @Override
+    public void close() {
+        executorService.shutdown();
     }
 
     /*

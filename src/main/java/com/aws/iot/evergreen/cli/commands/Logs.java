@@ -5,9 +5,9 @@ package com.aws.iot.evergreen.cli.commands;
 
 import com.aws.iot.evergreen.cli.util.logs.Aggregation;
 import com.aws.iot.evergreen.cli.util.logs.Filter;
+import com.aws.iot.evergreen.cli.util.logs.LogEntry;
 import com.aws.iot.evergreen.cli.util.logs.LogsUtil;
 import com.aws.iot.evergreen.cli.util.logs.Visualization;
-import com.aws.iot.evergreen.logging.impl.EvergreenStructuredLogMessage;
 import lombok.Setter;
 import picocli.CommandLine;
 import picocli.CommandLine.Command;
@@ -44,18 +44,20 @@ public class Logs extends BaseCommand {
                    @CommandLine.Option(names = {"--filter"}, paramLabel = "Filter Expression")
                            String[] filterExpressions) throws IOException {
         filter.composeRule(timeWindow, filterExpressions);
-        BlockingQueue<LogsUtil.LogEntry> logQueue = aggregation.readLog(logFile, logDir);
+        BlockingQueue<LogEntry> logQueue = aggregation.readLog(logFile, logDir);
 
         while (!logQueue.isEmpty() || aggregation.isAlive()) {
-            LogsUtil.LogEntry entry = logQueue.poll();
+            LogEntry entry = logQueue.poll();
             if (entry != null && !entry.getLine().isEmpty()) {
-                if (filter.filter(entry.getLine(), entry.getMap())) {
+                if (filter.filter(entry)) {
                     //TODO: Expand LogEntry class and use it for visualization
-                    LogsUtil.getPrintStream().println(visualization.visualize(LogsUtil.getMapper()
-                            .readValue(entry.getLine(), EvergreenStructuredLogMessage.class)));
+                    LogsUtil.getPrintStream().println(visualization.visualize(LogsUtil.getEvergreenStructuredLogReader()
+                            .readValue(entry.getLine())));
                 }
             }
         }
+
+        aggregation.close();
         return 0;
     }
 

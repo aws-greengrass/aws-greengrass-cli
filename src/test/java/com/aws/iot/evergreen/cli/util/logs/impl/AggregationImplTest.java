@@ -3,6 +3,7 @@
 
 package com.aws.iot.evergreen.cli.util.logs.impl;
 
+import com.aws.iot.evergreen.cli.util.logs.LogEntry;
 import com.aws.iot.evergreen.cli.util.logs.LogsUtil;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
@@ -37,7 +38,7 @@ public class AggregationImplTest {
 
     private static final String logEntry3 = "{\"thread\":\"idle-connection-reaper\",\"level\":\"DEBUG\","
             + "\"eventType\":\"null\",\"message\":\"Closing connections idle longer than 60000 MILLISECONDS\","
-            + "\"timestamp\":0,\"cause\":null}";
+            + "\"timestamp\":1594836028087,\"cause\":null}";
 
     private static final String invalidLogEntry = "{\"thread-idle-connection-reaper\",\"level\":\"DEBUG\","
             + "\"eventType\":\"null\",\"message\":\"Closing connections idle longer than 60000 MILLISECONDS\","
@@ -50,7 +51,7 @@ public class AggregationImplTest {
     private ByteArrayOutputStream errOutputStream;
     private PrintStream errorStream;
     private PrintStream writer;
-    private BlockingQueue<LogsUtil.LogEntry> logQueue;
+    private BlockingQueue<LogEntry> logQueue;
     @BeforeEach
     void init() throws FileNotFoundException {
         aggregation = new AggregationImpl();
@@ -134,6 +135,7 @@ public class AggregationImplTest {
         while (aggregation.isAlive()) {
             sleep(1);
         }
+        assertEquals(3, logQueue.size());
         assertEquals(logEntry3, logQueue.take().getLine());
         assertEquals(logEntry, logQueue.take().getLine());
         assertEquals(logEntry2, logQueue.take().getLine());
@@ -201,6 +203,7 @@ public class AggregationImplTest {
 
     @AfterEach
     void cleanup() {
+        aggregation.close();
         logFile.delete();
         deleteDir(logDir);
         writer.close();

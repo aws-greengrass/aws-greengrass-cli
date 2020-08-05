@@ -4,6 +4,7 @@
 package com.aws.iot.evergreen.cli.util.logs.impl;
 
 import com.aws.iot.evergreen.cli.TestUtil;
+import com.aws.iot.evergreen.cli.util.logs.LogEntry;
 import com.aws.iot.evergreen.cli.util.logs.LogsUtil;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import org.junit.jupiter.api.AfterEach;
@@ -18,10 +19,7 @@ import java.util.Map;
 
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.containsString;
-import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertFalse;
-import static org.junit.jupiter.api.Assertions.assertThrows;
-import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.junit.jupiter.api.Assertions.*;
 
 public class FilterImplTest {
 
@@ -68,6 +66,8 @@ public class FilterImplTest {
     private FilterImpl filter;
     private ByteArrayOutputStream errOutputStream;
     private PrintStream errorStream;
+
+    private static final LogEntry entry = new LogEntry();
 
     @BeforeEach
     void init() {
@@ -168,39 +168,45 @@ public class FilterImplTest {
 
     @Test
     public void testFilterHappyCase() throws JsonProcessingException {
-        Map<String, Object> parsedJsonMap = TestUtil.getMapper().readValue(logEntry, Map.class);
+        Map<String, Object> parsedJsonMap = TestUtil.getMapper().readValue(logEntry);
+        entry.setLogEntry(logEntry, parsedJsonMap);
+
 
         String[] timeWindow1 = {badTimeWindow1, badTimeWindow2, goodTimeWindow};
         filter.composeRule(timeWindow1, goodFilterExpression);
-        assertTrue(filter.filter(logEntry, parsedJsonMap));
+        assertTrue(filter.filter(entry));
 
         filter.composeRule(timeWindow1, orFilterExpression);
-        assertTrue(filter.filter(logEntry, parsedJsonMap));
+        assertTrue(filter.filter(entry));
 
         String[] timeWindow2 = {badTimeWindow1};
         filter.composeRule(timeWindow2, goodFilterExpression);
-        assertFalse(filter.filter(logEntry, parsedJsonMap));
+        assertFalse(filter.filter(entry));
 
         filter.composeRule(timeWindow1, falseFilterExpression);
-        assertFalse(filter.filter(logEntry, parsedJsonMap));
+        assertFalse(filter.filter(entry));
     }
 
     @Test
     public void testFilterEmptyCase() throws JsonProcessingException {
-        Map<String, Object> parsedJsonMap = TestUtil.getMapper().readValue(logEntry, Map.class);
+        Map<String, Object> parsedJsonMap = TestUtil.getMapper().readValue(logEntry);
+        entry.setLogEntry(logEntry, parsedJsonMap);
+
         filter.composeRule(emptyTimeWindow, emptyFilterExpression);
-        assertTrue(filter.filter(logEntry, parsedJsonMap));
+        assertTrue(filter.filter(entry));
 
         filter.composeRule(null, null);
-        assertTrue(filter.filter(logEntry, parsedJsonMap));
+        assertTrue(filter.filter(entry));
     }
 
     @Test
     public void testFilterInvalidLogLevel() throws JsonProcessingException {
-        Map<String, Object> parsedJsonMap = TestUtil.getMapper().readValue(logEntryBadLevel, Map.class);
+        Map<String, Object> parsedJsonMap = TestUtil.getMapper().readValue(logEntryBadLevel);
+        entry.setLogEntry(logEntryBadLevel, parsedJsonMap);
+
         String[] timeWindow1 = {goodTimeWindow, badTimeWindow1};
         filter.composeRule(timeWindow1, goodFilterExpression);
-        assertFalse(filter.filter(logEntry, parsedJsonMap));
+        assertFalse(filter.filter(entry));
         assertThat(errOutputStream.toString(), containsString("Invalid log level from: "));
     }
 

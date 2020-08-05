@@ -3,10 +3,8 @@
 
 package com.aws.iot.evergreen.cli.util.logs;
 
-import java.util.Map;
-
 public interface Filter {
-    boolean filter(String logEntry, Map<String, Object> parsedJsonMap);
+    boolean filter(LogEntry entry);
 
     void composeRule(String[] timeWindow, String[] filterExpressions);
 }

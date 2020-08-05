@@ -19,6 +19,7 @@ import java.io.IOException;
 import java.io.PrintStream;
 
 import static com.aws.iot.evergreen.cli.TestUtil.deleteDir;
+import static java.lang.Thread.sleep;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.containsString;
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -64,13 +65,14 @@ public class LogsTest {
     }
 
     @Test
-    void testGetHappyCase() throws IOException {
+    void testGetHappyCase() throws IOException, InterruptedException {
         PrintStream fileWriter = new PrintStream(new FileOutputStream(logFile));
         fileWriter.print(logEntry);
         fileWriter.close();
 
         String[] logFilePath = {logFile.getAbsolutePath()};
         logs.get(logFilePath, null, timeWindow, filterExpression);
+        sleep(10);
         assertThat(byteArrayOutputStream.toString(), containsString("[DEBUG] (idle-connection-reaper) "
                 + "null: null. Closing connections idle longer than 60000 MILLISECONDS"));
     }

@@ -49,11 +49,16 @@ public class Logs extends BaseCommand {
 
         while (!logQueue.isEmpty() || aggregation.isAlive()) {
             LogEntry entry = logQueue.poll();
-            if (entry != null && !entry.getLine().isEmpty()) {
-                if (filter.filter(entry)) {
-                    //TODO: Expand LogEntry class and use it for visualization
-                    LogsUtil.getPrintStream().println(visualization.visualize(LogsUtil.getEvergreenStructuredLogReader()
-                            .readValue(entry.getLine())));
+            if (entry != null) {
+                entry.getLock().lock();
+                try {
+                    if (!entry.getLine().isEmpty() && filter.filter(entry)) {
+                        //TODO: Expand LogEntry class and use it for visualization
+                        LogsUtil.getPrintStream().println(visualization.visualize(LogsUtil.getEvergreenStructuredLogReader()
+                                .readValue(entry.getLine())));
+                    }
+                } finally {
+                    entry.getLock().unlock();
                 }
             }
         }

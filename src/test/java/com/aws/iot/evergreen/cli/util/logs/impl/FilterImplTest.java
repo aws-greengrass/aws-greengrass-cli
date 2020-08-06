@@ -19,7 +19,10 @@ import java.util.Map;
 
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.containsString;
-import static org.junit.jupiter.api.Assertions.*;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 public class FilterImplTest {
 
@@ -167,7 +170,7 @@ public class FilterImplTest {
     }
 
     @Test
-    public void testFilterHappyCase() throws JsonProcessingException {
+    public void testFilterHappyCase() throws JsonProcessingException, InterruptedException {
         Map<String, Object> parsedJsonMap = TestUtil.getMapper().readValue(logEntry);
         entry.setLogEntry(logEntry, parsedJsonMap);
 
@@ -188,7 +191,7 @@ public class FilterImplTest {
     }
 
     @Test
-    public void testFilterEmptyCase() throws JsonProcessingException {
+    public void testFilterEmptyCase() throws JsonProcessingException, InterruptedException {
         Map<String, Object> parsedJsonMap = TestUtil.getMapper().readValue(logEntry);
         entry.setLogEntry(logEntry, parsedJsonMap);
 
@@ -200,7 +203,7 @@ public class FilterImplTest {
     }
 
     @Test
-    public void testFilterInvalidLogLevel() throws JsonProcessingException {
+    public void testFilterInvalidLogLevel() throws JsonProcessingException, InterruptedException {
         Map<String, Object> parsedJsonMap = TestUtil.getMapper().readValue(logEntryBadLevel);
         entry.setLogEntry(logEntryBadLevel, parsedJsonMap);
 

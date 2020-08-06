@@ -175,6 +175,7 @@ public class FilterImplTest {
         entry.setLogEntry(logEntry, parsedJsonMap);
 
 
+
         String[] timeWindow1 = {badTimeWindow1, badTimeWindow2, goodTimeWindow};
         filter.composeRule(timeWindow1, goodFilterExpression);
         assertTrue(filter.filter(entry));
@@ -188,6 +189,8 @@ public class FilterImplTest {
 
         filter.composeRule(timeWindow1, falseFilterExpression);
         assertFalse(filter.filter(entry));
+
+        entry.setVisualizeFinished(true);
     }
 
     @Test
@@ -200,6 +203,8 @@ public class FilterImplTest {
 
         filter.composeRule(null, null);
         assertTrue(filter.filter(entry));
+
+        entry.setVisualizeFinished(true);
     }
 
     @Test
@@ -211,6 +216,8 @@ public class FilterImplTest {
         filter.composeRule(timeWindow1, goodFilterExpression);
         assertFalse(filter.filter(entry));
         assertThat(errOutputStream.toString(), containsString("Invalid log level from: "));
+
+        entry.setVisualizeFinished(true);
     }
 
     @AfterEach

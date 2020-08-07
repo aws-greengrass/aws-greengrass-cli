@@ -1,0 +1,72 @@
+package com.aws.iot.evergreen.cli.util.logs;
+
+import com.fasterxml.jackson.core.JsonProcessingException;
+import lombok.Getter;
+import lombok.Synchronized;
+
+import java.util.Map;
+
+import static java.lang.Thread.sleep;
+
+/*
+ *  LogEntry class that contains the line, parsed JSON map, and timestamp.
+ *  Note: this class has a natural ordering that is inconsistent with equals.
+ */
+@Getter
+public class LogEntry implements Comparable<LogEntry> {
+    private String line;
+    private Map<String, Object> map;
+    private long timestamp;
+
+    private boolean visualizeFinished = true;
+
+    /*
+     * Setter for LogEntry.
+     * @param line
+     * @param map
+     * We prefer setter over a constructor because a LogEntry instance is expected to be reused for multiple times.
+     * We throw an IOException to the outside to handle failed parsing.
+     */
+    public void setLogEntry(String line) throws JsonProcessingException {
+        while (!isVisualizeFinished()) {
+            //TODO: remove busy-wait.
+            try {
+                sleep(1);
+            } catch (InterruptedException e) {
+                Thread.currentThread().interrupt();
+                throw new RuntimeException(e);
+            }
+        }
+        //We handle parsing first so that if JsonProcessingException is thrown we won't change the fields of this class.
+        this.map = parseJSONFromString(line);
+
+        this.line = line;
+        if (map.get("timestamp") instanceof Long) {
+            this.timestamp = (long) map.get("timestamp");
+            setVisualizeFinished(false);
+            return;
+        }
+        this.timestamp = Long.parseLong(map.get("timestamp").toString());
+        setVisualizeFinished(false);
+    }
+
+    private Map<String, Object> parseJSONFromString(String line) throws JsonProcessingException {
+        return LogsUtil.MAP_READER.readValue(line);
+    }
+
+    // Order by timestamp.
+    @Override
+    public int compareTo(LogEntry other) {
+        return Long.compare(this.getTimestamp(), other.getTimestamp());
+    }
+
+    @Synchronized
+    public void setVisualizeFinished(boolean target) {
+        visualizeFinished = target;
+    }
+
+    @Synchronized
+    public boolean isVisualizeFinished() {
+        return visualizeFinished;
+    }
+}

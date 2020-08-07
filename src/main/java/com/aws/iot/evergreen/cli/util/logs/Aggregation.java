@@ -3,13 +3,16 @@
 
 package com.aws.iot.evergreen.cli.util.logs;
 
-import java.io.BufferedReader;
 import java.io.File;
-import java.util.List;
 import java.util.Set;
+import java.util.concurrent.BlockingQueue;
 
 public interface Aggregation {
-    List<BufferedReader> readLog(String[] logFile, String[] logDir);
+    BlockingQueue<LogEntry> readLog(String[] logFile, String[] logDir);
 
     Set<File> listLog(String[] logDir);
+
+    Boolean isAlive();
+
+    void close();
 }

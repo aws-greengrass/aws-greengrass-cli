@@ -5,30 +5,27 @@ package com.aws.iot.evergreen.cli.commands;
 
 import com.aws.iot.evergreen.cli.util.logs.Aggregation;
 import com.aws.iot.evergreen.cli.util.logs.Filter;
+import com.aws.iot.evergreen.cli.util.logs.LogEntry;
 import com.aws.iot.evergreen.cli.util.logs.LogsUtil;
 import com.aws.iot.evergreen.cli.util.logs.Visualization;
-import com.aws.iot.evergreen.logging.impl.EvergreenStructuredLogMessage;
-import com.fasterxml.jackson.databind.ObjectMapper;
+import lombok.Getter;
 import lombok.Setter;
 import picocli.CommandLine;
 import picocli.CommandLine.Command;
 import picocli.CommandLine.HelpCommand;
 
-import java.io.BufferedReader;
 import java.io.File;
-import java.io.IOException;
-import java.io.PrintStream;
-import java.util.List;
-import java.util.Map;
 import java.util.Set;
+import java.util.concurrent.BlockingQueue;
 import javax.inject.Inject;
 
 @Command(name = "logs", resourceBundle = "com.aws.iot.evergreen.cli.CLI_messages", subcommands = HelpCommand.class)
 public class Logs extends BaseCommand {
-    private static final ObjectMapper mapper = new ObjectMapper();
+
     // setters created only for unit tests
     @Inject
     @Setter
+    @Getter
     private Aggregation aggregation;
     // setters created only for unit tests
     @Inject
@@ -44,44 +41,35 @@ public class Logs extends BaseCommand {
                    @CommandLine.Option(names = {"--log-dir"}, paramLabel = "Log Directory Paths") String[] logDir,
                    @CommandLine.Option(names = {"--time-window"}, paramLabel = "Time Window") String[] timeWindow,
                    @CommandLine.Option(names = {"--filter"}, paramLabel = "Filter Expression")
-                               String[] filterExpressions) throws IOException {
+                           String[] filterExpressions) {
+        Runtime.getRuntime().addShutdownHook(new Thread(aggregation::close));
         filter.composeRule(timeWindow, filterExpressions);
-        List<BufferedReader> logReaderList = aggregation.readLog(logFile, logDir);
-        for (BufferedReader reader : logReaderList) {
-            String line = "";
-            try {
-                while ((line = reader.readLine()) != null) {
-                    if (line.isEmpty()) {
-                        LogsUtil.getErrorStream().println("Empty line from " + reader.toString());
-                        continue;
-                    }
-                    if (filter.filter(line, mapper.readValue(line, Map.class))) {
-                        LogsUtil.getPrintStream().println(visualization.visualize(mapper
-                                .readValue(line, EvergreenStructuredLogMessage.class)));
-                    }
+        BlockingQueue<LogEntry> logQueue = aggregation.readLog(logFile, logDir);
+
+        while (!logQueue.isEmpty() || aggregation.isAlive()) {
+            LogEntry entry = logQueue.poll();
+            if (entry != null) {
+                if (filter.filter(entry)) {
+                    //TODO: Expand LogEntry class and use it for visualization
+                    visualization.visualize(entry.getLine());
                 }
-            } catch (IOException e) {
-                LogsUtil.getErrorStream().println("Failed to serialize: " + line);
-                LogsUtil.getErrorStream().println(e.getMessage());
-            } finally {
-                reader.close();
+                entry.setVisualizeFinished(true);
             }
         }
         return 0;
     }
 
     @Command(name = "list-log-files")
-    public int list_log(@CommandLine.Option(names = {"--log-dir"}, paramLabel = "Log Directory Paths")
-                                    String[] logDir) {
+    public void list_log(@CommandLine.Option(names = {"--log-dir"}, paramLabel = "Log Directory Paths")
+                                 String[] logDir) {
         Set<File> logFileSet = aggregation.listLog(logDir);
         if (!logFileSet.isEmpty()) {
             for (File file : logFileSet) {
                 LogsUtil.getPrintStream().println(file.getPath());
             }
             LogsUtil.getPrintStream().format("Total %d files found.", logFileSet.size());
-            return 0;
+            return;
         }
         LogsUtil.getPrintStream().println("No log file found.");
-        return 0;
     }
 }

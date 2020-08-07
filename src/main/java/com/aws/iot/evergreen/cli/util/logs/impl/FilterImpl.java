@@ -4,6 +4,7 @@
 package com.aws.iot.evergreen.cli.util.logs.impl;
 
 import com.aws.iot.evergreen.cli.util.logs.Filter;
+import com.aws.iot.evergreen.cli.util.logs.LogEntry;
 import com.aws.iot.evergreen.cli.util.logs.LogsUtil;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
@@ -41,6 +42,7 @@ public class FilterImpl implements Filter {
 
     // regex pattern for detecting relative offset.
     private static final Pattern OFFSET_PATTERN;
+
     static {
         StringBuilder regex = new StringBuilder("^");
         /*
@@ -78,8 +80,8 @@ public class FilterImpl implements Filter {
      * Determines if a log entry matches the defined filter.
      */
     @Override
-    public boolean filter(String logEntry, Map<String, Object> parsedJsonMap) {
-        return checkTimeWindow(parsedJsonMap) && checkFilterExpression(logEntry, parsedJsonMap);
+    public boolean filter(LogEntry entry) {
+        return checkTimeWindow(entry.getTimestamp()) && checkFilterExpression(entry.getLine(), entry.getMap());
     }
 
     /*
@@ -98,10 +100,6 @@ public class FilterImpl implements Filter {
      * Helper function to construct parsedTimeWindow.
      */
     private void composeParsedTimeWindow(String[] timeWindow) {
-        /*
-         *  TODO: Add support for simpler time window input. Handle time zone difference.
-         *  https://github.com/aws/aws-greengrass-cli/pull/14#discussion_r455419380
-         */
         parsedTimeWindowMap.clear();
         if (timeWindow == null) {
             return;
@@ -180,13 +178,12 @@ public class FilterImpl implements Filter {
     /*
      * Check if the data matches defined time windows.
      */
-    private boolean checkTimeWindow(Map<String, Object> parsedJsonMap) {
+    private boolean checkTimeWindow(long timestamp) {
         if (parsedTimeWindowMap.isEmpty()) {
             return true;
         }
         for (Map.Entry<LocalDateTime, LocalDateTime> entry : parsedTimeWindowMap.entrySet()) {
-            LocalDateTime dataTime = new Timestamp(Long.parseLong(parsedJsonMap.get("timestamp").toString()))
-                    .toLocalDateTime();
+            LocalDateTime dataTime = new Timestamp(timestamp).toLocalDateTime();
             if (entry.getKey().isBefore(dataTime) && entry.getValue().isAfter(dataTime)) {
                 return true;
             }

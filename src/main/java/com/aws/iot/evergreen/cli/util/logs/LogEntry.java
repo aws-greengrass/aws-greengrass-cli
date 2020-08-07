@@ -1,5 +1,6 @@
 package com.aws.iot.evergreen.cli.util.logs;
 
+import com.fasterxml.jackson.core.JsonProcessingException;
 import lombok.Getter;
 import lombok.Synchronized;
 
@@ -19,7 +20,14 @@ public class LogEntry implements Comparable<LogEntry> {
 
     private boolean visualizeFinished = true;
 
-    public void setLogEntry(String line, Map<String, Object> map) {
+    /*
+     * Setter for LogEntry.
+     * @param line
+     * @param map
+     * We prefer setter over a constructor because a LogEntry instance is expected to be reused for multiple times.
+     * We throw an IOException to the outside to handle failed parsing.
+     */
+    public void setLogEntry(String line) throws JsonProcessingException {
         while (!isVisualizeFinished()) {
             //TODO: remove busy-wait.
             try {
@@ -29,14 +37,21 @@ public class LogEntry implements Comparable<LogEntry> {
                 throw new RuntimeException(e);
             }
         }
-        setVisualizeFinished(false);
+        //We handle parsing first so that if JsonProcessingException is thrown we won't change the fields of this class.
+        this.map = parseJSONFromString(line);
+
         this.line = line;
-        this.map = map;
         if (map.get("timestamp") instanceof Long) {
             this.timestamp = (long) map.get("timestamp");
+            setVisualizeFinished(false);
             return;
         }
         this.timestamp = Long.parseLong(map.get("timestamp").toString());
+        setVisualizeFinished(false);
+    }
+
+    private Map<String, Object> parseJSONFromString(String line) throws JsonProcessingException {
+        return LogsUtil.MAP_READER.readValue(line);
     }
 
     // Order by timestamp.

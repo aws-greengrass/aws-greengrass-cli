@@ -1,5 +1,6 @@
 package com.aws.iot.evergreen.cli.util.logs;
 
+import com.fasterxml.jackson.core.JsonProcessingException;
 import lombok.AllArgsConstructor;
 
 import java.io.BufferedReader;
@@ -25,13 +26,13 @@ public class FileReader implements Runnable {
             while ((line = reader.readLine()) != null) {
                 try {
                     LogEntry entry = logEntryArray.remainingCapacity() != 0 ? new LogEntry() : logEntryArray.take();
-                    entry.setLogEntry(line, LogsUtil.getMAP_READER().readValue(line));
+                    entry.setLogEntry(line);
                     queue.put(entry);
                     logEntryArray.put(entry);
                 } catch (InterruptedException e) {
                     Thread.currentThread().interrupt();
                     throw new RuntimeException(e);
-                } catch (IOException e) {
+                } catch (JsonProcessingException e) {
                     LogsUtil.getErrorStream().println("Failed to serialize: " + line);
                     LogsUtil.getErrorStream().println(e.getMessage());
                 }

@@ -3,7 +3,6 @@
 
 package com.aws.iot.evergreen.cli.util.logs.impl;
 
-import com.aws.iot.evergreen.cli.TestUtil;
 import com.aws.iot.evergreen.cli.util.logs.LogEntry;
 import com.aws.iot.evergreen.cli.util.logs.LogsUtil;
 import com.fasterxml.jackson.core.JsonProcessingException;
@@ -170,11 +169,8 @@ public class FilterImplTest {
     }
 
     @Test
-    public void testFilterHappyCase() throws JsonProcessingException, InterruptedException {
-        Map<String, Object> parsedJsonMap = TestUtil.getMapper().readValue(logEntry);
-        entry.setLogEntry(logEntry, parsedJsonMap);
-
-
+    public void testFilterHappyCase() throws JsonProcessingException {
+        entry.setLogEntry(logEntry);
 
         String[] timeWindow1 = {badTimeWindow1, badTimeWindow2, goodTimeWindow};
         filter.composeRule(timeWindow1, goodFilterExpression);
@@ -194,9 +190,8 @@ public class FilterImplTest {
     }
 
     @Test
-    public void testFilterEmptyCase() throws JsonProcessingException, InterruptedException {
-        Map<String, Object> parsedJsonMap = TestUtil.getMapper().readValue(logEntry);
-        entry.setLogEntry(logEntry, parsedJsonMap);
+    public void testFilterEmptyCase() throws JsonProcessingException {
+        entry.setLogEntry(logEntry);
 
         filter.composeRule(emptyTimeWindow, emptyFilterExpression);
         assertTrue(filter.filter(entry));
@@ -208,9 +203,8 @@ public class FilterImplTest {
     }
 
     @Test
-    public void testFilterInvalidLogLevel() throws JsonProcessingException, InterruptedException {
-        Map<String, Object> parsedJsonMap = TestUtil.getMapper().readValue(logEntryBadLevel);
-        entry.setLogEntry(logEntryBadLevel, parsedJsonMap);
+    public void testFilterInvalidLogLevel() throws JsonProcessingException {
+        entry.setLogEntry(logEntryBadLevel);
 
         String[] timeWindow1 = {goodTimeWindow, badTimeWindow1};
         filter.composeRule(timeWindow1, goodFilterExpression);

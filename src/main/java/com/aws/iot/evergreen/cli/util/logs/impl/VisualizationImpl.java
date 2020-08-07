@@ -16,7 +16,7 @@ public class VisualizationImpl implements Visualization {
     @Override
     public void visualize(String line) {
         try {
-            EvergreenStructuredLogMessage logMessage = LogsUtil.getEVERGREEN_STRUCTURED_LOG_READER().readValue(line);
+            EvergreenStructuredLogMessage logMessage = LogsUtil.EVERGREEN_STRUCTURED_LOG_READER.readValue(line);
             LogsUtil.getPrintStream().println(logMessage.getTextMessage());
         } catch (IOException e) {
             LogsUtil.getErrorStream().println("Unable to parse EvergreenStructuredLogMessage: ");

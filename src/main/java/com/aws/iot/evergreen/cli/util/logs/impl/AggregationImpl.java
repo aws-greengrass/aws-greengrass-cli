@@ -35,7 +35,8 @@ public class AggregationImpl implements Aggregation {
      *
      * @param logFile an array of file paths
      * @param logDir an array of file directories
-     * @return a PriorityBlockingQueue containing log entries.
+     * @return a PriorityBlockingQueue containing log entries. Log entries from multiple files
+     *  will read into this queue concurrently ordered by their timestamps.
      */
     @Override
     public BlockingQueue<LogEntry> readLog(String[] logFile, String[] logDir) {

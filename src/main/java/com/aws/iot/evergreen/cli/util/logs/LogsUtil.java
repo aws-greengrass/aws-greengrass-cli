@@ -19,8 +19,8 @@ public class LogsUtil {
     private static PrintStream errorStream = System.err;
 
     @Getter
-    private static final ObjectReader mapper = new ObjectMapper().readerFor(Map.class);
+    private static final ObjectReader MAP_READER = new ObjectMapper().readerFor(Map.class);
 
     @Getter
-    private static final ObjectReader evergreenStructuredLogReader = new ObjectMapper().readerFor(EvergreenStructuredLogMessage.class);
+    private static final ObjectReader EVERGREEN_STRUCTURED_LOG_READER = new ObjectMapper().readerFor(EvergreenStructuredLogMessage.class);
 }

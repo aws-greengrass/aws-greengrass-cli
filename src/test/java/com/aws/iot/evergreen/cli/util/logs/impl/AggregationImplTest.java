@@ -38,7 +38,7 @@ public class AggregationImplTest {
 
     private static final String logEntry3 = "{\"thread\":\"idle-connection-reaper\",\"level\":\"DEBUG\","
             + "\"eventType\":\"null\",\"message\":\"Closing connections idle longer than 60000 MILLISECONDS\","
-            + "\"timestamp\":1594836028087,\"cause\":null}";
+            + "\"timestamp\":0,\"cause\":null}";
 
     private static final String invalidLogEntry = "{\"thread-idle-connection-reaper\",\"level\":\"DEBUG\","
             + "\"eventType\":\"null\",\"message\":\"Closing connections idle longer than 60000 MILLISECONDS\","
@@ -149,7 +149,7 @@ public class AggregationImplTest {
         while (aggregation.isAlive()) {
             sleep(1);
         }
-        assertThat(errOutputStream.toString(), containsString("Cannot open file: bad path"));
+        assertThat(errOutputStream.toString(), containsString("Can not find file: bad path"));
     }
 
     @Test

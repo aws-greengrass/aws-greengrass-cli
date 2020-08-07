@@ -5,7 +5,6 @@ import lombok.Synchronized;
 
 import java.util.Map;
 
-import static java.lang.Long.signum;
 import static java.lang.Thread.sleep;
 
 /*
@@ -30,21 +29,20 @@ public class LogEntry implements Comparable<LogEntry> {
                 throw new RuntimeException(e);
             }
         }
-        try {
-            this.line = line;
-            this.map = map;
+        setVisualizeFinished(false);
+        this.line = line;
+        this.map = map;
+        if (map.get("timestamp") instanceof Long) {
             this.timestamp = (long) map.get("timestamp");
-        } catch (ClassCastException e) {
-            this.timestamp = Long.parseLong(map.get("timestamp").toString());
-        } finally {
-            setVisualizeFinished(false);
+            return;
         }
+        this.timestamp = Long.parseLong(map.get("timestamp").toString());
     }
 
     // Order by timestamp.
     @Override
     public int compareTo(LogEntry other) {
-        return signum(this.getTimestamp() - other.getTimestamp());
+        return Long.compare(this.getTimestamp(), other.getTimestamp());
     }
 
     @Synchronized

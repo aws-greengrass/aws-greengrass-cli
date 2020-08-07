@@ -25,7 +25,7 @@ public class FileReader implements Runnable {
             while ((line = reader.readLine()) != null) {
                 try {
                     LogEntry entry = logEntryArray.remainingCapacity() != 0 ? new LogEntry() : logEntryArray.take();
-                    entry.setLogEntry(line, LogsUtil.getMapper().readValue(line));
+                    entry.setLogEntry(line, LogsUtil.getMAP_READER().readValue(line));
                     queue.put(entry);
                     logEntryArray.put(entry);
                 } catch (InterruptedException e) {
@@ -37,7 +37,7 @@ public class FileReader implements Runnable {
                 }
             }
         } catch (FileNotFoundException e) {
-            LogsUtil.getErrorStream().println("Cannot open file: " + fileToRead);
+            LogsUtil.getErrorStream().println("Can not find file: " + fileToRead);
         } catch (IOException e) {
             LogsUtil.getErrorStream().println(fileToRead + "readLine() failed.");
             LogsUtil.getErrorStream().println(e.getMessage());

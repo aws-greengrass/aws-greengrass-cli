@@ -8,7 +8,7 @@ import java.util.Set;
 import java.util.concurrent.BlockingQueue;
 
 public interface Aggregation {
-    BlockingQueue<LogEntry> readLog(String[] logFile, String[] logDir);
+    BlockingQueue<LogEntry> readLog(String[] logFile, String[] logDir, Boolean follow, Filter filter);
 
     Set<File> listLog(String[] logDir);
 

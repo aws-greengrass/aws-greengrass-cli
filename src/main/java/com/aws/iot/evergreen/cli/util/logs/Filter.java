@@ -7,4 +7,6 @@ public interface Filter {
     boolean filter(LogEntry entry);
 
     void composeRule(String[] timeWindow, String[] filterExpressions);
+
+    boolean checkEndTime(LogEntry entry);
 }

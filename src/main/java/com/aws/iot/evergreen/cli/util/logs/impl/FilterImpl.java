@@ -97,6 +97,22 @@ public class FilterImpl implements Filter {
     }
 
     /*
+     * Determines if a log entry is occurred before any endTime of this filter.
+     */
+    @Override
+    public boolean checkEndTime(LogEntry entry) {
+        if (this.getParsedTimeWindowMap() != null && !this.getParsedTimeWindowMap().isEmpty()) {
+            for (Map.Entry<LocalDateTime, LocalDateTime> timeEntry : this.getParsedTimeWindowMap().entrySet()) {
+                if (timeEntry.getValue().isAfter(new Timestamp(entry.getTimestamp()).toLocalDateTime())) {
+                    return true;
+                }
+            }
+            return false;
+        }
+        return true;
+    }
+
+    /*
      * Helper function to construct parsedTimeWindow.
      */
     private void composeParsedTimeWindow(String[] timeWindow) {

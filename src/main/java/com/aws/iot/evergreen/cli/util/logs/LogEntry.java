@@ -20,10 +20,9 @@ public class LogEntry implements Comparable<LogEntry> {
 
     private boolean visualizeFinished = true;
 
-    /*
+    /**
      * Setter for LogEntry.
-     * @param line
-     * @param map
+     * @param line a line of log entry
      * We prefer setter over a constructor because a LogEntry instance is expected to be reused for multiple times.
      * We throw an IOException to the outside to handle failed parsing.
      */

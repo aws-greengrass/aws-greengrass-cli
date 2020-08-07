@@ -23,7 +23,7 @@ import static java.lang.Thread.sleep;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.containsString;
 import static org.junit.jupiter.api.Assertions.assertEquals;
-
+import static org.junit.jupiter.api.Assertions.assertFalse;
 
 
 public class LogsTest {
@@ -32,9 +32,17 @@ public class LogsTest {
     private static final String[] filterExpression = new String[]{"level=DEBUG,level=INFO",
             "thread=idle-connection-reaper"};
 
+    private static final String logEntry0 = "{\"thread\":\"idle-connection-reaper\",\"level\":\"DEBUG\","
+            + "\"eventType\":\"null\",\"message\":\"Closing connections idle longer than 80000 MILLISECONDS\","
+            + "\"timestamp\":0,\"cause\":null}";
+
     private static final String logEntry = "{\"thread\":\"idle-connection-reaper\",\"level\":\"DEBUG\","
             + "\"eventType\":\"null\",\"message\":\"Closing connections idle longer than 60000 MILLISECONDS\","
             + "\"timestamp\":1594836028088,\"cause\":null}";
+
+    private static final String logEntry2 = "{\"thread\":\"idle-connection-reaper\",\"level\":\"DEBUG\","
+            + "\"eventType\":\"null\",\"message\":\"Closing connections idle longer than 70000 MILLISECONDS\","
+            + "\"timestamp\":1594836028090,\"cause\":null}";
 
     /*
      * TODO: use mocks for LogsTest.
@@ -45,9 +53,7 @@ public class LogsTest {
     private File logFile;
 
     private ByteArrayOutputStream byteArrayOutputStream;
-    private ByteArrayOutputStream errOutputStream;
     private PrintStream printStream;
-    private PrintStream errorStream;
 
     @BeforeEach
     void init() {
@@ -57,11 +63,8 @@ public class LogsTest {
         logs.setFilter(new FilterImpl());
         logs.setVisualization(new VisualizationImpl());
         byteArrayOutputStream = new ByteArrayOutputStream();
-        errOutputStream = new ByteArrayOutputStream();
         printStream = new PrintStream(byteArrayOutputStream);
-        errorStream = new PrintStream(errOutputStream);
         LogsUtil.setPrintStream(printStream);
-        LogsUtil.setErrorStream(errorStream);
     }
 
     @Test
@@ -71,13 +74,33 @@ public class LogsTest {
         fileWriter.close();
 
         String[] logFilePath = {logFile.getAbsolutePath()};
-        logs.get(logFilePath, null, timeWindow, filterExpression);
-//        while (logs.getAggregation().isAlive()) {
-//            sleep(10);
-//        }
-        sleep(10);
+        Thread thread = new Thread(() -> { logs.get(logFilePath, null, timeWindow, filterExpression, false); });
+        thread.start();
+        thread.join();
         assertThat(byteArrayOutputStream.toString(), containsString("[DEBUG] (idle-connection-reaper) "
                 + "null: null. Closing connections idle longer than 60000 MILLISECONDS"));
+    }
+
+    @Test
+    void testGetFollowHappyCase() throws IOException, InterruptedException {
+        PrintStream fileWriter = new PrintStream(new FileOutputStream(logFile));
+        fileWriter.print(logEntry);
+
+        String[] logFilePath = {logFile.getAbsolutePath()};
+        Thread thread = new Thread(() -> { logs.get(logFilePath, null, timeWindow, filterExpression, true); });
+        thread.start();
+        sleep(100);
+
+        assertThat(byteArrayOutputStream.toString(), containsString("[DEBUG] (idle-connection-reaper) "
+                + "null: null. Closing connections idle longer than 60000 MILLISECONDS"));
+        fileWriter.print(logEntry2);
+        fileWriter.print(logEntry0);
+        sleep(100);
+        assertThat(byteArrayOutputStream.toString(), containsString("[DEBUG] (idle-connection-reaper) "
+                + "null: null. Closing connections idle longer than 70000 MILLISECONDS"));
+        assertFalse(byteArrayOutputStream.toString().contains("80000"));
+        fileWriter.close();
+
     }
 
     @Test
@@ -96,6 +119,5 @@ public class LogsTest {
     void cleanup() {
         deleteDir(logDir);
         printStream.close();
-        errorStream.close();
     }
 }

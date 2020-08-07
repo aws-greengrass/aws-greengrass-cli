@@ -5,6 +5,7 @@ package com.aws.iot.evergreen.cli.util.logs.impl;
 
 import com.aws.iot.evergreen.cli.util.logs.Aggregation;
 import com.aws.iot.evergreen.cli.util.logs.FileReader;
+import com.aws.iot.evergreen.cli.util.logs.Filter;
 import com.aws.iot.evergreen.cli.util.logs.LogEntry;
 import com.aws.iot.evergreen.cli.util.logs.LogsUtil;
 import lombok.Getter;
@@ -39,7 +40,7 @@ public class AggregationImpl implements Aggregation {
      *  will read into this queue concurrently ordered by their timestamps.
      */
     @Override
-    public BlockingQueue<LogEntry> readLog(String[] logFile, String[] logDir) {
+    public BlockingQueue<LogEntry> readLog(String[] logFile, String[] logDir, Boolean follow, Filter filter) {
         if (logFile == null && logDir == null) {
             throw new RuntimeException("No valid log input. Please provide a log file or directory.");
         }
@@ -59,9 +60,10 @@ public class AggregationImpl implements Aggregation {
         readLogFutureList = new ArrayList<>();
         BlockingQueue<LogEntry> queue = new PriorityBlockingQueue<>();
         BlockingQueue<LogEntry> logEntryArray = new ArrayBlockingQueue<>(MAX_NUM_LOG_ENTRY, true);
+        FileReader.init(queue, logEntryArray, follow, filter);
 
         for (File file : logFileSet) {
-            readLogFutureList.add(executorService.submit(new FileReader(file, queue, logEntryArray)));
+            readLogFutureList.add(executorService.submit(new FileReader(file)));
         }
         return queue;
     }

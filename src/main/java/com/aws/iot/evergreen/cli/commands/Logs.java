@@ -40,19 +40,17 @@ public class Logs extends BaseCommand {
     public int get(@CommandLine.Option(names = {"--log-file"}, paramLabel = "Log File Paths") String[] logFile,
                    @CommandLine.Option(names = {"--log-dir"}, paramLabel = "Log Directory Paths") String[] logDir,
                    @CommandLine.Option(names = {"--time-window"}, paramLabel = "Time Window") String[] timeWindow,
-                   @CommandLine.Option(names = {"--filter"}, paramLabel = "Filter Expression")
-                           String[] filterExpressions) {
+                   @CommandLine.Option(names = {"--filter"}, paramLabel = "Filter Expression") String[] filterExpressions,
+                   @CommandLine.Option(names = {"--follow"}, paramLabel = "Live update flag") Boolean follow) {
         Runtime.getRuntime().addShutdownHook(new Thread(aggregation::close));
         filter.composeRule(timeWindow, filterExpressions);
-        BlockingQueue<LogEntry> logQueue = aggregation.readLog(logFile, logDir);
+        BlockingQueue<LogEntry> logQueue = aggregation.readLog(logFile, logDir, follow, filter);
 
         while (!logQueue.isEmpty() || aggregation.isAlive()) {
             LogEntry entry = logQueue.poll();
             if (entry != null) {
-                if (filter.filter(entry)) {
-                    //TODO: Expand LogEntry class and use it for visualization
-                    visualization.visualize(entry.getLine());
-                }
+                //TODO: Expand LogEntry class and use it for visualization
+                visualization.visualize(entry.getLine());
                 entry.setVisualizeFinished(true);
             }
         }

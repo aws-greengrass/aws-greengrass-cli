@@ -60,6 +60,9 @@ public class FilterImplTest {
     private static final String logEntry = "{\"thread\":\"idle-connection-reaper\",\"level\":\"DEBUG\","
             + "\"eventType\":\"null\",\"message\":\"Closing connections idle longer than 60000 MILLISECONDS\","
             + "\"timestamp\":1594836028088,\"cause\":null}";
+    private static final String futureLogEntry = "{\"thread\":\"idle-connection-reaper\",\"level\":\"DEBUG\","
+            + "\"eventType\":\"null\",\"message\":\"Closing connections idle longer than 60000 MILLISECONDS\","
+            + "\"timestamp\":1600000000000,\"cause\":null}";
 
     private static final String logEntryBadLevel = "{\"thread\":\"idle-connection-reaper\",\"level\":\"DEBUGING\","
             + "\"eventType\":\"null\",\"message\":\"Closing connections idle longer than 60000 MILLISECONDS\","
@@ -166,6 +169,23 @@ public class FilterImplTest {
         filter.composeRule(null, invalidLogLevelFilterExpression);
         assertTrue(filter.getFilterEntryCollection().get(0).getFilterMap().get("level").contains("WARNING"));
         assertThat(errOutputStream.toString(), containsString("Invalid log level: WARNING"));
+    }
+
+    @Test
+    public void testCheckEndTimeHappyCase() throws JsonProcessingException {
+        entry.setLogEntry(logEntry);
+
+        filter.composeRule(null, null);
+        assertTrue(filter.checkEndTime(entry));
+
+        filter.composeRule(timeWindow, null);
+        assertTrue(filter.checkEndTime(entry));
+        entry.setVisualizeFinished(true);
+
+        entry.setLogEntry(futureLogEntry);
+        assertFalse(filter.checkEndTime(entry));
+        entry.setVisualizeFinished(true);
+
     }
 
     @Test

@@ -3,15 +3,24 @@
 
 package com.aws.iot.evergreen.cli.util.logs.impl;
 
+import com.aws.iot.evergreen.cli.util.logs.LogsUtil;
 import com.aws.iot.evergreen.cli.util.logs.Visualization;
 import com.aws.iot.evergreen.logging.impl.EvergreenStructuredLogMessage;
+
+import java.io.IOException;
 
 public class VisualizationImpl implements Visualization {
     /*
      * Display a log entry in text format
      */
     @Override
-    public String visualize(EvergreenStructuredLogMessage logMessage) {
-        return logMessage.getTextMessage();
+    public void visualize(String line) {
+        try {
+            EvergreenStructuredLogMessage logMessage = LogsUtil.getEvergreenStructuredLogReader().readValue(line);
+            LogsUtil.getPrintStream().println(logMessage.getTextMessage());
+        } catch (IOException e) {
+            LogsUtil.getErrorStream().println("Unable to parse EvergreenStructuredLogMessage: ");
+            LogsUtil.getErrorStream().println(line);
+        }
     }
 }

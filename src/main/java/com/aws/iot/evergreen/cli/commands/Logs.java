@@ -15,7 +15,6 @@ import picocli.CommandLine.Command;
 import picocli.CommandLine.HelpCommand;
 
 import java.io.File;
-import java.io.IOException;
 import java.util.Set;
 import java.util.concurrent.BlockingQueue;
 import javax.inject.Inject;
@@ -42,7 +41,7 @@ public class Logs extends BaseCommand {
                    @CommandLine.Option(names = {"--log-dir"}, paramLabel = "Log Directory Paths") String[] logDir,
                    @CommandLine.Option(names = {"--time-window"}, paramLabel = "Time Window") String[] timeWindow,
                    @CommandLine.Option(names = {"--filter"}, paramLabel = "Filter Expression")
-                           String[] filterExpressions) throws IOException {
+                           String[] filterExpressions) {
         Runtime.getRuntime().addShutdownHook(new Thread(aggregation::close));
         filter.composeRule(timeWindow, filterExpressions);
         BlockingQueue<LogEntry> logQueue = aggregation.readLog(logFile, logDir);
@@ -50,15 +49,11 @@ public class Logs extends BaseCommand {
         while (!logQueue.isEmpty() || aggregation.isAlive()) {
             LogEntry entry = logQueue.poll();
             if (entry != null) {
-                try {
-                    if (!entry.getLine().isEmpty() && filter.filter(entry)) {
-                        //TODO: Expand LogEntry class and use it for visualization
-                        LogsUtil.getPrintStream().println(visualization.visualize(LogsUtil.getEvergreenStructuredLogReader()
-                                .readValue(entry.getLine())));
-                    }
-                } finally {
-                    entry.setVisualizeFinished(true);
+                if (filter.filter(entry)) {
+                    //TODO: Expand LogEntry class and use it for visualization
+                    visualization.visualize(entry.getLine());
                 }
+                entry.setVisualizeFinished(true);
             }
         }
         return 0;

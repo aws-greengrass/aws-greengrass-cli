@@ -3,9 +3,6 @@
 
 package com.aws.iot.evergreen.cli.util.logs;
 
-import com.aws.iot.evergreen.logging.impl.EvergreenStructuredLogMessage;
-
-
 public interface Visualization {
-    String visualize(EvergreenStructuredLogMessage logMessage);
+    void visualize(String line);
 }

@@ -58,6 +58,7 @@ public class AggregationImplTest {
     @BeforeEach
     void init() throws FileNotFoundException {
         aggregation = new AggregationImpl();
+        aggregation.configure(false, filterInterface, 50);
         errOutputStream = new ByteArrayOutputStream();
         errorStream = new PrintStream(errOutputStream);
         LogsUtil.setErrorStream(errorStream);
@@ -72,7 +73,7 @@ public class AggregationImplTest {
         writer.print(logEntry);
 
         String[] logFilePath = {logFile.getAbsolutePath()};
-        logQueue = aggregation.readLog(logFilePath, null, false, filterInterface);
+        logQueue = aggregation.readLog(logFilePath, null);
         assertEquals(1, aggregation.getReadLogFutureList().size());
 
         assertEquals(logEntry, logQueue.take().getLine());
@@ -87,7 +88,7 @@ public class AggregationImplTest {
         writer.print(logEntry);
 
         String[] logDirPath = {logDir.getAbsolutePath()};
-        logQueue = aggregation.readLog(null, logDirPath, false, filterInterface);
+        logQueue = aggregation.readLog(null, logDirPath);
         assertEquals(1, aggregation.getReadLogFutureList().size());
 
         assertEquals(logEntry, logQueue.take().getLine());
@@ -98,7 +99,7 @@ public class AggregationImplTest {
 
         String[] logFilePath = {logFile.getAbsolutePath()};
 
-        logQueue = aggregation.readLog(logFilePath, null, false, filterInterface);
+        logQueue = aggregation.readLog(logFilePath, null);
         while (aggregation.isAlive()) {
             sleep(1);
         }
@@ -111,7 +112,7 @@ public class AggregationImplTest {
 
         String[] logFilePath = {logFile.getAbsolutePath()};
 
-        logQueue = aggregation.readLog(logFilePath, null, false, filterInterface);
+        logQueue = aggregation.readLog(logFilePath, null);
         while (aggregation.isAlive()) {
             sleep(1);
         }
@@ -124,7 +125,7 @@ public class AggregationImplTest {
 
         String[] logFilePath = {logFile.getAbsolutePath(), logFile.getAbsolutePath()};
 
-        logQueue = aggregation.readLog(logFilePath, null, false, filterInterface);
+        logQueue = aggregation.readLog(logFilePath, null);
         assertEquals(1, aggregation.getReadLogFutureList().size());
         assertEquals(logEntry, logQueue.take().getLine());
     }
@@ -142,7 +143,7 @@ public class AggregationImplTest {
 
         String[] logFilePath = {logFile.getAbsolutePath(), logFile2.getAbsolutePath(), logFile3.getPath()};
 
-        logQueue = aggregation.readLog(logFilePath, null, false, filterInterface);
+        logQueue = aggregation.readLog(logFilePath, null);
         assertEquals(3, aggregation.getReadLogFutureList().size());
         while (aggregation.isAlive()) {
             sleep(1);
@@ -157,7 +158,7 @@ public class AggregationImplTest {
     @Test
     void testReadLogInvalidPath() throws InterruptedException {
         String[] logFilePath = {"bad path"};
-        aggregation.readLog(logFilePath, null, false, filterInterface);
+        aggregation.readLog(logFilePath, null);
         while (aggregation.isAlive()) {
             sleep(1);
         }
@@ -169,7 +170,7 @@ public class AggregationImplTest {
         File Dir = new File(logDir.getPath() + "/x");
         String[] logDirPath = {Dir.getPath()};
         Exception emptyLogDirException = assertThrows(RuntimeException.class,
-                () -> aggregation.readLog(null, logDirPath, false, filterInterface));
+                () -> aggregation.readLog(null, logDirPath));
         assertEquals("Log directory provided contains no valid log files.",
                 emptyLogDirException.getMessage());
     }
@@ -177,7 +178,7 @@ public class AggregationImplTest {
     @Test
     void testReadLogEmptyArg() {
         Exception emptyArgException = assertThrows(RuntimeException.class,
-                () -> aggregation.readLog(null, null, false, filterInterface));
+                () -> aggregation.readLog(null, null));
         assertEquals("No valid log input. Please provide a log file or directory.", emptyArgException.getMessage());
     }
 

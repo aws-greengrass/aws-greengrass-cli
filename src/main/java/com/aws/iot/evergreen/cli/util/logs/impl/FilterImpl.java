@@ -100,10 +100,10 @@ public class FilterImpl implements Filter {
      * Determines if a log entry is occurred before any endTime of this filter.
      */
     @Override
-    public boolean checkEndTime(LogEntry entry) {
+    public boolean checkEndTime() {
         if (this.getParsedTimeWindowMap() != null && !this.getParsedTimeWindowMap().isEmpty()) {
             for (Map.Entry<LocalDateTime, LocalDateTime> timeEntry : this.getParsedTimeWindowMap().entrySet()) {
-                if (timeEntry.getValue().isAfter(new Timestamp(entry.getTimestamp()).toLocalDateTime())) {
+                if (timeEntry.getValue().isAfter(LocalDateTime.now())) {
                     return true;
                 }
             }

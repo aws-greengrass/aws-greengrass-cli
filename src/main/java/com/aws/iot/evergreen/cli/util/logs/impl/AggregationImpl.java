@@ -15,21 +15,21 @@ import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
-import java.util.concurrent.ArrayBlockingQueue;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
-import java.util.concurrent.PriorityBlockingQueue;
 
 public class AggregationImpl implements Aggregation {
-    // TODO: Add limit on maximum number of threads and capacity of queue.
     // We define the max number here as a space holder, and will expand it in the next iteration.
-    private static final int MAX_NUM_LOG_ENTRY = 50;
-
     private final ExecutorService executorService = Executors.newCachedThreadPool();
     @Getter
     private List<Future<?>> readLogFutureList;
+
+    @Override
+    public void configure(Boolean follow, Filter filter, int max) {
+        AggregationImplConfig.getInstance().init(follow, filter, max);
+    }
 
     /*
      * Read log files from input commands.
@@ -40,7 +40,7 @@ public class AggregationImpl implements Aggregation {
      *  will read into this queue concurrently ordered by their timestamps.
      */
     @Override
-    public BlockingQueue<LogEntry> readLog(String[] logFile, String[] logDir, Boolean follow, Filter filter) {
+    public BlockingQueue<LogEntry> readLog(String[] logFile, String[] logDir) {
         if (logFile == null && logDir == null) {
             throw new RuntimeException("No valid log input. Please provide a log file or directory.");
         }
@@ -58,14 +58,13 @@ public class AggregationImpl implements Aggregation {
         }
 
         readLogFutureList = new ArrayList<>();
-        BlockingQueue<LogEntry> queue = new PriorityBlockingQueue<>();
-        BlockingQueue<LogEntry> logEntryArray = new ArrayBlockingQueue<>(MAX_NUM_LOG_ENTRY, true);
-        FileReader.init(queue, logEntryArray, follow, filter);
+        AggregationImplConfig.getInstance().setUpFileReader();
 
         for (File file : logFileSet) {
             readLogFutureList.add(executorService.submit(new FileReader(file)));
         }
-        return queue;
+        //TODO: track log rotation
+        return AggregationImplConfig.getInstance().getQueue();
     }
 
     /*

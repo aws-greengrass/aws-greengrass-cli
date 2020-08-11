@@ -8,5 +8,5 @@ public interface Filter {
 
     void composeRule(String[] timeWindow, String[] filterExpressions);
 
-    boolean checkEndTime(LogEntry entry);
+    boolean checkEndTime();
 }

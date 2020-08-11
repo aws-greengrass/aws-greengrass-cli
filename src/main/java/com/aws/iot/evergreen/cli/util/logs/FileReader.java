@@ -1,5 +1,6 @@
 package com.aws.iot.evergreen.cli.util.logs;
 
+import com.aws.iot.evergreen.cli.util.logs.impl.AggregationImplConfig;
 import com.fasterxml.jackson.core.JsonProcessingException;
 
 import java.io.BufferedReader;
@@ -7,33 +8,20 @@ import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.util.concurrent.BlockingQueue;
+import java.util.regex.Pattern;
 
 /*
  * Runnable class responsible of reading a single log file
  */
 public class FileReader implements Runnable {
     private final File fileToRead;
-    private static BlockingQueue<LogEntry> queue;
-    private static BlockingQueue<LogEntry> logEntryArray;
-    private static Boolean follow;
-    private static Filter filterInterface;
+    private BlockingQueue<LogEntry> queue = AggregationImplConfig.getInstance().getQueue();
+    private BlockingQueue<LogEntry> logEntryArray = AggregationImplConfig.getInstance().getLogEntryArray();
+    private Boolean follow = AggregationImplConfig.getInstance().getFollow();
+    private Filter filterInterface = AggregationImplConfig.getInstance().getFilterInterface();
 
-    /**
-     * Initialize static variables of FileReader class.
-     * The method is invoked every time Logs.get() is called.
-     *
-     * @param queue destination of LogEntry processed for visualization
-     * @param logEntryArray a pool of LogEntry maintained for recycling resources
-     * @param follow whether FileReader needs to follow live updates
-     * @param filter Filter class that decides if a LogEntry should be put into queue
-     */
-    public static void init(BlockingQueue<LogEntry> queue, BlockingQueue<LogEntry> logEntryArray, Boolean follow,
-                            Filter filter) {
-        FileReader.queue = queue;
-        FileReader.logEntryArray = logEntryArray;
-        FileReader.follow = follow;
-        FileReader.filterInterface = filter;
-    }
+    // Rotated file name contains timestamp "_{yyyy-MM-dd_HH}_"
+    private static final Pattern fileRotationPattern = Pattern.compile(("(?:_([0-9]+)-([0-9]+)-([0-9]+)_([0-9]+)_?)"));
 
     public FileReader(File fileToRead) {
         this.fileToRead = fileToRead;
@@ -44,25 +32,19 @@ public class FileReader implements Runnable {
         boolean isFollowing = isFollowing();
         try (BufferedReader reader = new BufferedReader(new java.io.FileReader(fileToRead))) {
             String line;
-            while ((line = reader.readLine()) != null || isFollowing) {
+            // if the current time is after time window given, we break the loop and stop the thread.
+            while ((line = reader.readLine()) != null || (isFollowing && filterInterface.checkEndTime())) {
                 if (line == null) {
                     continue;
                 }
                 try {
                     LogEntry entry = logEntryArray.remainingCapacity() != 0 ? new LogEntry() : logEntryArray.take();
                     entry.setLogEntry(line);
-                    // if the time of entry is after time window given, we stop the thread.
-                    if (!filterInterface.checkEndTime(entry)) {
-                        break;
-                    }
-                    logEntryArray.put(entry);
                     // We only put filtered result into blocking queue to save memory.
                     if (filterInterface.filter(entry)) {
                         queue.put(entry);
-                        entry.setVisualizeFinished(false);
-                        continue;
                     }
-                    entry.setVisualizeFinished(true);
+                    logEntryArray.put(entry);
                 } catch (InterruptedException e) {
                     Thread.currentThread().interrupt();
                     throw new RuntimeException(e);
@@ -80,6 +62,6 @@ public class FileReader implements Runnable {
     }
 
     private boolean isFollowing() {
-        return follow != null && follow && fileToRead.getName().equals("evergreen.log");
+        return follow != null && follow && !fileRotationPattern.matcher(fileToRead.getName()).find();
     }
 }

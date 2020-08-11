@@ -5,8 +5,7 @@ import lombok.Getter;
 import lombok.Synchronized;
 
 import java.util.Map;
-
-import static java.lang.Thread.sleep;
+import java.util.concurrent.CountDownLatch;
 
 /*
  *  LogEntry class that contains the line, parsed JSON map, and timestamp.
@@ -18,7 +17,9 @@ public class LogEntry implements Comparable<LogEntry> {
     private Map<String, Object> map;
     private long timestamp;
 
-    private boolean visualizeFinished = true;
+    // We use a CountDownLatch to make sure that the log entry is visualized before it's recycled
+    private static final CountDownLatch defaultLatch = new CountDownLatch(0);
+    private CountDownLatch countDownLatch = defaultLatch;
 
     /**
      * Setter for LogEntry.
@@ -27,26 +28,24 @@ public class LogEntry implements Comparable<LogEntry> {
      * We throw an IOException to the outside to handle failed parsing.
      */
     public void setLogEntry(String line) throws JsonProcessingException {
-        while (!isVisualizeFinished()) {
-            //TODO: remove busy-wait.
-            try {
-                sleep(1);
-            } catch (InterruptedException e) {
-                Thread.currentThread().interrupt();
-                throw new RuntimeException(e);
-            }
+        try {
+            countDownLatch.await();
+        } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
+            throw new RuntimeException(e);
         }
+
         //We handle parsing first so that if JsonProcessingException is thrown we won't change the fields of this class.
         this.map = parseJSONFromString(line);
 
         this.line = line;
         if (map.get("timestamp") instanceof Long) {
             this.timestamp = (long) map.get("timestamp");
-            setVisualizeFinished(false);
+            visualizeReady();
             return;
         }
         this.timestamp = Long.parseLong(map.get("timestamp").toString());
-        setVisualizeFinished(false);
+        visualizeReady();
     }
 
     private Map<String, Object> parseJSONFromString(String line) throws JsonProcessingException {
@@ -60,12 +59,12 @@ public class LogEntry implements Comparable<LogEntry> {
     }
 
     @Synchronized
-    public void setVisualizeFinished(boolean target) {
-        visualizeFinished = target;
+    public void visualizeFinished() {
+        countDownLatch.countDown();
     }
 
     @Synchronized
-    public boolean isVisualizeFinished() {
-        return visualizeFinished;
+    public void visualizeReady() {
+        countDownLatch = new CountDownLatch(1);
     }
 }

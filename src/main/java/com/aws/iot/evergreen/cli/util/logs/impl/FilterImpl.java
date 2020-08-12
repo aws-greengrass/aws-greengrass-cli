@@ -98,6 +98,7 @@ public class FilterImpl implements Filter {
 
     /*
      * Determines if a log entry is occurred before any endTime of this filter.
+     * @return true if the current time is before any of the end time in time window provided
      */
     @Override
     public boolean checkEndTime() {

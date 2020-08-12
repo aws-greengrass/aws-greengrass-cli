@@ -200,7 +200,7 @@ public class FilterImplTest {
         filter.composeRule(timeWindow1, falseFilterExpression);
         assertFalse(filter.filter(entry));
 
-        entry.visualizeFinished();
+        entry.resetLogEntry();
     }
 
     @Test
@@ -213,7 +213,7 @@ public class FilterImplTest {
         filter.composeRule(null, null);
         assertTrue(filter.filter(entry));
 
-        entry.visualizeFinished();
+        entry.resetLogEntry();
     }
 
     @Test
@@ -225,7 +225,7 @@ public class FilterImplTest {
         assertFalse(filter.filter(entry));
         assertThat(errOutputStream.toString(), containsString("Invalid log level from: "));
 
-        entry.visualizeFinished();
+        entry.resetLogEntry();
     }
 
     @AfterEach

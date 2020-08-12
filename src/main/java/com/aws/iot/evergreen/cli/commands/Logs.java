@@ -54,7 +54,7 @@ public class Logs extends BaseCommand {
             if (entry != null) {
                 //TODO: Expand LogEntry class and use it for visualization
                 visualization.visualize(entry.getLine());
-                entry.visualizeFinished();
+                entry.resetLogEntry();
             }
         }
         return 0;

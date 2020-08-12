@@ -16,8 +16,6 @@ import java.util.concurrent.PriorityBlockingQueue;
  */
 @Getter
 public class AggregationImplConfig {
-    private static final AggregationImplConfig INSTANCE = new AggregationImplConfig();
-
     private Boolean follow;
     private Filter filterInterface;
     private int maxNumEntry;
@@ -25,11 +23,7 @@ public class AggregationImplConfig {
     private BlockingQueue<LogEntry> queue;
     private BlockingQueue<LogEntry> logEntryArray;
 
-    public static AggregationImplConfig getInstance() {
-        return INSTANCE;
-    }
-
-    void init(Boolean follow, Filter filter, int maxNumEntry) {
+    AggregationImplConfig(Boolean follow, Filter filter, int maxNumEntry) {
         this.follow = follow;
         this.filterInterface = filter;
         this.maxNumEntry = maxNumEntry;

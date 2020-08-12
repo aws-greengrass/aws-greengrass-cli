@@ -7,7 +7,6 @@ import java.io.BufferedReader;
 import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.IOException;
-import java.util.concurrent.BlockingQueue;
 import java.util.regex.Pattern;
 
 /*
@@ -15,16 +14,14 @@ import java.util.regex.Pattern;
  */
 public class FileReader implements Runnable {
     private final File fileToRead;
-    private BlockingQueue<LogEntry> queue = AggregationImplConfig.getInstance().getQueue();
-    private BlockingQueue<LogEntry> logEntryArray = AggregationImplConfig.getInstance().getLogEntryArray();
-    private Boolean follow = AggregationImplConfig.getInstance().getFollow();
-    private Filter filterInterface = AggregationImplConfig.getInstance().getFilterInterface();
+    private AggregationImplConfig config;
 
     // Rotated file name contains timestamp "_{yyyy-MM-dd_HH}_"
     private static final Pattern fileRotationPattern = Pattern.compile(("(?:_([0-9]+)-([0-9]+)-([0-9]+)_([0-9]+)_?)"));
 
-    public FileReader(File fileToRead) {
+    public FileReader(File fileToRead, AggregationImplConfig config) {
         this.fileToRead = fileToRead;
+        this.config = config;
     }
 
     @Override
@@ -33,18 +30,19 @@ public class FileReader implements Runnable {
         try (BufferedReader reader = new BufferedReader(new java.io.FileReader(fileToRead))) {
             String line;
             // if the current time is after time window given, we break the loop and stop the thread.
-            while ((line = reader.readLine()) != null || (isFollowing && filterInterface.checkEndTime())) {
+            while ((line = reader.readLine()) != null || (isFollowing && config.getFilterInterface().checkEndTime())) {
                 if (line == null) {
                     continue;
                 }
                 try {
-                    LogEntry entry = logEntryArray.remainingCapacity() != 0 ? new LogEntry() : logEntryArray.take();
+                    LogEntry entry = config.getLogEntryArray().remainingCapacity() != 0 ? new LogEntry()
+                            : config.getLogEntryArray().take();
                     entry.setLogEntry(line);
                     // We only put filtered result into blocking queue to save memory.
-                    if (filterInterface.filter(entry)) {
-                        queue.put(entry);
+                    if (config.getFilterInterface().filter(entry)) {
+                        config.getQueue().put(entry);
                     }
-                    logEntryArray.put(entry);
+                    config.getLogEntryArray().put(entry);
                 } catch (InterruptedException e) {
                     Thread.currentThread().interrupt();
                     throw new RuntimeException(e);
@@ -62,6 +60,6 @@ public class FileReader implements Runnable {
     }
 
     private boolean isFollowing() {
-        return follow != null && follow && !fileRotationPattern.matcher(fileToRead.getName()).find();
+        return config.getFollow() != null && config.getFollow() && !fileRotationPattern.matcher(fileToRead.getName()).find();
     }
 }

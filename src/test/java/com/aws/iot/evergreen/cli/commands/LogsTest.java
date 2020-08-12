@@ -100,7 +100,7 @@ public class LogsTest {
                 + "null: null. Closing connections idle longer than 70000 MILLISECONDS"));
         assertFalse(byteArrayOutputStream.toString().contains("80000"));
         fileWriter.close();
-
+        logs.getAggregation().close();
     }
 
     @Test

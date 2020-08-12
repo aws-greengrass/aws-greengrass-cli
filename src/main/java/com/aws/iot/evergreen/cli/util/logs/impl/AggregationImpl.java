@@ -26,9 +26,11 @@ public class AggregationImpl implements Aggregation {
     @Getter
     private List<Future<?>> readLogFutureList;
 
+    private AggregationImplConfig config;
+
     @Override
     public void configure(Boolean follow, Filter filter, int max) {
-        AggregationImplConfig.getInstance().init(follow, filter, max);
+        config = new AggregationImplConfig(follow, filter, max);
     }
 
     /*
@@ -58,13 +60,14 @@ public class AggregationImpl implements Aggregation {
         }
 
         readLogFutureList = new ArrayList<>();
-        AggregationImplConfig.getInstance().setUpFileReader();
+        // We initialize the queue and log entry pool here to save overhead for when no log file is provided.
+        config.setUpFileReader();
 
         for (File file : logFileSet) {
-            readLogFutureList.add(executorService.submit(new FileReader(file)));
+            readLogFutureList.add(executorService.submit(new FileReader(file, config)));
         }
         //TODO: track log rotation
-        return AggregationImplConfig.getInstance().getQueue();
+        return config.getQueue();
     }
 
     /*

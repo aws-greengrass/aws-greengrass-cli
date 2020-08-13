@@ -170,15 +170,14 @@ public class FilterImplTest {
 
     @Test
     public void testCheckEndTimeHappyCase() {
-
         filter.composeRule(null, null);
-        assertTrue(filter.checkEndTime());
+        assertTrue(filter.reachedEndTime());
 
         filter.composeRule(timeWindow, null);
-        assertFalse(filter.checkEndTime());
+        assertFalse(filter.reachedEndTime());
 
         filter.composeRule(offsetTimeWindow, null);
-        assertTrue(filter.checkEndTime());
+        assertTrue(filter.reachedEndTime());
 
     }
 

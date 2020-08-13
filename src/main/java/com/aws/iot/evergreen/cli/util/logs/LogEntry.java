@@ -63,7 +63,9 @@ public class LogEntry implements Comparable<LogEntry> {
 
     @Synchronized
     public void resetLogEntry() {
-        countDownLatch.countDown();
+        if (countDownLatch != null) {
+            countDownLatch.countDown();
+        }
     }
 
     @Synchronized

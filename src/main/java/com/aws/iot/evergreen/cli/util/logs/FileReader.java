@@ -30,7 +30,7 @@ public class FileReader implements Runnable {
         try (BufferedReader reader = new BufferedReader(new java.io.FileReader(fileToRead))) {
             String line;
             // if the current time is after time window given, we break the loop and stop the thread.
-            while ((line = reader.readLine()) != null || (isFollowing && config.getFilterInterface().checkEndTime())) {
+            while ((line = reader.readLine()) != null || (isFollowing && config.getFilterInterface().reachedEndTime())) {
                 if (line == null) {
                     continue;
                 }

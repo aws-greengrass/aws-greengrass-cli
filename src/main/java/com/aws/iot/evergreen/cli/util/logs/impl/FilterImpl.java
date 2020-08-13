@@ -31,6 +31,10 @@ public class FilterImpl implements Filter {
     private static final String TIME_WINDOW_DELIMITER = ",";
     private static final String KEY_VAL_DELIMITER = "=";
     private static final String LEVEL_KEY = "level";
+    private static final String CONTEXTS_KEY = "contexts";
+    private static final String EXCEPTION_KEY = "cause";
+    private static final String EXCEPTION_QUERY_KEY = "error";
+    private static final String EXCEPTION_QUERY_ALL_VALUE = "any";
 
     // defined formats for input time windows.
     private static final DateTimeFormatter[] DATE_TIME_FORMATTERS = {DateTimeFormatter.ofPattern("yyyy-MM-dd'T'HH:mm:ssSSS"),
@@ -74,6 +78,7 @@ public class FilterImpl implements Filter {
         private Map<String, Set<String>> filterMap;
         private List<Pattern> regexList;
         private Level logLevel;
+        private String cause;
     }
 
     /*
@@ -81,7 +86,8 @@ public class FilterImpl implements Filter {
      */
     @Override
     public boolean filter(LogEntry entry) {
-        return checkTimeWindow(entry.getTimestamp()) && checkFilterExpression(entry.getLine(), entry.getMap());
+        return checkTimeWindow(entry.getTimestamp()) && checkFilterExpression(entry.getLine(), entry.getMap(),
+                getContextsMapFromEntry(entry));
     }
 
     /*
@@ -156,6 +162,7 @@ public class FilterImpl implements Filter {
             Map<String, Set<String>> filterMap = new HashMap<>();
             List<Pattern> regexList = new ArrayList<>();
             Level logLevel = null;
+            String cause = null;
 
             for (String element : parsedExpression) {
                 // If it doesn't contain the delimiter, treat it as a regex
@@ -185,10 +192,15 @@ public class FilterImpl implements Filter {
                     }
                 }
 
+                // If the filter concerns exception cause, we add it into a separate field.
+                if (parsedMap[0].equals(EXCEPTION_QUERY_KEY)) {
+                    cause = parsedMap[1];
+                }
+
                 filterMap.putIfAbsent(parsedMap[0], new HashSet<>());
                 filterMap.get(parsedMap[0]).add(parsedMap[1]);
             }
-            filterEntryCollection.add(new FilterEntry(filterMap, regexList, logLevel));
+            filterEntryCollection.add(new FilterEntry(filterMap, regexList, logLevel, cause));
         }
     }
 
@@ -211,12 +223,13 @@ public class FilterImpl implements Filter {
     /*
      * Check if the data matches defined filter expression.
      */
-    private boolean checkFilterExpression(String logEntry, Map<String, Object> parsedJsonMap) {
+    private boolean checkFilterExpression(String logEntry, Map<String, Object> parsedJsonMap, Map<String, String> contextsMap) {
         // filterEntryCollection is grouped by AND-relation, and with in each FilterEntry is OR-relation
         for (FilterEntry filterEntry : filterEntryCollection) {
-            //Since OR-relation, any matched key-val pair, regex, or log level leads to next filterEntry
+            //Since OR-relation, any matched key-val pair, regex, log level, or exception cause leads to next filterEntry
             if (checkLogLevel(filterEntry.getLogLevel(), parsedJsonMap, logEntry)
-                    || checkFilterMap(filterEntry.getFilterMap(), parsedJsonMap)
+                    || checkException(filterEntry.getCause(), parsedJsonMap)
+                    || checkFilterMap(filterEntry.getFilterMap(), parsedJsonMap, contextsMap)
                     || checkRegexList(filterEntry.getRegexList(), logEntry)) {
                 continue;
             }
@@ -229,11 +242,17 @@ public class FilterImpl implements Filter {
     /*
      * Helper function to check if the data matches defined filterMap.
      */
-    private boolean checkFilterMap(Map<String, Set<String>> filterMap, Map<String, Object> parsedJsonMap) {
+    private boolean checkFilterMap(Map<String, Set<String>> filterMap, Map<String, Object> parsedJsonMap,
+                                   Map<String, String> contextsMap) {
         for (Map.Entry<String, Set<String>> entry : filterMap.entrySet()) {
             for (String val : entry.getValue()) {
                 if (parsedJsonMap.containsKey(entry.getKey())
                         && parsedJsonMap.get(entry.getKey()).toString().equals(val)) {
+                    return true;
+                }
+                // Search for key-val pair within contexts map of the entry
+                if (contextsMap != null && contextsMap.containsKey(entry.getKey())
+                        && contextsMap.get(entry.getKey()).equals(val)) {
                     return true;
                 }
             }
@@ -268,6 +287,31 @@ public class FilterImpl implements Filter {
             }
         }
         return false;
+    }
+
+    /*
+     * Helper function to check if the data matches defined exception cause.
+     * When the user queries "--filter error=any", return true for all log entries with non-null cause.
+     */
+    private boolean checkException(String cause, Map<String, Object> parsedJsonMap) {
+        if (parsedJsonMap.get(EXCEPTION_KEY) != null && cause != null) {
+            return cause.equals(EXCEPTION_QUERY_ALL_VALUE) || parsedJsonMap.get(EXCEPTION_KEY).toString().contains(cause);
+        }
+        return false;
+    }
+
+    /*
+     * Helper function to cast contexts map from log entry.
+     */
+    private Map<String, String> getContextsMapFromEntry(LogEntry entry) {
+        if (entry.getMap().containsKey(CONTEXTS_KEY)) {
+            if (entry.getMap().get(CONTEXTS_KEY) instanceof Map) {
+                return (Map<String, String>) entry.getMap().get(CONTEXTS_KEY);
+            }
+            LogsUtil.getErrorStream().println("Unable to parse contexts map from: " + entry.getMap().get(CONTEXTS_KEY));
+            LogsUtil.getErrorStream().println("Log entry: " + entry.getLine());
+        }
+        return null;
     }
 
     /*

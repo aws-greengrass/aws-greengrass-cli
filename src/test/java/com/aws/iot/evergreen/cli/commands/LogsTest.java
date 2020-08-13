@@ -28,7 +28,7 @@ import static org.junit.jupiter.api.Assertions.assertFalse;
 
 public class LogsTest {
     private static final String[] timeWindow = new String[]{"2020-07-14T00:00:00,2020-07-14T01:00:00",
-            "2020-07-14T02:00:00,2020-07-16T03:00:00", ",+1day"};
+            "2020-07-14T02:00:00,2020-07-16T03:00:00", ",+1s"};
     private static final String[] filterExpression = new String[]{"level=DEBUG,level=INFO",
             "thread=idle-connection-reaper"};
 
@@ -89,18 +89,19 @@ public class LogsTest {
         String[] logFilePath = {logFile.getAbsolutePath()};
         Thread thread = new Thread(() -> logs.get(logFilePath, null, timeWindow, filterExpression, true, 50));
         thread.start();
-        sleep(100);
+        sleep(105);
 
         assertThat(byteArrayOutputStream.toString(), containsString("[DEBUG] (idle-connection-reaper) "
                 + "null: null. Closing connections idle longer than 60000 MILLISECONDS"));
+
         fileWriter.print(logEntry2);
         fileWriter.print(logEntry0);
-        sleep(100);
+        thread.join();
+
         assertThat(byteArrayOutputStream.toString(), containsString("[DEBUG] (idle-connection-reaper) "
                 + "null: null. Closing connections idle longer than 70000 MILLISECONDS"));
         assertFalse(byteArrayOutputStream.toString().contains("80000"));
         fileWriter.close();
-        logs.getAggregation().close();
     }
 
     @Test

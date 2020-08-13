@@ -9,6 +9,8 @@ import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.util.regex.Pattern;
 
+import static java.lang.Thread.sleep;
+
 /*
  * Runnable class responsible of reading a single log file
  */
@@ -32,7 +34,14 @@ public class FileReader implements Runnable {
             // if the current time is after time window given, we break the loop and stop the thread.
             while ((line = reader.readLine()) != null || (isFollowing && config.getFilterInterface().reachedEndTime())) {
                 if (line == null) {
-                    continue;
+                    //TODO: remove busy polling by adding a WatcherService to track and notify file changes.
+                    try {
+                        sleep(100);
+                        continue;
+                    } catch (InterruptedException e) {
+                        Thread.currentThread().interrupt();
+                        throw new RuntimeException(e);
+                    }
                 }
                 try {
                     LogEntry entry = config.getLogEntryArray().remainingCapacity() != 0 ? new LogEntry()

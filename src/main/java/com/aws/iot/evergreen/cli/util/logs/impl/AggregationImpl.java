@@ -5,6 +5,7 @@ package com.aws.iot.evergreen.cli.util.logs.impl;
 
 import com.aws.iot.evergreen.cli.util.logs.Aggregation;
 import com.aws.iot.evergreen.cli.util.logs.FileReader;
+import com.aws.iot.evergreen.cli.util.logs.Filter;
 import com.aws.iot.evergreen.cli.util.logs.LogEntry;
 import com.aws.iot.evergreen.cli.util.logs.LogsUtil;
 import lombok.Getter;
@@ -14,21 +15,23 @@ import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
-import java.util.concurrent.ArrayBlockingQueue;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
-import java.util.concurrent.PriorityBlockingQueue;
 
 public class AggregationImpl implements Aggregation {
-    // TODO: Add limit on maximum number of threads and capacity of queue.
     // We define the max number here as a space holder, and will expand it in the next iteration.
-    private static final int MAX_NUM_LOG_ENTRY = 50;
-
     private final ExecutorService executorService = Executors.newCachedThreadPool();
     @Getter
     private List<Future<?>> readLogFutureList;
+
+    private AggregationImplConfig config;
+
+    @Override
+    public void configure(Boolean follow, Filter filter, int max) {
+        config = new AggregationImplConfig(follow, filter, max);
+    }
 
     /*
      * Read log files from input commands.
@@ -57,13 +60,14 @@ public class AggregationImpl implements Aggregation {
         }
 
         readLogFutureList = new ArrayList<>();
-        BlockingQueue<LogEntry> queue = new PriorityBlockingQueue<>();
-        BlockingQueue<LogEntry> logEntryArray = new ArrayBlockingQueue<>(MAX_NUM_LOG_ENTRY, true);
+        // We initialize the queue and log entry pool here to save overhead for when no log file is provided.
+        config.setUpFileReader();
 
         for (File file : logFileSet) {
-            readLogFutureList.add(executorService.submit(new FileReader(file, queue, logEntryArray)));
+            readLogFutureList.add(executorService.submit(new FileReader(file, config)));
         }
-        return queue;
+        //TODO: track log rotation
+        return config.getQueue();
     }
 
     /*

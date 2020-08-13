@@ -97,6 +97,23 @@ public class FilterImpl implements Filter {
     }
 
     /*
+     * Determines if a log entry is occurred before any endTime of this filter.
+     * @return true if the current time is before any of the end time in time window provided
+     */
+    @Override
+    public boolean reachedEndTime() {
+        if (this.getParsedTimeWindowMap().isEmpty()) {
+            return true;
+        }
+        for (Map.Entry<LocalDateTime, LocalDateTime> timeEntry : this.getParsedTimeWindowMap().entrySet()) {
+            if (timeEntry.getValue().isAfter(LocalDateTime.now())) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    /*
      * Helper function to construct parsedTimeWindow.
      */
     private void composeParsedTimeWindow(String[] timeWindow) {

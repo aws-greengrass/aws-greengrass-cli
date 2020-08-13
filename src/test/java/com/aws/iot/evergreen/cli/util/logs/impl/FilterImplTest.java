@@ -50,6 +50,7 @@ public class FilterImplTest {
     private static final String badTimeWindow2 = "2020-07-16T12:00:00,2020-07-16T12:00:00";
 
 
+
     private static final String[] goodFilterExpression = {"level=DEBUG", "thread=idle-connection-reaper", "60000", "60*"};
     private static final String[] orFilterExpression = {"level=INFO,level=DEBUG,level=TRACE", "a=b,thread=x,thread=idle-connection-reaper",
             "70000,60000", "70*,60*"};
@@ -60,7 +61,6 @@ public class FilterImplTest {
     private static final String logEntry = "{\"thread\":\"idle-connection-reaper\",\"level\":\"DEBUG\","
             + "\"eventType\":\"null\",\"message\":\"Closing connections idle longer than 60000 MILLISECONDS\","
             + "\"timestamp\":1594836028088,\"cause\":null}";
-
     private static final String logEntryBadLevel = "{\"thread\":\"idle-connection-reaper\",\"level\":\"DEBUGING\","
             + "\"eventType\":\"null\",\"message\":\"Closing connections idle longer than 60000 MILLISECONDS\","
             + "\"timestamp\":1594836028088,\"cause\":null}";
@@ -169,6 +169,19 @@ public class FilterImplTest {
     }
 
     @Test
+    public void testCheckEndTimeHappyCase() {
+        filter.composeRule(null, null);
+        assertTrue(filter.reachedEndTime());
+
+        filter.composeRule(timeWindow, null);
+        assertFalse(filter.reachedEndTime());
+
+        filter.composeRule(offsetTimeWindow, null);
+        assertTrue(filter.reachedEndTime());
+
+    }
+
+    @Test
     public void testFilterHappyCase() throws JsonProcessingException {
         entry.setLogEntry(logEntry);
 
@@ -186,7 +199,7 @@ public class FilterImplTest {
         filter.composeRule(timeWindow1, falseFilterExpression);
         assertFalse(filter.filter(entry));
 
-        entry.setVisualizeFinished(true);
+        entry.resetLogEntry();
     }
 
     @Test
@@ -199,7 +212,7 @@ public class FilterImplTest {
         filter.composeRule(null, null);
         assertTrue(filter.filter(entry));
 
-        entry.setVisualizeFinished(true);
+        entry.resetLogEntry();
     }
 
     @Test
@@ -211,7 +224,7 @@ public class FilterImplTest {
         assertFalse(filter.filter(entry));
         assertThat(errOutputStream.toString(), containsString("Invalid log level from: "));
 
-        entry.setVisualizeFinished(true);
+        entry.resetLogEntry();
     }
 
     @AfterEach

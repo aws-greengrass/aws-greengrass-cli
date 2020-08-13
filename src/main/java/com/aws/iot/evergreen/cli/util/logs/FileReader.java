@@ -1,34 +1,57 @@
 package com.aws.iot.evergreen.cli.util.logs;
 
+import com.aws.iot.evergreen.cli.util.logs.impl.AggregationImplConfig;
 import com.fasterxml.jackson.core.JsonProcessingException;
-import lombok.AllArgsConstructor;
 
 import java.io.BufferedReader;
 import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.IOException;
-import java.util.concurrent.BlockingQueue;
+import java.util.regex.Pattern;
+
+import static java.lang.Thread.sleep;
 
 /*
  * Runnable class responsible of reading a single log file
  */
-@AllArgsConstructor
 public class FileReader implements Runnable {
     private final File fileToRead;
-    private final BlockingQueue<LogEntry> queue;
-    private final BlockingQueue<LogEntry> logEntryArray;
+    private AggregationImplConfig config;
+
+    // Rotated file name contains timestamp "_{yyyy-MM-dd_HH}_"
+    private static final Pattern fileRotationPattern = Pattern.compile(("(?:_([0-9]+)-([0-9]+)-([0-9]+)_([0-9]+)_?)"));
+
+    public FileReader(File fileToRead, AggregationImplConfig config) {
+        this.fileToRead = fileToRead;
+        this.config = config;
+    }
 
     @Override
     public void run() {
+        boolean isFollowing = isFollowing();
         try (BufferedReader reader = new BufferedReader(new java.io.FileReader(fileToRead))) {
             String line;
-            //TODO: Follow live updates of log file
-            while ((line = reader.readLine()) != null) {
+            // if the current time is after time window given, we break the loop and stop the thread.
+            while ((line = reader.readLine()) != null || (isFollowing && config.getFilterInterface().reachedEndTime())) {
+                if (line == null) {
+                    //TODO: remove busy polling by adding a WatcherService to track and notify file changes.
+                    try {
+                        sleep(100);
+                        continue;
+                    } catch (InterruptedException e) {
+                        Thread.currentThread().interrupt();
+                        throw new RuntimeException(e);
+                    }
+                }
                 try {
-                    LogEntry entry = logEntryArray.remainingCapacity() != 0 ? new LogEntry() : logEntryArray.take();
+                    LogEntry entry = config.getLogEntryArray().remainingCapacity() != 0 ? new LogEntry()
+                            : config.getLogEntryArray().take();
                     entry.setLogEntry(line);
-                    queue.put(entry);
-                    logEntryArray.put(entry);
+                    // We only put filtered result into blocking queue to save memory.
+                    if (config.getFilterInterface().filter(entry)) {
+                        config.getQueue().put(entry);
+                    }
+                    config.getLogEntryArray().put(entry);
                 } catch (InterruptedException e) {
                     Thread.currentThread().interrupt();
                     throw new RuntimeException(e);
@@ -43,5 +66,9 @@ public class FileReader implements Runnable {
             LogsUtil.getErrorStream().println(fileToRead + "readLine() failed.");
             LogsUtil.getErrorStream().println(e.getMessage());
         }
+    }
+
+    private boolean isFollowing() {
+        return config.getFollow() != null && config.getFollow() && !fileRotationPattern.matcher(fileToRead.getName()).find();
     }
 }

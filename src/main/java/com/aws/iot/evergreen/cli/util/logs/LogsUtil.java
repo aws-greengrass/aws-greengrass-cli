@@ -20,6 +20,6 @@ public class LogsUtil {
 
     public static final ObjectReader MAP_READER = new ObjectMapper().readerFor(Map.class);
 
-
-    public static final ObjectReader EVERGREEN_STRUCTURED_LOG_READER = new ObjectMapper().readerFor(EvergreenStructuredLogMessage.class);
+    public static final ObjectReader EVERGREEN_STRUCTURED_LOG_READER = new ObjectMapper()
+            .readerFor(EvergreenStructuredLogMessage.class);
 }

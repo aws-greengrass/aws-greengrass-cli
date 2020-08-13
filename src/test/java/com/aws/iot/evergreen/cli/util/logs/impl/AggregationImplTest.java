@@ -3,6 +3,7 @@
 
 package com.aws.iot.evergreen.cli.util.logs.impl;
 
+import com.aws.iot.evergreen.cli.util.logs.Filter;
 import com.aws.iot.evergreen.cli.util.logs.LogEntry;
 import com.aws.iot.evergreen.cli.util.logs.LogsUtil;
 import org.junit.jupiter.api.AfterEach;
@@ -52,9 +53,12 @@ public class AggregationImplTest {
     private PrintStream errorStream;
     private PrintStream writer;
     private BlockingQueue<LogEntry> logQueue;
+    private Filter filterInterface = new FilterImpl();
+
     @BeforeEach
     void init() throws FileNotFoundException {
         aggregation = new AggregationImpl();
+        aggregation.configure(false, filterInterface, 50);
         errOutputStream = new ByteArrayOutputStream();
         errorStream = new PrintStream(errOutputStream);
         LogsUtil.setErrorStream(errorStream);
@@ -63,8 +67,9 @@ public class AggregationImplTest {
     }
 
     @Test
-    void testReadLogHappyCase() throws IOException, InterruptedException {
-        logFile = new File(logDir.getPath() + "/evergreen.log");writer = new PrintStream(new FileOutputStream(logFile));
+    void testReadLogFileHappyCase() throws IOException, InterruptedException {
+        logFile = new File(logDir.getPath() + "/evergreen.log");
+        writer = new PrintStream(new FileOutputStream(logFile));
         writer.print(logEntry);
 
         String[] logFilePath = {logFile.getAbsolutePath()};
@@ -72,6 +77,15 @@ public class AggregationImplTest {
         assertEquals(1, aggregation.getReadLogFutureList().size());
 
         assertEquals(logEntry, logQueue.take().getLine());
+    }
+
+
+
+    @Test
+    void testReadLogDirHappyCase() throws IOException, InterruptedException {
+        logFile = new File(logDir.getPath() + "/evergreen.log");
+        writer = new PrintStream(new FileOutputStream(logFile));
+        writer.print(logEntry);
 
         String[] logDirPath = {logDir.getAbsolutePath()};
         logQueue = aggregation.readLog(null, logDirPath);
@@ -79,7 +93,6 @@ public class AggregationImplTest {
 
         assertEquals(logEntry, logQueue.take().getLine());
     }
-
     @Test
     void testReadLogInvalidLine() throws InterruptedException {
         writer.print(invalidLogEntry);

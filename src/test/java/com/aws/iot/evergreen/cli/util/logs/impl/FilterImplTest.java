@@ -57,6 +57,9 @@ public class FilterImplTest {
     private static final String[] falseFilterExpression = {"level=INFO", "60000", "eventType=null"};
     private static final String[] invalidFilterExpression = {"level=WARN=INFO", "60000", "eventType=null"};
     private static final String[] invalidLogLevelFilterExpression = {"level=WARNING", "60000", "eventType=null"};
+    private static final String[] contextsFilterExpression = {"level=DEBUG", "thread=main", "serviceName=DeploymentService"};
+    private static final String[] exceptionFilterExpression = {"level=DEBUG", "thread=idle-connection-reaper", "error=SdkClientException"};
+    private static final String[] exceptionAnyFilterExpression = {"level=DEBUG", "thread=idle-connection-reaper", "error=any"};
 
     private static final String logEntry = "{\"thread\":\"idle-connection-reaper\",\"level\":\"DEBUG\","
             + "\"eventType\":\"null\",\"message\":\"Closing connections idle longer than 60000 MILLISECONDS\","
@@ -64,6 +67,16 @@ public class FilterImplTest {
     private static final String logEntryBadLevel = "{\"thread\":\"idle-connection-reaper\",\"level\":\"DEBUGING\","
             + "\"eventType\":\"null\",\"message\":\"Closing connections idle longer than 60000 MILLISECONDS\","
             + "\"timestamp\":1594836028088,\"cause\":null}";
+    private static final String contextsEntry = "{\"thread\":\"main\",\"level\":\"DEBUG\",\"eventType\":\"class-injection-start\","
+            + "\"message\":\"\",\"contexts\":{\"serviceName\":\"DeploymentService\"},"
+            + "\"loggerName\":\"com.aws.iot.evergreen.dependency.Context\",\"timestamp\":1594836028088,\"cause\":null}";
+    private static final String invalidContextEntry = "{\"thread\":\"main\",\"level\":\"DEBUG\",\"eventType\":\"class-injection-start\","
+            + "\"message\":\"\",\"contexts\":\"serviceName\","
+            + "\"loggerName\":\"com.aws.iot.evergreen.dependency.Context\",\"timestamp\":1594836028088,\"cause\":null}";
+    private static final String exceptionLogEntry = "{\"thread\":\"idle-connection-reaper\",\"level\":\"DEBUG\","
+            + "\"eventType\":\"null\",\"message\":\"Closing connections idle longer than 60000 MILLISECONDS\","
+            + "\"timestamp\":1594836028088,\"cause\":{\"cause\":null,\"stackTrace\":[{\"methodName\":\"build\","
+            + "\"fileName\":\"SdkClientException.java\",\"lineNumber\":98,\"nativeMethod\":false}]}}";
 
     private FilterImpl filter;
     private ByteArrayOutputStream errOutputStream;
@@ -170,6 +183,7 @@ public class FilterImplTest {
 
     @Test
     public void testCheckEndTimeHappyCase() {
+
         filter.composeRule(null, null);
         assertTrue(filter.reachedEndTime());
 
@@ -199,6 +213,47 @@ public class FilterImplTest {
         filter.composeRule(timeWindow1, falseFilterExpression);
         assertFalse(filter.filter(entry));
 
+        entry.resetLogEntry();
+    }
+
+    @Test
+    public void testFilterWithContextsHappyCase() throws JsonProcessingException {
+        entry.setLogEntry(contextsEntry);
+        String[] timeWindow1 = {goodTimeWindow};
+        filter.composeRule(timeWindow1, contextsFilterExpression);
+        assertTrue(filter.filter(entry));
+        entry.resetLogEntry();
+    }
+
+    @Test
+    public void testFilterWithInvalidContexts() throws JsonProcessingException {
+        entry.setLogEntry(invalidContextEntry);
+        String[] timeWindow1 = {goodTimeWindow};
+        filter.composeRule(timeWindow1, contextsFilterExpression);
+        assertFalse(filter.filter(entry));
+        assertThat(errOutputStream.toString(), containsString("Unable to parse contexts map from:"));
+        entry.resetLogEntry();
+    }
+
+    @Test
+    public void testFilterWithExceptionHappyCase() throws JsonProcessingException {
+        entry.setLogEntry(exceptionLogEntry);
+        String[] timeWindow1 = {goodTimeWindow};
+        filter.composeRule(timeWindow1, exceptionFilterExpression);
+        assertTrue(filter.filter(entry));
+
+        filter.composeRule(timeWindow1, exceptionAnyFilterExpression);
+        assertTrue(filter.filter(entry));
+        entry.resetLogEntry();
+    }
+
+    @Test
+    public void testFilterEmptyCauseWithAnyException() throws JsonProcessingException {
+        entry.setLogEntry(logEntry);
+        String[] timeWindow1 = {goodTimeWindow};
+
+        filter.composeRule(timeWindow1, exceptionAnyFilterExpression);
+        assertFalse(filter.filter(entry));
         entry.resetLogEntry();
     }
 

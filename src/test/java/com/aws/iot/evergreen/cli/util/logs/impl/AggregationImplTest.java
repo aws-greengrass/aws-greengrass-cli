@@ -3,6 +3,7 @@
 
 package com.aws.iot.evergreen.cli.util.logs.impl;
 
+import com.aws.iot.evergreen.cli.TestUtil;
 import com.aws.iot.evergreen.cli.util.logs.Filter;
 import com.aws.iot.evergreen.cli.util.logs.LogEntry;
 import com.aws.iot.evergreen.cli.util.logs.LogsUtil;
@@ -60,16 +61,14 @@ public class AggregationImplTest {
         aggregation = new AggregationImpl();
         aggregation.configure(false, filterInterface, 50);
         errOutputStream = new ByteArrayOutputStream();
-        errorStream = new PrintStream(errOutputStream);
+        errorStream = TestUtil.createPrintStreamFromOutputStream(errOutputStream);
         LogsUtil.setErrorStream(errorStream);
         logFile = new File(logDir.getPath() + "/evergreen.log");
-        writer = new PrintStream(new FileOutputStream(logFile));
+        writer = TestUtil.createPrintStreamFromOutputStream(new FileOutputStream(logFile));
     }
 
     @Test
-    void testReadLogFileHappyCase() throws IOException, InterruptedException {
-        logFile = new File(logDir.getPath() + "/evergreen.log");
-        writer = new PrintStream(new FileOutputStream(logFile));
+    void testReadLogFileHappyCase() throws InterruptedException {
         writer.print(logEntry);
 
         String[] logFilePath = {logFile.getAbsolutePath()};
@@ -82,9 +81,7 @@ public class AggregationImplTest {
 
 
     @Test
-    void testReadLogDirHappyCase() throws IOException, InterruptedException {
-        logFile = new File(logDir.getPath() + "/evergreen.log");
-        writer = new PrintStream(new FileOutputStream(logFile));
+    void testReadLogDirHappyCase() throws InterruptedException {
         writer.print(logEntry);
 
         String[] logDirPath = {logDir.getAbsolutePath()};
@@ -103,7 +100,8 @@ public class AggregationImplTest {
         while (aggregation.isAlive()) {
             sleep(1);
         }
-        assertThat(errOutputStream.toString(), containsString("Failed to serialize: " + invalidLogEntry));
+        assertThat(TestUtil.byteArrayOutputStreamToString(errOutputStream),
+                containsString("Failed to serialize: " + invalidLogEntry));
     }
 
     @Test
@@ -116,7 +114,8 @@ public class AggregationImplTest {
         while (aggregation.isAlive()) {
             sleep(1);
         }
-        assertThat(errOutputStream.toString(), containsString("Failed to serialize: "));
+        assertThat(TestUtil.byteArrayOutputStreamToString(errOutputStream),
+                containsString("Failed to serialize: "));
     }
 
     @Test
@@ -134,11 +133,11 @@ public class AggregationImplTest {
     void testReadLogMultipleFile() throws IOException, InterruptedException {
         writer.print(logEntry);
         File logFile2 = new File(logDir.getPath() + "/evergreen.log2");
-        writer = new PrintStream(new FileOutputStream(logFile2));
+        writer = TestUtil.createPrintStreamFromOutputStream(new FileOutputStream(logFile2));
         writer.print(logEntry2);
 
         File logFile3 = new File(logDir.getPath() + "/evergreen.log3");
-        writer = new PrintStream(new FileOutputStream(logFile3));
+        writer = TestUtil.createPrintStreamFromOutputStream(new FileOutputStream(logFile3));
         writer.print(logEntry3);
 
         String[] logFilePath = {logFile.getAbsolutePath(), logFile2.getAbsolutePath(), logFile3.getPath()};
@@ -162,7 +161,8 @@ public class AggregationImplTest {
         while (aggregation.isAlive()) {
             sleep(1);
         }
-        assertThat(errOutputStream.toString(), containsString("Can not find file: bad path"));
+        assertThat(TestUtil.byteArrayOutputStreamToString(errOutputStream),
+                containsString("Can not find file: bad path"));
     }
 
     @Test
@@ -209,7 +209,8 @@ public class AggregationImplTest {
         Set<File> logFileSet = aggregation.listLog(logDirPath);
 
         assertEquals(0, logFileSet.size());
-        assertThat(errOutputStream.toString(), containsString("Log dir provided invalid: BadPath"));
+        assertThat(TestUtil.byteArrayOutputStreamToString(errOutputStream),
+                containsString("Log dir provided invalid: BadPath"));
 
     }
 
@@ -217,7 +218,6 @@ public class AggregationImplTest {
     @AfterEach
     void cleanup() {
         aggregation.close();
-        logFile.delete();
         deleteDir(logDir);
         writer.close();
         errorStream.close();

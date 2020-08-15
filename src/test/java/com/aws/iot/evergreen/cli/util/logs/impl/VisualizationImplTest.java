@@ -3,6 +3,7 @@
 
 package com.aws.iot.evergreen.cli.util.logs.impl;
 
+import com.aws.iot.evergreen.cli.TestUtil;
 import com.aws.iot.evergreen.cli.util.logs.LogsUtil;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
@@ -33,8 +34,8 @@ public class VisualizationImplTest {
     void init() {
         byteArrayOutputStream = new ByteArrayOutputStream();
         errOutputStream = new ByteArrayOutputStream();
-        printStream = new PrintStream(byteArrayOutputStream);
-        errorStream = new PrintStream(errOutputStream);
+        printStream = TestUtil.createPrintStreamFromOutputStream(byteArrayOutputStream);
+        errorStream = TestUtil.createPrintStreamFromOutputStream(errOutputStream);
         LogsUtil.setPrintStream(printStream);
         LogsUtil.setErrorStream(errorStream);
     }
@@ -42,14 +43,15 @@ public class VisualizationImplTest {
     @Test
     void visualizeHappyCase() {
         visualization.visualize(logEntry);
-        assertThat(byteArrayOutputStream.toString(), containsString("[DEBUG] (idle-connection-reaper) "
-                + "null: null. Closing connections idle longer than 60000 MILLISECONDS"));
+        assertThat(TestUtil.byteArrayOutputStreamToString(byteArrayOutputStream), containsString("[DEBUG]" +
+                " (idle-connection-reaper) null: null. Closing connections idle longer than 60000 MILLISECONDS"));
     }
 
     @Test
     void visualizeInvalidLogEntry() {
         visualization.visualize(badLogEntry);
-        assertThat(errOutputStream.toString(), containsString("Unable to parse EvergreenStructuredLogMessage: "));
+        assertThat(TestUtil.byteArrayOutputStreamToString(errOutputStream),
+                containsString("Unable to parse EvergreenStructuredLogMessage: "));
     }
 
     @AfterEach

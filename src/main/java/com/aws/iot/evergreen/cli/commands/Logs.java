@@ -8,7 +8,6 @@ import com.aws.iot.evergreen.cli.util.logs.Filter;
 import com.aws.iot.evergreen.cli.util.logs.LogEntry;
 import com.aws.iot.evergreen.cli.util.logs.LogsUtil;
 import com.aws.iot.evergreen.cli.util.logs.Visualization;
-import lombok.Getter;
 import lombok.Setter;
 import picocli.CommandLine;
 import picocli.CommandLine.Command;
@@ -25,7 +24,6 @@ public class Logs extends BaseCommand {
     // setters created only for unit tests
     @Inject
     @Setter
-    @Getter
     private Aggregation aggregation;
     // setters created only for unit tests
     @Inject

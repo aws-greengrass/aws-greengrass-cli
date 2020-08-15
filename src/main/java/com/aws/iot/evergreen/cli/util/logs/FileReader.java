@@ -5,8 +5,10 @@ import com.fasterxml.jackson.core.JsonProcessingException;
 
 import java.io.BufferedReader;
 import java.io.File;
+import java.io.FileInputStream;
 import java.io.FileNotFoundException;
 import java.io.IOException;
+import java.io.InputStreamReader;
 import java.util.regex.Pattern;
 
 import static java.lang.Thread.sleep;
@@ -29,7 +31,8 @@ public class FileReader implements Runnable {
     @Override
     public void run() {
         boolean isFollowing = isFollowing();
-        try (BufferedReader reader = new BufferedReader(new java.io.FileReader(fileToRead))) {
+        try (BufferedReader reader = new BufferedReader(new InputStreamReader(new FileInputStream(fileToRead),
+                LogsUtil.DEFAULT_CHARSETS))) {
             String line;
             // if the current time is after time window given, we break the loop and stop the thread.
             while ((line = reader.readLine()) != null || (isFollowing && config.getFilterInterface().reachedEndTime())) {

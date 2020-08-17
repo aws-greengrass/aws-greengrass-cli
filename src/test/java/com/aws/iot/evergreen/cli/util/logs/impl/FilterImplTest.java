@@ -3,6 +3,7 @@
 
 package com.aws.iot.evergreen.cli.util.logs.impl;
 
+import com.aws.iot.evergreen.cli.TestUtil;
 import com.aws.iot.evergreen.cli.util.logs.LogEntry;
 import com.aws.iot.evergreen.cli.util.logs.LogsUtil;
 import com.fasterxml.jackson.core.JsonProcessingException;
@@ -88,7 +89,7 @@ public class FilterImplTest {
     void init() {
         filter = new FilterImpl();
         errOutputStream = new ByteArrayOutputStream();
-        errorStream = new PrintStream(errOutputStream);
+        errorStream = TestUtil.createPrintStreamFromOutputStream(errOutputStream);
         LogsUtil.setErrorStream(errorStream);
     }
 
@@ -178,7 +179,8 @@ public class FilterImplTest {
     public void testComposeRuleInvalidLogLevel() {
         filter.composeRule(null, invalidLogLevelFilterExpression);
         assertTrue(filter.getFilterEntryCollection().get(0).getFilterMap().get("level").contains("WARNING"));
-        assertThat(errOutputStream.toString(), containsString("Invalid log level: WARNING"));
+        assertThat(TestUtil.byteArrayOutputStreamToString(errOutputStream),
+                containsString("Invalid log level: WARNING"));
     }
 
     @Test
@@ -231,7 +233,8 @@ public class FilterImplTest {
         String[] timeWindow1 = {goodTimeWindow};
         filter.composeRule(timeWindow1, contextsFilterExpression);
         assertFalse(filter.filter(entry));
-        assertThat(errOutputStream.toString(), containsString("Unable to parse contexts map from:"));
+        assertThat(TestUtil.byteArrayOutputStreamToString(errOutputStream),
+                containsString("Unable to parse contexts map from:"));
         entry.resetLogEntry();
     }
 
@@ -277,7 +280,8 @@ public class FilterImplTest {
         String[] timeWindow1 = {goodTimeWindow, badTimeWindow1};
         filter.composeRule(timeWindow1, goodFilterExpression);
         assertFalse(filter.filter(entry));
-        assertThat(errOutputStream.toString(), containsString("Invalid log level from: "));
+        assertThat(TestUtil.byteArrayOutputStreamToString(errOutputStream),
+                containsString("Invalid log level from: "));
 
         entry.resetLogEntry();
     }

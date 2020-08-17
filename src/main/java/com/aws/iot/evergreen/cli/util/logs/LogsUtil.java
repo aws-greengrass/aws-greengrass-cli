@@ -7,6 +7,8 @@ import lombok.Getter;
 import lombok.Setter;
 
 import java.io.PrintStream;
+import java.nio.charset.Charset;
+import java.nio.charset.StandardCharsets;
 import java.util.Map;
 
 public class LogsUtil {
@@ -22,4 +24,6 @@ public class LogsUtil {
 
     public static final ObjectReader EVERGREEN_STRUCTURED_LOG_READER = new ObjectMapper()
             .readerFor(EvergreenStructuredLogMessage.class);
+
+    public static final Charset DEFAULT_CHARSETS = StandardCharsets.UTF_8;
 }

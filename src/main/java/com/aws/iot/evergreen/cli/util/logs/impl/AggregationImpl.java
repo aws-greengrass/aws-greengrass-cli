@@ -29,7 +29,7 @@ public class AggregationImpl implements Aggregation {
     private AggregationImplConfig config;
 
     @Override
-    public void configure(Boolean follow, Filter filter, int max) {
+    public void configure(boolean follow, Filter filter, int max) {
         config = new AggregationImplConfig(follow, filter, max);
     }
 

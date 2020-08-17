@@ -8,7 +8,7 @@ import java.util.Set;
 import java.util.concurrent.BlockingQueue;
 
 public interface Aggregation {
-    void configure(Boolean follow, Filter filter, int max);
+    void configure(boolean follow, Filter filter, int max);
 
     BlockingQueue<LogEntry> readLog(String[] logFile, String[] logDir);
 

@@ -50,11 +50,13 @@ public class FileReader implements Runnable {
                     LogEntry entry = config.getLogEntryArray().remainingCapacity() != 0 ? new LogEntry()
                             : config.getLogEntryArray().take();
                     entry.setLogEntry(line);
+                    config.getLogEntryArray().put(entry);
                     // We only put filtered result into blocking queue to save memory.
                     if (config.getFilterInterface().filter(entry)) {
                         config.getQueue().put(entry);
+                        continue;
                     }
-                    config.getLogEntryArray().put(entry);
+                    entry.resetLogEntry();
                 } catch (InterruptedException e) {
                     Thread.currentThread().interrupt();
                     throw new RuntimeException(e);
@@ -72,6 +74,6 @@ public class FileReader implements Runnable {
     }
 
     private boolean isFollowing() {
-        return config.getFollow() != null && config.getFollow() && !fileRotationPattern.matcher(fileToRead.getName()).find();
+        return config.isFollow() && !fileRotationPattern.matcher(fileToRead.getName()).find();
     }
 }

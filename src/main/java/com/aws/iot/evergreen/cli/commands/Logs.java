@@ -39,7 +39,7 @@ public class Logs extends BaseCommand {
                    @CommandLine.Option(names = {"--log-dir"}, paramLabel = "Log Directory Paths") String[] logDir,
                    @CommandLine.Option(names = {"--time-window"}, paramLabel = "Time Window") String[] timeWindow,
                    @CommandLine.Option(names = {"--filter"}, paramLabel = "Filter Expression") String[] filterExpressions,
-                   @CommandLine.Option(names = {"--follow"}, paramLabel = "Live update flag") Boolean follow,
+                   @CommandLine.Option(names = {"--follow"}, paramLabel = "Live update flag") boolean follow,
                    @CommandLine.Option(names = {"--MAX_LOG_POOL_SIZE"}, paramLabel = "Maximum size of log entry pool",
                            defaultValue = "50") int maxNumEntry) {
         Runtime.getRuntime().addShutdownHook(new Thread(aggregation::close));

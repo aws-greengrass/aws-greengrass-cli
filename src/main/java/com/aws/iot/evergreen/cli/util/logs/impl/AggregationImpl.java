@@ -61,7 +61,7 @@ public class AggregationImpl implements Aggregation {
 
         readLogFutureList = new ArrayList<>();
         // We initialize the queue and log entry pool here to save overhead for when no log file is provided.
-        config.setUpFileReader();
+        config.setUpFileReader(logFileSet.size());
 
         for (File file : logFileSet) {
             readLogFutureList.add(executorService.submit(new FileReader(file, config)));

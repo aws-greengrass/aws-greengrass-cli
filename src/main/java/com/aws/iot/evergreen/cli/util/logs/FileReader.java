@@ -47,10 +47,9 @@ public class FileReader implements Runnable {
                     }
                 }
                 try {
-                    LogEntry entry = config.getLogEntryArray().remainingCapacity() != 0 ? new LogEntry()
-                            : config.getLogEntryArray().take();
+                    LogEntry entry = config.getLogEntryPool().take();
                     entry.setLogEntry(line);
-                    config.getLogEntryArray().put(entry);
+                    config.getLogEntryPool().put(entry);
                     // We only put filtered result into blocking queue to save memory.
                     if (config.getFilterInterface().filter(entry)) {
                         config.getQueue().put(entry);

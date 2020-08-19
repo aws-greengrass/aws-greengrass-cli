@@ -21,7 +21,7 @@ public class AggregationImplConfig {
     private int maxNumEntry;
 
     private BlockingQueue<LogEntry> queue;
-    private BlockingQueue<LogEntry> logEntryArray;
+    private BlockingQueue<LogEntry> logEntryPool;
 
     AggregationImplConfig(boolean follow, Filter filter, int maxNumEntry) {
         this.follow = follow;
@@ -29,8 +29,15 @@ public class AggregationImplConfig {
         this.maxNumEntry = maxNumEntry;
     }
 
-    public void setUpFileReader() {
+    public void setUpFileReader(int numOfFileReaders) {
         this.queue = new PriorityBlockingQueue<>();
-        this.logEntryArray = new ArrayBlockingQueue<>(maxNumEntry, true);
+        /* We define the capacity of logEntryPool to be at least 2 * numOfThreads + 1
+           because we want to make sure that each thread of FileReaders have one log
+           entry, the main thread has one log entry, and there are numOfThreads of
+           log entries left */
+        this.logEntryPool = new ArrayBlockingQueue<>(Math.max(maxNumEntry, 2 * numOfFileReaders + 1), true);
+        while (this.logEntryPool.remainingCapacity() > 0) {
+            this.logEntryPool.add(new LogEntry());
+        }
     }
 }

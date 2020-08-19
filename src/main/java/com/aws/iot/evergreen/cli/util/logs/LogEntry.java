@@ -1,6 +1,7 @@
 package com.aws.iot.evergreen.cli.util.logs;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
+import lombok.AccessLevel;
 import lombok.Getter;
 import lombok.Synchronized;
 
@@ -11,15 +12,14 @@ import java.util.concurrent.CountDownLatch;
  *  LogEntry class that contains the line, parsed JSON map, and timestamp.
  *  Note: this class has a natural ordering that is inconsistent with equals.
  */
+@Getter
 public class LogEntry implements Comparable<LogEntry> {
-    @Getter
     private String line;
-    @Getter
     private Map<String, Object> map;
-    @Getter
     private long timestamp;
 
     // We use a CountDownLatch to make sure that the log entry is visualized before it's recycled
+    @Getter(AccessLevel.NONE)
     private CountDownLatch countDownLatch = null;
 
     /**

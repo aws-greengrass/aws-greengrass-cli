@@ -1,11 +1,11 @@
-#Evergreen Log Tool User Guide
+# Evergreen Log Tool User Guide
 
-##Overview
+## Overview
 
 The goal of this log tool is to improve the customer experience of processing and analyzing Evergreen logs,
  by supporting customer’s queries from Evergreen CLI to parse/filter log files and displays human-readable information.
 
-##Requirements
+## Requirements
 
 Evergreen Log Tool is a part of AWS Greengrass CLI. To download and install the latest iteration, clone the repo 
 from https://github.com/aws/aws-greengrass-cli/tree/log-tool, and run the following commands: 
@@ -20,11 +20,11 @@ $ greengrass-cli help
 Evergreen Log Tool currently only supports parsing log information in JSON format. Hence, for log tool to function
  correctly, use ``-Dlog.fmt=JSON`` in launch command of Evergreen Kernel to make sure that kernel emits logs in JSON format.
 
-##Getting Help
+## Getting Help
 
 Type ``greengrass-cli logs help`` or ``greengrass-cli logs help <command>`` for helpful information.
 
-##Detailed Usage
+## Detailed Usage
 ```
 $ greengrass-cli logs get --log-dir <log-directory> --log-file <file-path>
                           --time-window beginTime,endTime
@@ -33,7 +33,7 @@ $ greengrass-cli logs get --log-dir <log-directory> --log-file <file-path>
 $ greengrass-cli logs list-log-files --log-dir <log-directory>
 ```
 
-###Setting source of log information
+### Setting source of log information
 
 Use at least one of ``--log-dir`` and ``--log-file`` options to specify the location of log information. The two options
  work in association. For example:
@@ -58,7 +58,7 @@ For reading directories, the log tool will check all files under the given direc
 $ greengrass-cli logs list-log-files --log-dir ~/.evergreen
 ```
 
-###Setting time window
+### Setting time window
 
 The --time-window option helps you to set start times and end times for filtered log results.
  Timestamps entered are converted to local date time of the queried machine. 
@@ -110,7 +110,7 @@ $ greengreass-cli logs get --time-window 12:00, --log-file evergreen.log
 $ greengreass-cli logs get --time-window -2h15min,-1hr --log-file evergreen.log
 ```
 
-###Adding filter
+### Adding filter
 
 The --filter option is able to filtered log entries based on provided keyword, regular expression, or key-value pair.
 
@@ -132,7 +132,7 @@ $ greengreass-cli logs get --filter thread=main --filter Deployment,HelloWorld -
 When the user queries a log level, e.g. ``level=DEBUG``, all log entries whose level are above queried level will 
 be displayed. We have ``ALL < DEBUG < INFO < WARN < ERROR < FATAL < OFF``.
 
-###Following Realtime Update
+### Following Realtime Update
 
 The ``--follow`` option is a boolean option that decides if the log tool is actively following real time changes in 
 queried log files/directories. In accordance with log rotation rule of Evergreen, ``--follow`` option is specified, 

@@ -35,12 +35,12 @@ public class Logs extends BaseCommand {
     private Visualization visualization;
 
     @Command(name = "get")
-    public int get(@CommandLine.Option(names = {"--log-file"}, paramLabel = "Log File Paths") String[] logFile,
-                   @CommandLine.Option(names = {"--log-dir"}, paramLabel = "Log Directory Paths") String[] logDir,
+    public int get(@CommandLine.Option(names = {"--log-file"}, paramLabel = "Log File Path") String[] logFile,
+                   @CommandLine.Option(names = {"--log-dir"}, paramLabel = "Log Directory Path") String[] logDir,
                    @CommandLine.Option(names = {"--time-window"}, paramLabel = "Time Window") String[] timeWindow,
                    @CommandLine.Option(names = {"--filter"}, paramLabel = "Filter Expression") String[] filterExpressions,
-                   @CommandLine.Option(names = {"--follow"}, paramLabel = "Live update flag") boolean follow,
-                   @CommandLine.Option(names = {"--MAX_LOG_POOL_SIZE"}, paramLabel = "Maximum size of log entry pool",
+                   @CommandLine.Option(names = {"--follow"}, paramLabel = "Live Update Flag") boolean follow,
+                   @CommandLine.Option(names = {"--MAX_LOG_POOL_SIZE"}, paramLabel = "Maximum Size of Log Entry Pool",
                            defaultValue = "50") int maxNumEntry) {
         Runtime.getRuntime().addShutdownHook(new Thread(aggregation::close));
         filter.composeRule(timeWindow, filterExpressions);
@@ -59,7 +59,7 @@ public class Logs extends BaseCommand {
     }
 
     @Command(name = "list-log-files")
-    public void list_log(@CommandLine.Option(names = {"--log-dir"}, paramLabel = "Log Directory Paths")
+    public void list_log(@CommandLine.Option(names = {"--log-dir"}, paramLabel = "Log Directory Path")
                                  String[] logDir) {
         Set<File> logFileSet = aggregation.listLog(logDir);
         if (!logFileSet.isEmpty()) {

@@ -52,7 +52,12 @@ public class Logs extends BaseCommand {
             if (entry != null) {
                 //TODO: Expand LogEntry class and use it for visualization
                 visualization.visualize(entry.getLine());
-                entry.resetLogEntry();
+                try {
+                    LogsUtil.getLogEntryPool().put(entry);
+                } catch (InterruptedException e) {
+                    Thread.currentThread().interrupt();
+                    throw new RuntimeException(e);
+                }
             }
         }
         return 0;

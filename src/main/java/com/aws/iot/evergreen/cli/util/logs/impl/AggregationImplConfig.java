@@ -2,6 +2,7 @@ package com.aws.iot.evergreen.cli.util.logs.impl;
 
 import com.aws.iot.evergreen.cli.util.logs.Filter;
 import com.aws.iot.evergreen.cli.util.logs.LogEntry;
+import com.aws.iot.evergreen.cli.util.logs.LogsUtil;
 import lombok.Getter;
 
 import java.util.concurrent.ArrayBlockingQueue;
@@ -21,7 +22,6 @@ public class AggregationImplConfig {
     private int maxNumEntry;
 
     private BlockingQueue<LogEntry> queue;
-    private BlockingQueue<LogEntry> logEntryArray;
 
     AggregationImplConfig(boolean follow, Filter filter, int maxNumEntry) {
         this.follow = follow;
@@ -29,8 +29,15 @@ public class AggregationImplConfig {
         this.maxNumEntry = maxNumEntry;
     }
 
-    public void setUpFileReader() {
+    public void setUpFileReader(int numOfFileReaders) {
         this.queue = new PriorityBlockingQueue<>();
-        this.logEntryArray = new ArrayBlockingQueue<>(maxNumEntry, true);
+        /* We define the capacity of logEntryPool to be at least 2 * numOfThreads + 1
+           because we want to make sure that each thread of FileReaders have one log
+           entry, the main thread has one log entry, and there are numOfThreads of
+           log entries left */
+        LogsUtil.setLogEntryPool(new ArrayBlockingQueue<>(Math.max(maxNumEntry, 2 * numOfFileReaders + 1), true));
+        while (LogsUtil.getLogEntryPool().remainingCapacity() > 0) {
+            LogsUtil.getLogEntryPool().add(new LogEntry());
+        }
     }
 }

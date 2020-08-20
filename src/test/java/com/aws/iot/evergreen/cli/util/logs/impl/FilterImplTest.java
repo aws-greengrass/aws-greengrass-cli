@@ -214,8 +214,6 @@ public class FilterImplTest {
 
         filter.composeRule(timeWindow1, falseFilterExpression);
         assertFalse(filter.filter(entry));
-
-        entry.resetLogEntry();
     }
 
     @Test
@@ -224,7 +222,6 @@ public class FilterImplTest {
         String[] timeWindow1 = {goodTimeWindow};
         filter.composeRule(timeWindow1, contextsFilterExpression);
         assertTrue(filter.filter(entry));
-        entry.resetLogEntry();
     }
 
     @Test
@@ -235,7 +232,6 @@ public class FilterImplTest {
         assertFalse(filter.filter(entry));
         assertThat(TestUtil.byteArrayOutputStreamToString(errOutputStream),
                 containsString("Unable to parse contexts map from:"));
-        entry.resetLogEntry();
     }
 
     @Test
@@ -247,7 +243,6 @@ public class FilterImplTest {
 
         filter.composeRule(timeWindow1, exceptionAnyFilterExpression);
         assertTrue(filter.filter(entry));
-        entry.resetLogEntry();
     }
 
     @Test
@@ -257,7 +252,6 @@ public class FilterImplTest {
 
         filter.composeRule(timeWindow1, exceptionAnyFilterExpression);
         assertFalse(filter.filter(entry));
-        entry.resetLogEntry();
     }
 
     @Test
@@ -269,8 +263,6 @@ public class FilterImplTest {
 
         filter.composeRule(null, null);
         assertTrue(filter.filter(entry));
-
-        entry.resetLogEntry();
     }
 
     @Test
@@ -282,8 +274,6 @@ public class FilterImplTest {
         assertFalse(filter.filter(entry));
         assertThat(TestUtil.byteArrayOutputStreamToString(errOutputStream),
                 containsString("Invalid log level from: "));
-
-        entry.resetLogEntry();
     }
 
     @AfterEach

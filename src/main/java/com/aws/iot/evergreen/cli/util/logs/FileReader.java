@@ -47,15 +47,14 @@ public class FileReader implements Runnable {
                     }
                 }
                 try {
-                    LogEntry entry = config.getLogEntryPool().take();
+                    LogEntry entry = LogsUtil.getLogEntryPool().take();
                     entry.setLogEntry(line);
-                    config.getLogEntryPool().put(entry);
                     // We only put filtered result into blocking queue to save memory.
                     if (config.getFilterInterface().filter(entry)) {
                         config.getQueue().put(entry);
                         continue;
                     }
-                    entry.resetLogEntry();
+                    LogsUtil.getLogEntryPool().put(entry);
                 } catch (InterruptedException e) {
                     Thread.currentThread().interrupt();
                     throw new RuntimeException(e);

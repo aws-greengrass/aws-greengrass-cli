@@ -3,22 +3,15 @@
 ## Overview
 
 The goal of this log tool is to improve the customer experience of processing and analyzing Evergreen logs,
- by supporting customer’s queries from Evergreen CLI to parse/filter log files and displays human-readable information.
+ by supporting customer’s queries from Evergreen CLI to parse/filter log files and displaying human-readable information.
 
 ## Requirements
 
 Evergreen Log Tool is a part of AWS Greengrass CLI. To download and install the latest iteration, clone the repo 
-from https://github.com/aws/aws-greengrass-cli/tree/log-tool, and run the following commands: 
-
-```
-$ mvn install
-$ cd $YOUR_INSTALL_ROOT; unzip $PKG_ROOT/target/evergreen-cli-1.0-SNAPSHOT.zip; cd evergreen-cli-1.0-SNAPSHOT;
-$ source install.sh
-$ greengrass-cli help
-```
+from https://github.com/aws/aws-greengrass-cli/tree/log-tool, and run the installation commands from [here](https://github.com/aws/aws-greengrass-cli/blob/master/README.md#installation).
 
 Evergreen Log Tool currently only supports parsing log information in JSON format. Hence, for log tool to function
- correctly, use ``-Dlog.fmt=JSON`` in launch command of Evergreen Kernel to make sure that kernel emits logs in JSON format.
+ correctly, use ``-Dlog.fmt=JSON`` and ``-Dlog.store=FILE`` in launch command of Evergreen Kernel to make sure that kernel emits log files in JSON format.
 
 ## Getting Help
 
@@ -26,11 +19,11 @@ Type ``greengrass-cli logs help`` or ``greengrass-cli logs help <command>`` for 
 
 ## Detailed Usage
 ```
-$ greengrass-cli logs get --log-dir <log-directory> --log-file <file-path>
-                          --time-window beginTime,endTime
-                          --filter "regex","key"="val"
-                          --follow
-$ greengrass-cli logs list-log-files --log-dir <log-directory>
+$ greengrass-cli logs get [--log-dir <log-directory> ...] [--log-file <file-path> ...]
+                          [--time-window "beginTime","endTime" ...]
+                          [--filter "regex","key"="val" ...]
+                          [--follow]
+$ greengrass-cli logs list-log-files --log-dir <log-directory> ...
 ```
 
 ### Setting source of log information
@@ -51,7 +44,7 @@ $ greengrass-cli logs get --log-file evergreen.log_1 --log-file evergreen.log_2 
 
 For reading directories, the log tool will check all files under the given directory and only files whose name contain
  “log” will be considered as a log file. To help you decide the source of log information, you could also use the 
- command list-log-files to check the list of log files in a given directory.
+ command ``list-log-files`` to check the list of log files in a given directory.
  
 ```
 # display all files under ~/.evergreen

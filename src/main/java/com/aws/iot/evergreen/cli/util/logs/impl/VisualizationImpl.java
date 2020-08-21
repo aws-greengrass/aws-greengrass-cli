@@ -24,12 +24,12 @@ public class VisualizationImpl implements Visualization {
      * Display a log entry in text format
      */
     @Override
-    public void visualize(LogEntry logEntry, boolean highlight, boolean verbose) {
+    public void visualize(LogEntry logEntry, boolean removeColor, boolean verbose) {
         try {
             EvergreenStructuredLogMessage logMessage = LogsUtil.EVERGREEN_STRUCTURED_LOG_READER.readValue(logEntry.getLine());
             String message = verbose ? logMessage.getTextMessage() : abbreviate(logMessage);
 
-            if (!highlight) {
+            if (removeColor) {
                 LogsUtil.getPrintStream().println(message);
                 return;
             }

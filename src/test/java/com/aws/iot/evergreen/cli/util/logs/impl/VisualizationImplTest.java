@@ -52,7 +52,7 @@ public class VisualizationImplTest {
     @Test
     void visualizeHappyCase() throws JsonProcessingException {
         entry.setLogEntry(logEntry);
-        visualization.visualize(entry, false, true);
+        visualization.visualize(entry, true, true);
         assertThat(TestUtil.byteArrayOutputStreamToString(byteArrayOutputStream), containsString("[DEBUG]" +
                 " (idle-connection-reaper) null: null. Closing connections idle longer than 60000 MILLISECONDS"));
     }
@@ -61,7 +61,7 @@ public class VisualizationImplTest {
     void visualizeColorHappyCase() throws JsonProcessingException {
         entry.setLogEntry(logEntry);
         entry.getMatchedKeywords().add("connection");
-        visualization.visualize(entry, true, true);
+        visualization.visualize(entry, false, true);
         assertThat(TestUtil.byteArrayOutputStreamToString(byteArrayOutputStream), containsString("[DEBUG]" +
                 " (idle-" + ANSI_RED + "connection" + ANSI_RESET + "-reaper) null: null. Closing "
                 + ANSI_RED + "connection" + ANSI_RESET +"s idle longer than 60000 MILLISECONDS"));
@@ -70,7 +70,7 @@ public class VisualizationImplTest {
     @Test
     void visualizeAbbreviateHappyCase() throws JsonProcessingException {
         entry.setLogEntry(logEntry2);
-        visualization.visualize(entry, false, false);
+        visualization.visualize(entry, true, false);
         assertThat(TestUtil.byteArrayOutputStreamToString(byteArrayOutputStream), containsString("[DEBUG]" +
                 " aaa.logger: Closing connections idle longer than 60000 MILLISECONDS\n"));
         assertThat(TestUtil.byteArrayOutputStreamToString(byteArrayOutputStream), containsString(ANSI_RED
@@ -80,7 +80,7 @@ public class VisualizationImplTest {
     @Test
     void visualizeInvalidLogEntry() throws JsonProcessingException {
         entry.setLogEntry(badLogEntry);
-        visualization.visualize(entry, false, true);
+        visualization.visualize(entry, true, true);
         assertThat(TestUtil.byteArrayOutputStreamToString(errOutputStream),
                 containsString("Unable to parse EvergreenStructuredLogMessage: "));
     }

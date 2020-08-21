@@ -80,7 +80,7 @@ public class LogsTest {
 
         Thread thread = new Thread(() -> runCommandLine("logs", "get", "--log-file", logFile.toString(),
                 "--filter", "level=DEBUG", "--filter", "thread=idle-connection-reaper", "--filter", "60000",
-                "--time-window", "2020-07-14T02:00:00,2020-07-16T03:00:00", "--verbose"));
+                "--time-window", "2020-07-14T02:00:00,2020-07-16T03:00:00", "--verbose", "--remove-color"));
 
         thread.start();
         thread.join();
@@ -94,7 +94,7 @@ public class LogsTest {
 
         Thread thread = new Thread(() -> runCommandLine("logs", "get", "--log-file", logFile.toString(),
                 "--filter", "level=DEBUG", "--filter", "thread=idle-connection-reaper", "--filter", "bad,60000",
-                "--time-window", "2020-07-14T02:00:00,2020-07-16T03:00:00", "--highlight", "--verbose"));
+                "--time-window", "2020-07-14T02:00:00,2020-07-16T03:00:00", "--verbose"));
 
         thread.start();
         thread.join();
@@ -106,7 +106,7 @@ public class LogsTest {
     @Test
     void testGetFollowHappyCase() throws InterruptedException {
         Thread thread = new Thread(() -> runCommandLine("logs", "get", "--log-file", logFile.toString(),
-                "--time-window", "2020-07-14T02:00:00,+2s", "--follow", "--verbose"));
+                "--time-window", "2020-07-14T02:00:00,+2s", "--follow", "--verbose", "--remove-color"));
         thread.start();
         fileWriter.print(logEntry1);
         // we wait for 500ms to write more entries to the file to test the follow option.

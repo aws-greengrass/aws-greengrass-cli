@@ -45,7 +45,7 @@ public class VisualizationImpl implements Visualization {
      */
     private String highlight(String line, List<String> keywords) {
         for (String key : keywords) {
-            line = line.replace(key, String.format("%s%s%s", ANSI_HIGHLIGHT, key, ANSI_HIGHLIGHT_RESET));
+            line = line.replace(key, ANSI_HIGHLIGHT + key + ANSI_HIGHLIGHT_RESET);
         }
         return line;
     }
@@ -57,18 +57,20 @@ public class VisualizationImpl implements Visualization {
      * @return String
      */
     private String abbreviate(EvergreenStructuredLogMessage message) {
-        String msg = String.format("%s [%s] %s: %s",
-                new SimpleDateFormat("yyyy-MM-dd hh:mm:ss z").format(new Date(message.getTimestamp())),
-                message.getLevel(),
-                message.getLoggerName() != null ? abbreviateClassname(message.getLoggerName()) : null,
+        StringBuilder msg = new StringBuilder(new SimpleDateFormat("yyyy-MM-dd hh:mm:ss z")
+                .format(new Date(message.getTimestamp())));
+
+        msg.append(" [").append(message.getLevel()).append("] ")
+                .append(abbreviateClassname(message.getLoggerName())).append(": ")
                 //EvergreenStructuredLogMessage.getFormattedMessage()
-                Stream.of(message.getEventType(), message.getMessage(), message.getContexts()).filter(Objects::nonNull)
+                .append(Stream.of(message.getEventType(), message.getMessage(), message.getContexts()).filter(Objects::nonNull)
                         .map(Object::toString).filter((x) -> !x.isEmpty()).collect(Collectors.joining(". ")));
 
         if (message.getCause() == null) {
-            return msg;
+            return msg.toString();
         }
-        return String.format("%s%n%sEXCEPTION: %s%s", msg, ANSI_HIGHLIGHT, message.getCause().getMessage(), ANSI_HIGHLIGHT_RESET);
+        return msg.append("\n").append(ANSI_HIGHLIGHT).append("EXCEPTION: ").append(message.getCause().getMessage())
+                .append(ANSI_HIGHLIGHT_RESET).toString();
     }
 
     /**

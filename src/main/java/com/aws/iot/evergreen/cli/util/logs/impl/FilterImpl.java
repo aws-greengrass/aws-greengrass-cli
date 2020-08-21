@@ -58,7 +58,7 @@ public class FilterImpl implements Filter {
          * XXseconds or XXsec or XXs
          */
         for (String unit : new String[]{"d|day", "h|hr|hour", "m|min|minute", "s|sec|second"}) {
-            regex.append(String.format("(?:([+\\-]?[0-9]+)(?:%s)s?)?", unit));
+            regex.append("(?:([+\\-]?[0-9]+)(?:").append(unit).append(")s?)?");
         }
         regex.append("$");
         OFFSET_PATTERN = Pattern.compile(regex.toString());

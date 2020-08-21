@@ -17,8 +17,8 @@ import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 public class VisualizationImpl implements Visualization {
-    private static final String ANSI_HIGHLIGHT_RESET = "\033[0m\u001B[0m";
-    private static final String ANSI_HIGHLIGHT = "\u001B[31m\033[1m";
+    public static final String ANSI_HIGHLIGHT_RESET = "\033[0m\u001B[0m";
+    public static final String ANSI_HIGHLIGHT = "\u001B[31m\033[1m";
 
     /*
      * Display a log entry in text format
@@ -62,7 +62,7 @@ public class VisualizationImpl implements Visualization {
 
         msg.append(" [").append(message.getLevel()).append("] ")
                 .append(abbreviateClassname(message.getLoggerName())).append(": ")
-                //EvergreenStructuredLogMessage.getFormattedMessage()
+                //this is equivalent to getFormattedMessage() in EvergreenStructuredLogMessage
                 .append(Stream.of(message.getEventType(), message.getMessage(), message.getContexts()).filter(Objects::nonNull)
                         .map(Object::toString).filter((x) -> !x.isEmpty()).collect(Collectors.joining(". ")));
 

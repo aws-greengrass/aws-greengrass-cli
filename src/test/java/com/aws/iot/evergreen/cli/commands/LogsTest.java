@@ -26,8 +26,8 @@ import java.io.FileOutputStream;
 import java.io.PrintStream;
 import java.nio.file.Path;
 
-import static com.aws.iot.evergreen.cli.TestUtil.ANSI_HIGHLIGHT;
-import static com.aws.iot.evergreen.cli.TestUtil.ANSI_HIGHLIGHT_RESET;
+import static com.aws.iot.evergreen.cli.util.logs.impl.VisualizationImpl.ANSI_HIGHLIGHT;
+import static com.aws.iot.evergreen.cli.util.logs.impl.VisualizationImpl.ANSI_HIGHLIGHT_RESET;
 import static com.aws.iot.evergreen.cli.TestUtil.deleteDir;
 import static java.lang.Thread.sleep;
 import static org.hamcrest.MatcherAssert.assertThat;

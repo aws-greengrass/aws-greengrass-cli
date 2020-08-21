@@ -10,9 +10,6 @@ import java.io.UnsupportedEncodingException;
 
 /* Helper class for unit tests. */
 public class TestUtil {
-    public static final String ANSI_HIGHLIGHT_RESET = "\033[0m\u001B[0m";
-    public static final String ANSI_HIGHLIGHT = "\u001B[31m\033[1m";
-
     public static void deleteDir(File file) {
         File[] contents = file.listFiles();
         if (contents != null) {

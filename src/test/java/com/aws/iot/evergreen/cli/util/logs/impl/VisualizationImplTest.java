@@ -14,8 +14,8 @@ import org.junit.jupiter.api.Test;
 import java.io.ByteArrayOutputStream;
 import java.io.PrintStream;
 
-import static com.aws.iot.evergreen.cli.TestUtil.ANSI_HIGHLIGHT;
-import static com.aws.iot.evergreen.cli.TestUtil.ANSI_HIGHLIGHT_RESET;
+import static com.aws.iot.evergreen.cli.util.logs.impl.VisualizationImpl.ANSI_HIGHLIGHT;
+import static com.aws.iot.evergreen.cli.util.logs.impl.VisualizationImpl.ANSI_HIGHLIGHT_RESET;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.containsString;
 

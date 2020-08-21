@@ -14,8 +14,8 @@ import org.junit.jupiter.api.Test;
 import java.io.ByteArrayOutputStream;
 import java.io.PrintStream;
 
-import static com.aws.iot.evergreen.cli.TestUtil.ANSI_RED;
-import static com.aws.iot.evergreen.cli.TestUtil.ANSI_RESET;
+import static com.aws.iot.evergreen.cli.TestUtil.ANSI_HIGHLIGHT;
+import static com.aws.iot.evergreen.cli.TestUtil.ANSI_HIGHLIGHT_RESET;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.containsString;
 
@@ -63,8 +63,8 @@ public class VisualizationImplTest {
         entry.getMatchedKeywords().add("connection");
         visualization.visualize(entry, false, true);
         assertThat(TestUtil.byteArrayOutputStreamToString(byteArrayOutputStream), containsString("[DEBUG]" +
-                " (idle-" + ANSI_RED + "connection" + ANSI_RESET + "-reaper) null: null. Closing "
-                + ANSI_RED + "connection" + ANSI_RESET +"s idle longer than 60000 MILLISECONDS"));
+                " (idle-" + ANSI_HIGHLIGHT + "connection" + ANSI_HIGHLIGHT_RESET + "-reaper) null: null. Closing "
+                + ANSI_HIGHLIGHT + "connection" + ANSI_HIGHLIGHT_RESET +"s idle longer than 60000 MILLISECONDS"));
     }
 
     @Test
@@ -73,8 +73,8 @@ public class VisualizationImplTest {
         visualization.visualize(entry, true, false);
         assertThat(TestUtil.byteArrayOutputStreamToString(byteArrayOutputStream), containsString("[DEBUG]" +
                 " aaa.logger: Closing connections idle longer than 60000 MILLISECONDS\n"));
-        assertThat(TestUtil.byteArrayOutputStreamToString(byteArrayOutputStream), containsString(ANSI_RED
-                + "EXCEPTION: Service in broken state after deployment" + ANSI_RESET));
+        assertThat(TestUtil.byteArrayOutputStreamToString(byteArrayOutputStream), containsString(ANSI_HIGHLIGHT
+                + "EXCEPTION: Service in broken state after deployment" + ANSI_HIGHLIGHT_RESET));
     }
 
     @Test

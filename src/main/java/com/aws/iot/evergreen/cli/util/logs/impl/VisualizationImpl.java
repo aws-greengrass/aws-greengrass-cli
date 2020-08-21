@@ -17,8 +17,8 @@ import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 public class VisualizationImpl implements Visualization {
-    private static final String ANSI_RESET = "\u001B[0m";
-    private static final String ANSI_RED = "\u001B[31m";
+    private static final String ANSI_HIGHLIGHT_RESET = "\033[0m\u001B[0m";
+    private static final String ANSI_HIGHLIGHT = "\u001B[31m\033[1m";
 
     /*
      * Display a log entry in text format
@@ -45,7 +45,7 @@ public class VisualizationImpl implements Visualization {
      */
     private String highlight(String line, List<String> keywords) {
         for (String key : keywords) {
-            line = line.replace(key, String.format("%s%s%s", ANSI_RED, key, ANSI_RESET));
+            line = line.replace(key, String.format("%s%s%s", ANSI_HIGHLIGHT, key, ANSI_HIGHLIGHT_RESET));
         }
         return line;
     }
@@ -68,7 +68,7 @@ public class VisualizationImpl implements Visualization {
         if (message.getCause() == null) {
             return msg;
         }
-        return String.format("%s%n%sEXCEPTION: %s%s", msg, ANSI_RED, message.getCause().getMessage(), ANSI_RESET);
+        return String.format("%s%n%sEXCEPTION: %s%s", msg, ANSI_HIGHLIGHT, message.getCause().getMessage(), ANSI_HIGHLIGHT_RESET);
     }
 
     /**

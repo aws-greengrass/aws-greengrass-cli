@@ -26,8 +26,8 @@ import java.io.FileOutputStream;
 import java.io.PrintStream;
 import java.nio.file.Path;
 
-import static com.aws.iot.evergreen.cli.TestUtil.ANSI_RED;
-import static com.aws.iot.evergreen.cli.TestUtil.ANSI_RESET;
+import static com.aws.iot.evergreen.cli.TestUtil.ANSI_HIGHLIGHT;
+import static com.aws.iot.evergreen.cli.TestUtil.ANSI_HIGHLIGHT_RESET;
 import static com.aws.iot.evergreen.cli.TestUtil.deleteDir;
 import static java.lang.Thread.sleep;
 import static org.hamcrest.MatcherAssert.assertThat;
@@ -98,9 +98,9 @@ public class LogsTest {
 
         thread.start();
         thread.join();
-        assertThat(TestUtil.byteArrayOutputStreamToString(byteArrayOutputStream), containsString("[" + ANSI_RED
-                + "DEBUG" + ANSI_RESET +"] " + "(" + ANSI_RED + "idle-connection-reaper" + ANSI_RESET
-                + ") null: null. Closing connections idle longer than " + ANSI_RED +"60000" + ANSI_RESET + " MILLISECONDS"));
+        assertThat(TestUtil.byteArrayOutputStreamToString(byteArrayOutputStream), containsString("[" + ANSI_HIGHLIGHT
+                + "DEBUG" + ANSI_HIGHLIGHT_RESET +"] " + "(" + ANSI_HIGHLIGHT + "idle-connection-reaper" + ANSI_HIGHLIGHT_RESET
+                + ") null: null. Closing connections idle longer than " + ANSI_HIGHLIGHT +"60000" + ANSI_HIGHLIGHT_RESET + " MILLISECONDS"));
     }
 
     @Test

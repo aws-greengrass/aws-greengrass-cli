@@ -26,6 +26,8 @@ import java.io.FileOutputStream;
 import java.io.PrintStream;
 import java.nio.file.Path;
 
+import static com.aws.iot.evergreen.cli.TestUtil.ANSI_RED;
+import static com.aws.iot.evergreen.cli.TestUtil.ANSI_RESET;
 import static com.aws.iot.evergreen.cli.TestUtil.deleteDir;
 import static java.lang.Thread.sleep;
 import static org.hamcrest.MatcherAssert.assertThat;
@@ -78,7 +80,7 @@ public class LogsTest {
 
         Thread thread = new Thread(() -> runCommandLine("logs", "get", "--log-file", logFile.toString(),
                 "--filter", "level=DEBUG", "--filter", "thread=idle-connection-reaper", "--filter", "60000",
-                "--time-window", "2020-07-14T02:00:00,2020-07-16T03:00:00"));
+                "--time-window", "2020-07-14T02:00:00,2020-07-16T03:00:00", "--verbose"));
 
         thread.start();
         thread.join();
@@ -87,9 +89,24 @@ public class LogsTest {
     }
 
     @Test
+    void testGetHighLightCase() throws InterruptedException {
+        fileWriter.print(logEntry1);
+
+        Thread thread = new Thread(() -> runCommandLine("logs", "get", "--log-file", logFile.toString(),
+                "--filter", "level=DEBUG", "--filter", "thread=idle-connection-reaper", "--filter", "bad,60000",
+                "--time-window", "2020-07-14T02:00:00,2020-07-16T03:00:00", "--highlight", "--verbose"));
+
+        thread.start();
+        thread.join();
+        assertThat(TestUtil.byteArrayOutputStreamToString(byteArrayOutputStream), containsString("[" + ANSI_RED
+                + "DEBUG" + ANSI_RESET +"] " + "(" + ANSI_RED + "idle-connection-reaper" + ANSI_RESET
+                + ") null: null. Closing connections idle longer than " + ANSI_RED +"60000" + ANSI_RESET + " MILLISECONDS"));
+    }
+
+    @Test
     void testGetFollowHappyCase() throws InterruptedException {
         Thread thread = new Thread(() -> runCommandLine("logs", "get", "--log-file", logFile.toString(),
-                "--time-window", "2020-07-14T02:00:00,+2s", "--follow"));
+                "--time-window", "2020-07-14T02:00:00,+2s", "--follow", "--verbose"));
         thread.start();
         fileWriter.print(logEntry1);
         // we wait for 500ms to write more entries to the file to test the follow option.

@@ -40,6 +40,9 @@ public class Logs extends BaseCommand {
                    @CommandLine.Option(names = {"--time-window"}, paramLabel = "Time Window") String[] timeWindow,
                    @CommandLine.Option(names = {"--filter"}, paramLabel = "Filter Expression") String[] filterExpressions,
                    @CommandLine.Option(names = {"--follow"}, paramLabel = "Live Update Flag") boolean follow,
+                   @CommandLine.Option(names = {"--highlight"}, paramLabel = "Highlight") boolean highlight,
+                   @CommandLine.Option(names = {"--verbose"}, paramLabel = "Verbosity") boolean verbose,
+
                    @CommandLine.Option(names = {"--MAX_LOG_POOL_SIZE"}, paramLabel = "Maximum Size of Log Entry Pool",
                            defaultValue = "50") int maxNumEntry) {
         Runtime.getRuntime().addShutdownHook(new Thread(aggregation::close));
@@ -51,7 +54,7 @@ public class Logs extends BaseCommand {
             LogEntry entry = logQueue.poll();
             if (entry != null) {
                 //TODO: Expand LogEntry class and use it for visualization
-                visualization.visualize(entry.getLine());
+                visualization.visualize(entry, highlight, verbose);
                 try {
                     LogsUtil.getLogEntryPool().put(entry);
                 } catch (InterruptedException e) {

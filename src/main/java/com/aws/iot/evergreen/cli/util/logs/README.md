@@ -145,3 +145,11 @@ To stop the log tool, the user can either terminates the program manually in com
 # stop follow after 5 minutes.
 $ greengreass-cli logs get --time-window ,+5min --log-dir ~/.evergreen/ --follow
 ```
+### Simplified Output
+Currently two boolean options are supported to control output formats: ``--remove-color`` and ``--verbose``.
+By default, log tool outputs in a simplified format and adds highlight to all filtered keywords, regex,
+ and key-value pairs. Default highlight is red and bold.
+
+If input ``--remove-color``, highlight will be removed.
+
+If input ``--verbose``, the log tool will output verbose messages.

@@ -4,5 +4,5 @@
 package com.aws.iot.evergreen.cli.util.logs;
 
 public interface Visualization {
-    void visualize(String line);
+    void visualize(LogEntry logEntry, boolean noColor, boolean verbose);
 }

@@ -3,6 +3,8 @@ package com.aws.iot.evergreen.cli.util.logs;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import lombok.Getter;
 
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Map;
 
 /*
@@ -14,6 +16,8 @@ public class LogEntry implements Comparable<LogEntry> {
     private String line;
     private Map<String, Object> map;
     private long timestamp;
+
+    private List<String> matchedKeywords = new ArrayList<>();
 
     /**
      * Setter for LogEntry.

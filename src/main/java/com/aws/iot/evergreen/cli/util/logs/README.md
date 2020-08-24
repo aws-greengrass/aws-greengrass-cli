@@ -22,7 +22,7 @@ Type ``greengrass-cli logs help`` or ``greengrass-cli logs help <command>`` for 
 $ greengrass-cli logs get [--log-dir <log-directory> ...] [--log-file <file-path> ...]
                           [--time-window "beginTime","endTime" ...]
                           [--filter "regex","key"="val" ...]
-                          [--follow]
+                          [--follow] [--verbose] [--no-color]
 $ greengrass-cli logs list-log-files --log-dir <log-directory> ...
 ```
 
@@ -146,10 +146,10 @@ To stop the log tool, the user can either terminates the program manually in com
 $ greengreass-cli logs get --time-window ,+5min --log-dir ~/.evergreen/ --follow
 ```
 ### Simplified Output
-Currently two boolean options are supported to control output formats: ``--remove-color`` and ``--verbose``.
+Currently two boolean options are supported to control output formats: ``--no-color`` and ``--verbose``.
 By default, log tool outputs in a simplified format and adds highlight to all filtered keywords, regex,
  and key-value pairs. Default highlight is red and bold.
 
-If input ``--remove-color``, highlight will be removed.
+If input ``--no-color``, highlight will be removed.
 
 If input ``--verbose``, the log tool will output verbose messages.

@@ -59,7 +59,7 @@ public class AggregationImplTest {
     @BeforeEach
     void init() throws FileNotFoundException {
         aggregation = new AggregationImpl();
-        aggregation.configure(false, filterInterface, 50);
+        aggregation.configure(false, filterInterface, 50, 0);
         errOutputStream = new ByteArrayOutputStream();
         errorStream = TestUtil.createPrintStreamFromOutputStream(errOutputStream);
         LogsUtil.setErrorStream(errorStream);

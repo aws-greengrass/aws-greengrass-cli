@@ -37,8 +37,8 @@ public class AggregationImpl implements Aggregation {
     private AggregationImplConfig config;
 
     @Override
-    public void configure(boolean follow, Filter filter, int max) {
-        config = new AggregationImplConfig(follow, filter, max);
+    public void configure(boolean follow, Filter filter, int max, int before) {
+        config = new AggregationImplConfig(follow, filter, max, before);
     }
 
     /*
@@ -70,8 +70,8 @@ public class AggregationImpl implements Aggregation {
         Map<String, List<LogFile>> logGroupMap = parseLogGroup(logFileSet);
 
         readLogFutureList = new ArrayList<>();
-        // We initialize the queue and log entry pool here to save overhead for when no log file is provided.
-        config.setUpFileReader(logGroupMap.size());
+        // We initialize the queue here to save overhead for when no log file is provided.
+        config.setUpFileReader();
 
 
         for (Map.Entry<String, List<LogFile>> entry : logGroupMap.entrySet()) {

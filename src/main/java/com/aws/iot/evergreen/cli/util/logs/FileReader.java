@@ -9,8 +9,8 @@ import java.io.FileInputStream;
 import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.io.InputStreamReader;
+import java.util.ArrayList;
 import java.util.List;
-import java.util.regex.Pattern;
 
 import static java.lang.Thread.sleep;
 
@@ -20,20 +20,19 @@ import static java.lang.Thread.sleep;
 public class FileReader implements Runnable {
     private final List<LogFile> filesToRead;
     private AggregationImplConfig config;
-
-    // Rotated file name contains timestamp "_{yyyy-MM-dd_HH}_"
-    private static final Pattern fileRotationPattern = Pattern.compile(("(?:_([0-9]+)-([0-9]+)-([0-9]+)_([0-9]+)_?)"));
+    private List<LogEntry> logEntryList;
 
     public FileReader(List<LogFile> fileToRead, AggregationImplConfig config) {
         this.filesToRead = fileToRead;
         this.config = config;
+        this.logEntryList = new ArrayList<>();
     }
 
     @Override
     public void run() {
         for (LogFile logFile : filesToRead) {
             File file = logFile.getFile();
-            boolean isFollowing = isFollowing(file);
+            boolean isFollowing = config.isFollow() && logFile.isUpdate();
             try (BufferedReader reader = new BufferedReader(new InputStreamReader(new FileInputStream(file),
                     LogsUtil.DEFAULT_CHARSETS))) {
                 String line;
@@ -50,14 +49,24 @@ public class FileReader implements Runnable {
                         }
                     }
                     try {
-                        LogEntry entry = LogsUtil.getLogEntryPool().take();
+                        LogEntry entry = new LogEntry();
                         entry.setLogEntry(line);
                         // We only put filtered result into blocking queue to save memory.
                         if (config.getFilterInterface().filter(entry)) {
+                            entry.setFilter(true);
+                            for (int i = logEntryList.size() > config.getBefore() ? logEntryList.size() - config.getBefore() : 0;
+                                 i < logEntryList.size(); i++) {
+                                if (!logEntryList.get(i).isFilter()) {
+                                    config.getQueue().put(logEntryList.get(i));
+                                }
+                            }
                             config.getQueue().put(entry);
                             continue;
                         }
-                        LogsUtil.getLogEntryPool().put(entry);
+                        logEntryList.add(entry);
+                        if (logEntryList.size() > config.getBefore()) {
+                            logEntryList.remove(0);
+                        }
                     } catch (InterruptedException e) {
                         Thread.currentThread().interrupt();
                         throw new RuntimeException(e);
@@ -73,9 +82,5 @@ public class FileReader implements Runnable {
                 LogsUtil.getErrorStream().println(e.getMessage());
             }
         }
-    }
-
-    private boolean isFollowing(File file) {
-        return config.isFollow() && !fileRotationPattern.matcher(file.getName()).find();
     }
 }

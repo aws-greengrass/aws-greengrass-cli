@@ -10,7 +10,6 @@ import java.io.PrintStream;
 import java.nio.charset.Charset;
 import java.nio.charset.StandardCharsets;
 import java.util.Map;
-import java.util.concurrent.BlockingQueue;
 
 public class LogsUtil {
     @Setter
@@ -20,10 +19,6 @@ public class LogsUtil {
     @Setter
     @Getter
     private static PrintStream errorStream = System.err;
-
-    @Setter
-    @Getter
-    private static BlockingQueue<LogEntry> logEntryPool;
 
     public static final ObjectReader MAP_READER = new ObjectMapper().readerFor(Map.class);
 

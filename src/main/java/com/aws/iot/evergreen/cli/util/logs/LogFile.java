@@ -11,6 +11,7 @@ public class LogFile implements Comparable<LogFile> {
     private File file;
     private LocalDateTime timestamp;
     private int index;
+    private boolean update;
 
     private static final DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd_HH");
 
@@ -19,10 +20,12 @@ public class LogFile implements Comparable<LogFile> {
         if (timeString == null || indexString == null) {
             this.timestamp = LocalDateTime.MAX;
             this.index = Integer.MAX_VALUE;
+            this.update = true;
             return;
         }
         this.timestamp = LocalDateTime.parse(timeString, formatter);
         this.index = Integer.parseInt(indexString);
+        this.update = false;
     }
 
     @Override

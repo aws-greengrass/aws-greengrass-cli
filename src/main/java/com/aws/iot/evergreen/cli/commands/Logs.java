@@ -39,6 +39,7 @@ public class Logs extends BaseCommand {
                    @CommandLine.Option(names = {"--log-dir"}, paramLabel = "Log Directory Path") String[] logDirArray,
                    @CommandLine.Option(names = {"--time-window"}, paramLabel = "Time Window") String[] timeWindow,
                    @CommandLine.Option(names = {"--filter"}, paramLabel = "Filter Expression") String[] filterExpressions,
+                   @CommandLine.Option(names = {"--before"}, paramLabel = "Before", defaultValue = "0") int before,
                    @CommandLine.Option(names = {"--follow"}, paramLabel = "Live Update Flag") boolean follow,
                    @CommandLine.Option(names = {"--no-color"}, paramLabel = "Remove color") boolean noColor,
                    @CommandLine.Option(names = {"--verbose"}, paramLabel = "Verbosity") boolean verbose,
@@ -47,7 +48,7 @@ public class Logs extends BaseCommand {
         //TODO: add short options.
         Runtime.getRuntime().addShutdownHook(new Thread(aggregation::close));
         filter.composeRule(timeWindow, filterExpressions);
-        aggregation.configure(follow, filter, maxNumEntry);
+        aggregation.configure(follow, filter, maxNumEntry, before);
         BlockingQueue<LogEntry> logQueue = aggregation.readLog(logFileArray, logDirArray);
 
         while (!logQueue.isEmpty() || aggregation.isAlive()) {
@@ -55,12 +56,6 @@ public class Logs extends BaseCommand {
             if (entry != null) {
                 //TODO: Expand LogEntry class and use it for visualization
                 visualization.visualize(entry, noColor, verbose);
-                try {
-                    LogsUtil.getLogEntryPool().put(entry);
-                } catch (InterruptedException e) {
-                    Thread.currentThread().interrupt();
-                    throw new RuntimeException(e);
-                }
             }
         }
         return 0;

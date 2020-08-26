@@ -2,6 +2,7 @@ package com.aws.iot.evergreen.cli.util.logs;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import lombok.Getter;
+import lombok.Setter;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -17,6 +18,9 @@ public class LogEntry implements Comparable<LogEntry> {
     private Map<String, Object> map;
     private long timestamp;
 
+    @Setter
+    private boolean filter;
+
     private List<String> matchedKeywords = new ArrayList<>();
 
     /**
@@ -28,7 +32,7 @@ public class LogEntry implements Comparable<LogEntry> {
     public void setLogEntry(String line) throws JsonProcessingException {
         //We handle parsing first so that if JsonProcessingException is thrown we won't change the fields of this class.
         this.map = parseJSONFromString(line);
-
+        this.filter = false;
         this.line = line;
         if (map.get("timestamp") instanceof Long) {
             this.timestamp = (long) map.get("timestamp");

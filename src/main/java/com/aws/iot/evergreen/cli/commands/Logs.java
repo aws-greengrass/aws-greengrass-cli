@@ -40,6 +40,7 @@ public class Logs extends BaseCommand {
                    @CommandLine.Option(names = {"--time-window"}, paramLabel = "Time Window") String[] timeWindow,
                    @CommandLine.Option(names = {"--filter"}, paramLabel = "Filter Expression") String[] filterExpressions,
                    @CommandLine.Option(names = {"--before"}, paramLabel = "Before", defaultValue = "0") int before,
+                   @CommandLine.Option(names = {"--after"}, paramLabel = "After", defaultValue = "0") int after,
                    @CommandLine.Option(names = {"--follow"}, paramLabel = "Live Update Flag") boolean follow,
                    @CommandLine.Option(names = {"--no-color"}, paramLabel = "Remove color") boolean noColor,
                    @CommandLine.Option(names = {"--verbose"}, paramLabel = "Verbosity") boolean verbose,
@@ -48,7 +49,7 @@ public class Logs extends BaseCommand {
         //TODO: add short options.
         Runtime.getRuntime().addShutdownHook(new Thread(aggregation::close));
         filter.composeRule(timeWindow, filterExpressions);
-        aggregation.configure(follow, filter, maxNumEntry, before);
+        aggregation.configure(follow, filter, maxNumEntry, before, after);
         BlockingQueue<LogEntry> logQueue = aggregation.readLog(logFileArray, logDirArray);
 
         while (!logQueue.isEmpty() || aggregation.isAlive()) {

@@ -48,6 +48,9 @@ public class LogEntry implements Comparable<LogEntry> {
     // Order by timestamp.
     @Override
     public int compareTo(LogEntry other) {
-        return Long.compare(this.getTimestamp(), other.getTimestamp());
+        if (this.getTimestamp() < other.getTimestamp()) {
+            return -1;
+        }
+        return 1;
     }
 }

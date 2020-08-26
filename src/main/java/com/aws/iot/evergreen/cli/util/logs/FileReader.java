@@ -21,6 +21,7 @@ public class FileReader implements Runnable {
     private final List<LogFile> filesToRead;
     private AggregationImplConfig config;
     private List<LogEntry> logEntryList;
+    private int afterCount = 0;
 
     public FileReader(List<LogFile> fileToRead, AggregationImplConfig config) {
         this.filesToRead = fileToRead;
@@ -53,13 +54,21 @@ public class FileReader implements Runnable {
                         entry.setLogEntry(line);
                         // We only put filtered result into blocking queue to save memory.
                         if (config.getFilterInterface().filter(entry)) {
+                            afterCount = config.getAfter();
                             entry.setFilter(true);
+                            // Adding entries before
                             for (int i = logEntryList.size() > config.getBefore() ? logEntryList.size() - config.getBefore() : 0;
                                  i < logEntryList.size(); i++) {
                                 if (!logEntryList.get(i).isFilter()) {
                                     config.getQueue().put(logEntryList.get(i));
                                 }
                             }
+                            config.getQueue().put(entry);
+                            continue;
+                        }
+                        // Adding entries after
+                        if (afterCount > 0) {
+                            afterCount--;
                             config.getQueue().put(entry);
                             continue;
                         }

@@ -19,14 +19,16 @@ public class AggregationImplConfig {
     private Filter filterInterface;
     private int maxNumEntry;
     private int before;
+    private int after;
 
     private BlockingQueue<LogEntry> queue;
 
-    AggregationImplConfig(boolean follow, Filter filter, int maxNumEntry, int before) {
+    AggregationImplConfig(boolean follow, Filter filter, int maxNumEntry, int before, int after) {
         this.follow = follow;
         this.filterInterface = filter;
         this.maxNumEntry = maxNumEntry;
         this.before = before;
+        this.after = after;
     }
 
     public void setUpFileReader() {

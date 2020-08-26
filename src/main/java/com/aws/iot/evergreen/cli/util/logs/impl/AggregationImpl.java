@@ -37,8 +37,8 @@ public class AggregationImpl implements Aggregation {
     private AggregationImplConfig config;
 
     @Override
-    public void configure(boolean follow, Filter filter, int max, int before) {
-        config = new AggregationImplConfig(follow, filter, max, before);
+    public void configure(boolean follow, Filter filter, int max, int before, int after) {
+        config = new AggregationImplConfig(follow, filter, max, before, after);
     }
 
     /*

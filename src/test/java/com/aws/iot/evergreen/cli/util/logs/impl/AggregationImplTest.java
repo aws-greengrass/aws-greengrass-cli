@@ -132,18 +132,18 @@ public class AggregationImplTest {
     @Test
     void testReadLogMultipleFile() throws IOException, InterruptedException {
         writer.print(logEntry);
-        File logFile2 = new File(logDir.getPath() + "/evergreen.log2");
+        File logFile2 = new File(logDir.getPath() + "/evergreen2.log");
         writer = TestUtil.createPrintStreamFromOutputStream(new FileOutputStream(logFile2));
         writer.print(logEntry2);
 
-        File logFile3 = new File(logDir.getPath() + "/evergreen.log3");
+        File logFile3 = new File(logDir.getPath() + "/evergreen.log_2000-01-01_03_1");
         writer = TestUtil.createPrintStreamFromOutputStream(new FileOutputStream(logFile3));
         writer.print(logEntry3);
 
         String[] logFilePath = {logFile.getAbsolutePath(), logFile2.getAbsolutePath(), logFile3.getPath()};
 
         logQueue = aggregation.readLog(logFilePath, null);
-        assertEquals(3, aggregation.getReadLogFutureList().size());
+        assertEquals(2, aggregation.getReadLogFutureList().size());
         while (aggregation.isAlive()) {
             sleep(1);
         }
@@ -162,7 +162,7 @@ public class AggregationImplTest {
             sleep(1);
         }
         assertThat(TestUtil.byteArrayOutputStreamToString(errOutputStream),
-                containsString("Can not find file: bad path"));
+                containsString("Unable to parse file name: bad path"));
     }
 
     @Test

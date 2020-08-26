@@ -35,8 +35,8 @@ public class Logs extends BaseCommand {
     private Visualization visualization;
 
     @Command(name = "get")
-    public int get(@CommandLine.Option(names = {"--log-file"}, paramLabel = "Log File Path") String[] logFile,
-                   @CommandLine.Option(names = {"--log-dir"}, paramLabel = "Log Directory Path") String[] logDir,
+    public int get(@CommandLine.Option(names = {"--log-file"}, paramLabel = "Log File Path") String[] logFileArray,
+                   @CommandLine.Option(names = {"--log-dir"}, paramLabel = "Log Directory Path") String[] logDirArray,
                    @CommandLine.Option(names = {"--time-window"}, paramLabel = "Time Window") String[] timeWindow,
                    @CommandLine.Option(names = {"--filter"}, paramLabel = "Filter Expression") String[] filterExpressions,
                    @CommandLine.Option(names = {"--follow"}, paramLabel = "Live Update Flag") boolean follow,
@@ -48,7 +48,7 @@ public class Logs extends BaseCommand {
         Runtime.getRuntime().addShutdownHook(new Thread(aggregation::close));
         filter.composeRule(timeWindow, filterExpressions);
         aggregation.configure(follow, filter, maxNumEntry);
-        BlockingQueue<LogEntry> logQueue = aggregation.readLog(logFile, logDir);
+        BlockingQueue<LogEntry> logQueue = aggregation.readLog(logFileArray, logDirArray);
 
         while (!logQueue.isEmpty() || aggregation.isAlive()) {
             LogEntry entry = logQueue.poll();

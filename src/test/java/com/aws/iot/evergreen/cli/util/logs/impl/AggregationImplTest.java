@@ -42,6 +42,10 @@ public class AggregationImplTest {
             + "\"eventType\":\"null\",\"message\":\"Closing connections idle longer than 60000 MILLISECONDS\","
             + "\"timestamp\":0,\"cause\":null}";
 
+    private static final String logEntry4 = "{\"thread\":\"idle-connection-reaper\",\"level\":\"DEBUG\","
+            + "\"eventType\":\"null\",\"message\":\"Closing connections idle longer than 60000 MILLISECONDS\","
+            + "\"timestamp\":1594836028087,\"cause\":null}";
+
     private static final String invalidLogEntry = "{\"thread-idle-connection-reaper\",\"level\":\"DEBUG\","
             + "\"eventType\":\"null\",\"message\":\"Closing connections idle longer than 60000 MILLISECONDS\","
             + "\"timestamp\":1594836028088,\"cause\":null}";
@@ -69,7 +73,7 @@ public class AggregationImplTest {
 
     @Test
     void testReadLogFileHappyCase() throws InterruptedException {
-        writer.print(logEntry);
+        writer.println(logEntry);
 
         String[] logFilePath = {logFile.getAbsolutePath()};
         logQueue = aggregation.readLog(logFilePath, null);
@@ -82,7 +86,7 @@ public class AggregationImplTest {
 
     @Test
     void testReadLogDirHappyCase() throws InterruptedException {
-        writer.print(logEntry);
+        writer.println(logEntry);
 
         String[] logDirPath = {logDir.getAbsolutePath()};
         logQueue = aggregation.readLog(null, logDirPath);
@@ -92,7 +96,7 @@ public class AggregationImplTest {
     }
     @Test
     void testReadLogInvalidLine() throws InterruptedException {
-        writer.print(invalidLogEntry);
+        writer.println(invalidLogEntry);
 
         String[] logFilePath = {logFile.getAbsolutePath()};
 
@@ -120,7 +124,7 @@ public class AggregationImplTest {
 
     @Test
     void testReadLogDuplicateFile() throws InterruptedException {
-        writer.print(logEntry);
+        writer.println(logEntry);
 
         String[] logFilePath = {logFile.getAbsolutePath(), logFile.getAbsolutePath()};
 
@@ -131,24 +135,31 @@ public class AggregationImplTest {
 
     @Test
     void testReadLogMultipleFile() throws IOException, InterruptedException {
-        writer.print(logEntry);
+        writer.println(logEntry);
+
         File logFile2 = new File(logDir.getPath() + "/evergreen2.log");
         writer = TestUtil.createPrintStreamFromOutputStream(new FileOutputStream(logFile2));
-        writer.print(logEntry2);
+        writer.println(logEntry2);
 
         File logFile3 = new File(logDir.getPath() + "/evergreen.log_2000-01-01_03_1");
         writer = TestUtil.createPrintStreamFromOutputStream(new FileOutputStream(logFile3));
-        writer.print(logEntry3);
+        writer.println(logEntry3);
 
-        String[] logFilePath = {logFile.getAbsolutePath(), logFile2.getAbsolutePath(), logFile3.getPath()};
+        File logFile4 = new File(logDir.getPath() + "/evergreen.log_2000-01-01_03_2");
+        writer = TestUtil.createPrintStreamFromOutputStream(new FileOutputStream(logFile4));
+        writer.println(logEntry4);
+
+        String[] logFilePath = {logFile.getPath(), logFile2.getPath(), logFile3.getPath(), logFile4.getPath()};
 
         logQueue = aggregation.readLog(logFilePath, null);
         assertEquals(2, aggregation.getReadLogFutureList().size());
         while (aggregation.isAlive()) {
             sleep(1);
         }
-        assertEquals(3, logQueue.size());
+
+        assertEquals(4, logQueue.size());
         assertEquals(logEntry3, logQueue.take().getLine());
+        assertEquals(logEntry4, logQueue.take().getLine());
         assertEquals(logEntry, logQueue.take().getLine());
         assertEquals(logEntry2, logQueue.take().getLine());
         assertTrue(logQueue.isEmpty());
@@ -163,7 +174,37 @@ public class AggregationImplTest {
         }
         assertThat(TestUtil.byteArrayOutputStreamToString(errOutputStream),
                 containsString("Unable to parse file name: bad path"));
+        logFilePath = new String[]{"/xxx/evergreen.log"};
+        aggregation.readLog(logFilePath, null);
+        while (aggregation.isAlive()) {
+            sleep(1);
+        }
+        assertThat(TestUtil.byteArrayOutputStreamToString(errOutputStream),
+                containsString("Can not find file: /xxx/evergreen.log"));
     }
+
+    @Test
+    void testReadLogInvalidFileRotationPattern() throws InterruptedException {
+        File logFile2 = new File(logDir.getPath() + "/evergreen.log_2020-02-00_03_01");
+        String[] logFilePath = {logFile2.getPath()};
+        aggregation.readLog(logFilePath, null);
+        while (aggregation.isAlive()) {
+            sleep(1);
+        }
+        assertThat(TestUtil.byteArrayOutputStreamToString(errOutputStream),
+                containsString("Unable to parse timestamp from file name: evergreen.log_2020-02-00_03_01"));
+
+        logFile2 = new File(logDir.getPath() + "/evergreen.log_2020-02-01_03_11111111111111");
+        String[] logFilePath2 = {logFile2.getPath()};
+        aggregation.readLog(logFilePath2, null);
+        while (aggregation.isAlive()) {
+            sleep(1);
+        }
+        assertThat(TestUtil.byteArrayOutputStreamToString(errOutputStream),
+                containsString("Unable to parse file index from file name: evergreen.log_2020-02-01_03_11111111111111"));
+
+    }
+
 
     @Test
     void testReadLogEmptyDir() {
@@ -184,7 +225,7 @@ public class AggregationImplTest {
 
     @Test
     void testListLogHappyCase() {
-        writer.print(logEntry);
+        writer.println(logEntry);
 
         String[] logDirPath = {logDir.getPath()};
         Set<File> logFileSet = aggregation.listLog(logDirPath);
@@ -192,7 +233,6 @@ public class AggregationImplTest {
         assertEquals(1, logFileSet.size());
         assertTrue(logFileSet.contains(logFile));
     }
-
 
     @Test
     void testListLogEmptyDir() {
@@ -214,7 +254,6 @@ public class AggregationImplTest {
 
     }
 
-
     @AfterEach
     void cleanup() {
         aggregation.close();
@@ -222,5 +261,4 @@ public class AggregationImplTest {
         writer.close();
         errorStream.close();
     }
-
 }

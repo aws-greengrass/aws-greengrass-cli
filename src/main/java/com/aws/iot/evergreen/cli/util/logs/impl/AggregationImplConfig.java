@@ -17,16 +17,14 @@ import java.util.concurrent.PriorityBlockingQueue;
 public class AggregationImplConfig {
     private boolean follow;
     private Filter filterInterface;
-    private int maxNumEntry;
     private int before;
     private int after;
 
     private BlockingQueue<LogEntry> queue;
 
-    AggregationImplConfig(boolean follow, Filter filter, int maxNumEntry, int before, int after) {
+    AggregationImplConfig(boolean follow, Filter filter, int before, int after) {
         this.follow = follow;
         this.filterInterface = filter;
-        this.maxNumEntry = maxNumEntry;
         this.before = before;
         this.after = after;
     }

@@ -31,6 +31,9 @@ public class FileReader implements Runnable {
 
     @Override
     public void run() {
+        // filesToRead is already ordered from oldest file to most recent file,
+        // and we assumed that only the most recent file is updating,
+        // hence there won't be any busy polling until the last file.
         for (LogFile logFile : filesToRead) {
             File file = logFile.getFile();
             boolean isFollowing = config.isFollow() && logFile.isUpdate();
@@ -54,9 +57,10 @@ public class FileReader implements Runnable {
                         entry.setLogEntry(line);
                         // We only put filtered result into blocking queue to save memory.
                         if (config.getFilterInterface().filter(entry)) {
+                            // We use afterCount to record if the next lines are within context
                             afterCount = config.getAfter();
                             entry.setFilter(true);
-                            // Adding entries before
+                            // Adding entries before the matched line into the queue
                             for (int i = logEntryList.size() > config.getBefore() ? logEntryList.size() - config.getBefore() : 0;
                                  i < logEntryList.size(); i++) {
                                 if (!logEntryList.get(i).isFilter()) {
@@ -66,13 +70,14 @@ public class FileReader implements Runnable {
                             config.getQueue().put(entry);
                             continue;
                         }
-                        // Adding entries after
+                        // Adding entries after the matched line into the queue
                         if (afterCount > 0) {
                             afterCount--;
                             config.getQueue().put(entry);
                             continue;
                         }
                         logEntryList.add(entry);
+                        // We remove the entry outside the context to save memory
                         if (logEntryList.size() > config.getBefore()) {
                             logEntryList.remove(0);
                         }

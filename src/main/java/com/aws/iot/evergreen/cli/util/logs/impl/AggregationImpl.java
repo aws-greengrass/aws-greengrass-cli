@@ -28,6 +28,8 @@ import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 public class AggregationImpl implements Aggregation {
+    // Log file name is assumed to be of pattern {$logGroupName}.log_yyyy-MM-dd_HH_index,
+    // which follows the log file rotation pattern in kernel
     private static final Pattern fileNamePattern = Pattern.compile("(\\w+)\\.log(_([0-9]+-[0-9]+-[0-9]+_[0-9]+)_([0-9]+))?$");
 
     private final ExecutorService executorService = Executors.newCachedThreadPool();
@@ -37,8 +39,8 @@ public class AggregationImpl implements Aggregation {
     private AggregationImplConfig config;
 
     @Override
-    public void configure(boolean follow, Filter filter, int max, int before, int after) {
-        config = new AggregationImplConfig(follow, filter, max, before, after);
+    public void configure(boolean follow, Filter filter, int before, int after) {
+        config = new AggregationImplConfig(follow, filter, before, after);
     }
 
     /*
@@ -75,6 +77,7 @@ public class AggregationImpl implements Aggregation {
 
 
         for (Map.Entry<String, List<LogFile>> entry : logGroupMap.entrySet()) {
+            // Here we sort all files in a log group by ascending order of their timestamps and indexes.
             Collections.sort(entry.getValue());
             readLogFutureList.add(executorService.submit(new FileReader(entry.getValue(), config)));
         }
@@ -140,6 +143,7 @@ public class AggregationImpl implements Aggregation {
     }
 
     private Map<String, List<LogFile>> parseLogGroup(Set<File> logFileSet) {
+        //key is logGroupName and value is all files within that log group.
         Map<String, List<LogFile>> logGroupMap = new HashMap<>();
 
         for (File file : logFileSet) {
@@ -149,6 +153,7 @@ public class AggregationImpl implements Aggregation {
                 continue;
             }
 
+            //group(1) = logGroupName, group2 = timestamp + index, group(3) = timestamp, group(4) = index.
             String logGroupName = fileNameMatcher.group(1);
             try {
                 LogFile logFile = new LogFile(file, fileNameMatcher.group(3), fileNameMatcher.group(4));

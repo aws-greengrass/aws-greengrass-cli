@@ -20,10 +20,11 @@ Type ``greengrass-cli logs help`` or ``greengrass-cli logs help <command>`` for 
 ## Detailed Usage
 ```
 $ greengrass-cli logs get [--log-dir <log-directory> ...] [--log-file <file-path> ...]
-                          [--time-window "beginTime","endTime" ...]
-                          [--filter "regex","key"="val" ...]
-                          [--follow] [--verbose] [--no-color]
-$ greengrass-cli logs list-log-files --log-dir <log-directory> ...
+                          [-t --time-window "beginTime","endTime" ...]
+                          [-f --filter "regex","key"="val" ...]
+                          [-F --follow] [-V --verbose] [-N --no-color]
+                          [-B --before] [-A --after]
+$ greengrass-cli logs list-log-files [--log-dir <log-directory>] ...
 ```
 
 ### Setting source of log information
@@ -153,3 +154,10 @@ By default, log tool outputs in a simplified format and adds highlight to all fi
 If input ``--no-color``, highlight will be removed.
 
 If input ``--verbose``, the log tool will output verbose messages.
+
+### Showing context around matched result
+The log tool uses ``--before`` and ``--after`` to input the number of lines leading and trailing matched results, respectively.
+If multiple log entries share some parts of context, for example when ``--before 5`` and two consecutive log entries are matched,
+ the log tool will remove the duplicates and only print that context line once.
+
+The default is 0 for both these options.

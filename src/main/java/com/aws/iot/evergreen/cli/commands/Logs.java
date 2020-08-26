@@ -37,19 +37,16 @@ public class Logs extends BaseCommand {
     @Command(name = "get")
     public int get(@CommandLine.Option(names = {"--log-file"}, paramLabel = "Log File Path") String[] logFileArray,
                    @CommandLine.Option(names = {"--log-dir"}, paramLabel = "Log Directory Path") String[] logDirArray,
-                   @CommandLine.Option(names = {"--time-window"}, paramLabel = "Time Window") String[] timeWindow,
-                   @CommandLine.Option(names = {"--filter"}, paramLabel = "Filter Expression") String[] filterExpressions,
-                   @CommandLine.Option(names = {"--before"}, paramLabel = "Before", defaultValue = "0") int before,
-                   @CommandLine.Option(names = {"--after"}, paramLabel = "After", defaultValue = "0") int after,
-                   @CommandLine.Option(names = {"--follow"}, paramLabel = "Live Update Flag") boolean follow,
-                   @CommandLine.Option(names = {"--no-color"}, paramLabel = "Remove color") boolean noColor,
-                   @CommandLine.Option(names = {"--verbose"}, paramLabel = "Verbosity") boolean verbose,
-                   @CommandLine.Option(names = {"--MAX_LOG_POOL_SIZE"}, paramLabel = "Maximum Size of Log Entry Pool",
-                           defaultValue = "50") int maxNumEntry) {
-        //TODO: add short options.
+                   @CommandLine.Option(names = {"-t", "--time-window"}, paramLabel = "Time Window") String[] timeWindow,
+                   @CommandLine.Option(names = {"-f", "--filter"}, paramLabel = "Filter Expression") String[] filterExpressions,
+                   @CommandLine.Option(names = {"-B", "--before"}, paramLabel = "Before", defaultValue = "0") int before,
+                   @CommandLine.Option(names = {"-A", "--after"}, paramLabel = "After", defaultValue = "0") int after,
+                   @CommandLine.Option(names = {"-F", "--follow"}, paramLabel = "Live Update Flag") boolean follow,
+                   @CommandLine.Option(names = {"-N", "--no-color"}, paramLabel = "Remove color") boolean noColor,
+                   @CommandLine.Option(names = {"-V", "--verbose"}, paramLabel = "Verbosity") boolean verbose) {
         Runtime.getRuntime().addShutdownHook(new Thread(aggregation::close));
         filter.composeRule(timeWindow, filterExpressions);
-        aggregation.configure(follow, filter, maxNumEntry, before, after);
+        aggregation.configure(follow, filter, before, after);
         BlockingQueue<LogEntry> logQueue = aggregation.readLog(logFileArray, logDirArray);
 
         while (!logQueue.isEmpty() || aggregation.isAlive()) {

@@ -17,9 +17,12 @@ public class LogFile implements Comparable<LogFile> {
 
     public LogFile(File file, String timeString, String indexString) {
         this.file = file;
+        // If no timestamp or index string is provided, we default the timestamp and index to be maximum,
+        // so that they will be latest in an ascending order.
         if (timeString == null || indexString == null) {
             this.timestamp = LocalDateTime.MAX;
             this.index = Integer.MAX_VALUE;
+            // this is only true when the file name contains no timestamp or index.
             this.update = true;
             return;
         }

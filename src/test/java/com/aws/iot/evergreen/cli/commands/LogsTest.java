@@ -6,14 +6,8 @@ package com.aws.iot.evergreen.cli.commands;
 import com.aws.iot.evergreen.cli.CLI;
 import com.aws.iot.evergreen.cli.TestUtil;
 import com.aws.iot.evergreen.cli.adapter.AdapterModule;
-import com.aws.iot.evergreen.cli.util.logs.Aggregation;
-import com.aws.iot.evergreen.cli.util.logs.Filter;
 import com.aws.iot.evergreen.cli.util.logs.LogsModule;
 import com.aws.iot.evergreen.cli.util.logs.LogsUtil;
-import com.aws.iot.evergreen.cli.util.logs.Visualization;
-import com.aws.iot.evergreen.cli.util.logs.impl.AggregationImpl;
-import com.aws.iot.evergreen.cli.util.logs.impl.FilterImpl;
-import com.aws.iot.evergreen.cli.util.logs.impl.VisualizationImpl;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -175,13 +169,6 @@ public class LogsTest {
     }
 
     private void runCommandLine(String... args) {
-        new CommandLine(new CLI(), new CLI.GuiceFactory(new AdapterModule(), new LogsModule() {
-            @Override
-            protected void configure() {
-                bind(Aggregation.class).to(AggregationImpl.class);
-                bind(Visualization.class).to(VisualizationImpl.class);
-                bind(Filter.class).to(FilterImpl.class);
-            }
-        })).execute(args);
+        new CommandLine(new CLI(), new CLI.GuiceFactory(new AdapterModule(), new LogsModule())).execute(args);
     }
 }

@@ -136,15 +136,15 @@ public class AggregationImplTest {
     void testReadLogMultipleFile() throws IOException, InterruptedException {
         writer.println(logEntry);
 
-        File logFile2 = new File(logDir.resolve("evergreen2.log").toString());
+        File logFile2 = logDir.resolve("evergreen2.log").toFile();
         writer = TestUtil.createPrintStreamFromOutputStream(new FileOutputStream(logFile2));
         writer.println(logEntry2);
 
-        File logFile3 = new File(logDir.resolve("evergreen.log_2000-01-01_03_1").toString());
+        File logFile3 = logDir.resolve("evergreen.log_2000-01-01_03_1").toFile();
         writer = TestUtil.createPrintStreamFromOutputStream(new FileOutputStream(logFile3));
         writer.println(logEntry3);
 
-        File logFile4 = new File(logDir.resolve("evergreen.log_2000-01-01_03_2").toString());
+        File logFile4 = logDir.resolve("evergreen.log_2000-01-01_03_2").toFile();
         writer = TestUtil.createPrintStreamFromOutputStream(new FileOutputStream(logFile4));
         writer.println(logEntry4);
 
@@ -184,7 +184,7 @@ public class AggregationImplTest {
 
     @Test
     void testReadLogInvalidFileRotationPattern() throws InterruptedException {
-        File logFile2 = new File(logDir.resolve("evergreen.log_2020-02-00_03_01").toString());
+        File logFile2 = logDir.resolve("evergreen.log_2020-02-00_03_01").toFile();
         String[] logFilePath = {logFile2.getPath()};
         aggregation.readLog(logFilePath, null);
         while (aggregation.isAlive()) {
@@ -193,7 +193,7 @@ public class AggregationImplTest {
         assertThat(TestUtil.byteArrayOutputStreamToString(errOutputStream),
                 containsString("Unable to parse timestamp from file name: evergreen.log_2020-02-00_03_01"));
 
-        logFile2 = new File(logDir.resolve("/evergreen.log_2020-02-01_03_11111111111111").toString());
+        logFile2 = logDir.resolve("/evergreen.log_2020-02-01_03_11111111111111").toFile();
         String[] logFilePath2 = {logFile2.getPath()};
         aggregation.readLog(logFilePath2, null);
         while (aggregation.isAlive()) {
@@ -207,7 +207,7 @@ public class AggregationImplTest {
 
     @Test
     void testReadLogEmptyDir() {
-        File Dir = new File(logDir.resolve("x").toString());
+        File Dir = logDir.resolve("x").toFile();
         String[] logDirPath = {Dir.getPath()};
         Exception emptyLogDirException = assertThrows(RuntimeException.class,
                 () -> aggregation.readLog(null, logDirPath));
@@ -235,7 +235,7 @@ public class AggregationImplTest {
 
     @Test
     void testListLogEmptyDir() {
-        File Dir = new File(logDir.resolve("x").toString());
+        File Dir = logDir.resolve("x").toFile();
         String[] logDirPath = {Dir.getPath()};
         Set<File> logFileSet = aggregation.listLog(logDirPath);
 

@@ -20,13 +20,14 @@ import static java.lang.Thread.sleep;
 public class FileReader implements Runnable {
     private final List<LogFile> filesToRead;
     private AggregationImplConfig config;
-    private List<LogEntry> logEntryList;
+    private List<LogEntry> beforeContextList;
     private int afterCount = 0;
 
     public FileReader(List<LogFile> fileToRead, AggregationImplConfig config) {
         this.filesToRead = fileToRead;
         this.config = config;
-        this.logEntryList = new ArrayList<>();
+        //TODO: investigate which data strucure to use for logEntryList
+        this.beforeContextList = new ArrayList<>();
     }
 
     @Override
@@ -54,31 +55,31 @@ public class FileReader implements Runnable {
                     }
                     try {
                         LogEntry entry = new LogEntry(line);
+
+                        // We only put filtered result into blocking queue to save memory.
+                        if (config.getFilterInterface().filter(entry)) {
+                            // We use afterCount to record if the next lines are within context
+                            afterCount = config.getAfter();
+                            // Adding entries before the matched line into the queue
+                            for (int i = 0; i < beforeContextList.size(); i++) {
+                                config.getQueue().put(beforeContextList.get(i));
+                            }
+                            beforeContextList.clear();
+                            config.getQueue().put(entry);
+                            continue;
+                        }
+
                         // Adding entries after the matched line into the queue
                         if (afterCount > 0) {
                             afterCount--;
                             config.getQueue().put(entry);
                             continue;
                         }
-
-                        // We only put filtered result into blocking queue to save memory.
-                        if (config.getFilterInterface().filter(entry)) {
-                            // We use afterCount to record if the next lines are within context
-                            afterCount = config.getAfter();
-                            entry.setMatched(true);
-                            // Adding entries before the matched line into the queue
-                            for (int i = 0; i < logEntryList.size(); i++) {
-                                if (!logEntryList.get(i).isMatched()) {
-                                    config.getQueue().put(logEntryList.get(i));
-                                }
-                            }
-                            config.getQueue().put(entry);
-                        }
-
-                        logEntryList.add(entry);
+                        // Add line that are not matched into before context
+                        beforeContextList.add(entry);
                         // We remove the entry outside the context to save memory
-                        if (logEntryList.size() > config.getBefore()) {
-                            logEntryList.remove(0);
+                        if (beforeContextList.size() > config.getBefore()) {
+                            beforeContextList.remove(0);
                         }
                     } catch (InterruptedException e) {
                         Thread.currentThread().interrupt();

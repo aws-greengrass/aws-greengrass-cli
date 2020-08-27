@@ -29,7 +29,7 @@ public class AggregationImplConfig {
         this.after = after;
     }
 
-    public void setUpFileReader() {
+    public void initialize() {
         this.queue = new PriorityBlockingQueue<>();
     }
 }

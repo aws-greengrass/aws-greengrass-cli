@@ -73,7 +73,7 @@ public class AggregationImpl implements Aggregation {
 
         readLogFutureList = new ArrayList<>();
         // We initialize the queue here to save overhead for when no log file is provided.
-        config.setUpFileReader();
+        config.initialize();
 
 
         for (Map.Entry<String, List<LogFile>> entry : logGroupMap.entrySet()) {
@@ -161,10 +161,10 @@ public class AggregationImpl implements Aggregation {
                 logGroupMap.get(logGroupName).add(logFile);
             } catch (DateTimeParseException e) {
                 LogsUtil.getErrorStream().println("Unable to parse timestamp from file name: " + file.getName());
+                continue;
             } catch (NumberFormatException e) {
                 LogsUtil.getErrorStream().println("Unable to parse file index from file name: " + file.getName());
             }
-
         }
         return logGroupMap;
     }

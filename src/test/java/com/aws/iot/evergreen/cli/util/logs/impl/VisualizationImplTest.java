@@ -37,7 +37,7 @@ public class VisualizationImplTest {
     private PrintStream printStream;
     private PrintStream errorStream;
     private VisualizationImpl visualization = new VisualizationImpl();
-    private static final LogEntry entry = new LogEntry();
+    private LogEntry entry;
 
     @BeforeEach
     void init() {
@@ -51,7 +51,7 @@ public class VisualizationImplTest {
 
     @Test
     void visualizeHappyCase() throws JsonProcessingException {
-        entry.setLogEntry(logEntry);
+        entry = new LogEntry(logEntry);
         visualization.visualize(entry, true, true);
         assertThat(TestUtil.byteArrayOutputStreamToString(byteArrayOutputStream), containsString("[DEBUG]"
                 + " (idle-connection-reaper) null: null. Closing connections idle longer than 60000 MILLISECONDS"));
@@ -59,7 +59,7 @@ public class VisualizationImplTest {
 
     @Test
     void visualizeColorHappyCase() throws JsonProcessingException {
-        entry.setLogEntry(logEntry);
+        entry = new LogEntry(logEntry);
         entry.getMatchedKeywords().add("connection");
         visualization.visualize(entry, false, true);
         assertThat(TestUtil.byteArrayOutputStreamToString(byteArrayOutputStream), containsString("[DEBUG]"
@@ -69,7 +69,7 @@ public class VisualizationImplTest {
 
     @Test
     void visualizeAbbreviateHappyCase() throws JsonProcessingException {
-        entry.setLogEntry(logEntry2);
+        entry = new LogEntry(logEntry2);
         visualization.visualize(entry, true, false);
         assertThat(TestUtil.byteArrayOutputStreamToString(byteArrayOutputStream), containsString("[DEBUG]"
                 + " aaa.logger: Closing connections idle longer than 60000 MILLISECONDS\n"));
@@ -79,7 +79,7 @@ public class VisualizationImplTest {
 
     @Test
     void visualizeInvalidLogEntry() throws JsonProcessingException {
-        entry.setLogEntry(badLogEntry);
+        entry = new LogEntry(badLogEntry);
         visualization.visualize(entry, true, true);
         assertThat(TestUtil.byteArrayOutputStreamToString(errOutputStream),
                 containsString("Unable to parse EvergreenStructuredLogMessage: "));

@@ -83,7 +83,7 @@ public class FilterImplTest {
     private ByteArrayOutputStream errOutputStream;
     private PrintStream errorStream;
 
-    private static final LogEntry entry = new LogEntry();
+    private LogEntry entry;
 
     @BeforeEach
     void init() {
@@ -199,7 +199,7 @@ public class FilterImplTest {
 
     @Test
     public void testFilterHappyCase() throws JsonProcessingException {
-        entry.setLogEntry(logEntry);
+        entry = new LogEntry(logEntry);
 
         String[] timeWindow1 = {badTimeWindow1, badTimeWindow2, goodTimeWindow};
         filter.composeRule(timeWindow1, goodFilterExpression);
@@ -218,7 +218,7 @@ public class FilterImplTest {
 
     @Test
     public void testFilterWithContextsHappyCase() throws JsonProcessingException {
-        entry.setLogEntry(contextsEntry);
+        entry = new LogEntry(contextsEntry);
         String[] timeWindow1 = {goodTimeWindow};
         filter.composeRule(timeWindow1, contextsFilterExpression);
         assertTrue(filter.filter(entry));
@@ -226,7 +226,7 @@ public class FilterImplTest {
 
     @Test
     public void testFilterWithInvalidContexts() throws JsonProcessingException {
-        entry.setLogEntry(invalidContextEntry);
+        entry = new LogEntry(invalidContextEntry);
         String[] timeWindow1 = {goodTimeWindow};
         filter.composeRule(timeWindow1, contextsFilterExpression);
         assertFalse(filter.filter(entry));
@@ -236,7 +236,7 @@ public class FilterImplTest {
 
     @Test
     public void testFilterWithExceptionHappyCase() throws JsonProcessingException {
-        entry.setLogEntry(exceptionLogEntry);
+        entry = new LogEntry(exceptionLogEntry);
         String[] timeWindow1 = {goodTimeWindow};
         filter.composeRule(timeWindow1, exceptionFilterExpression);
         assertTrue(filter.filter(entry));
@@ -247,7 +247,7 @@ public class FilterImplTest {
 
     @Test
     public void testFilterEmptyCauseWithAnyException() throws JsonProcessingException {
-        entry.setLogEntry(logEntry);
+        entry = new LogEntry(logEntry);
         String[] timeWindow1 = {goodTimeWindow};
 
         filter.composeRule(timeWindow1, exceptionAnyFilterExpression);
@@ -256,7 +256,7 @@ public class FilterImplTest {
 
     @Test
     public void testFilterEmptyCase() throws JsonProcessingException {
-        entry.setLogEntry(logEntry);
+        entry = new LogEntry(logEntry);
 
         filter.composeRule(emptyTimeWindow, emptyFilterExpression);
         assertTrue(filter.filter(entry));
@@ -267,7 +267,7 @@ public class FilterImplTest {
 
     @Test
     public void testFilterInvalidLogLevel() throws JsonProcessingException {
-        entry.setLogEntry(logEntryBadLevel);
+        entry = new LogEntry(logEntryBadLevel);
 
         String[] timeWindow1 = {goodTimeWindow, badTimeWindow1};
         filter.composeRule(timeWindow1, goodFilterExpression);

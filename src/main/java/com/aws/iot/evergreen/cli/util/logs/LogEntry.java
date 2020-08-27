@@ -25,10 +25,9 @@ public class LogEntry implements Comparable<LogEntry> {
      * We prefer setter over a constructor because a LogEntry instance is expected to be reused for multiple times.
      * We throw an IOException to the outside to handle failed parsing.
      */
-    public void setLogEntry(String line) throws JsonProcessingException {
+    public LogEntry(String line) throws JsonProcessingException {
         //We handle parsing first so that if JsonProcessingException is thrown we won't change the fields of this class.
         this.map = parseJSONFromString(line);
-
         this.line = line;
         if (map.get("timestamp") instanceof Long) {
             this.timestamp = (long) map.get("timestamp");
@@ -44,6 +43,9 @@ public class LogEntry implements Comparable<LogEntry> {
     // Order by timestamp.
     @Override
     public int compareTo(LogEntry other) {
-        return Long.compare(this.getTimestamp(), other.getTimestamp());
+        if (this.getTimestamp() < other.getTimestamp()) {
+            return -1;
+        }
+        return 1;
     }
 }

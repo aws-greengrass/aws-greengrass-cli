@@ -6,14 +6,8 @@ package com.aws.iot.evergreen.cli.commands;
 import com.aws.iot.evergreen.cli.CLI;
 import com.aws.iot.evergreen.cli.TestUtil;
 import com.aws.iot.evergreen.cli.adapter.AdapterModule;
-import com.aws.iot.evergreen.cli.util.logs.Aggregation;
-import com.aws.iot.evergreen.cli.util.logs.Filter;
 import com.aws.iot.evergreen.cli.util.logs.LogsModule;
 import com.aws.iot.evergreen.cli.util.logs.LogsUtil;
-import com.aws.iot.evergreen.cli.util.logs.Visualization;
-import com.aws.iot.evergreen.cli.util.logs.impl.AggregationImpl;
-import com.aws.iot.evergreen.cli.util.logs.impl.FilterImpl;
-import com.aws.iot.evergreen.cli.util.logs.impl.VisualizationImpl;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -26,10 +20,9 @@ import java.io.FileOutputStream;
 import java.io.PrintStream;
 import java.nio.file.Path;
 
+import static com.aws.iot.evergreen.cli.TestUtil.deleteDir;
 import static com.aws.iot.evergreen.cli.util.logs.impl.VisualizationImpl.ANSI_HIGHLIGHT;
 import static com.aws.iot.evergreen.cli.util.logs.impl.VisualizationImpl.ANSI_HIGHLIGHT_RESET;
-import static com.aws.iot.evergreen.cli.TestUtil.deleteDir;
-import static java.lang.Thread.sleep;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.containsString;
 import static org.junit.jupiter.api.Assertions.assertFalse;
@@ -67,7 +60,7 @@ public class LogsTest {
 
     @Test
     void testListLogFileHappyCase() {
-        fileWriter.print(logEntry1);
+        fileWriter.println(logEntry1);
         runCommandLine("logs", "list-log-files", "--log-dir", logDir.toString());
 
         assertThat(TestUtil.byteArrayOutputStreamToString(byteArrayOutputStream),
@@ -76,7 +69,7 @@ public class LogsTest {
 
     @Test
     void testGetHappyCase() throws InterruptedException {
-        fileWriter.print(logEntry1);
+        fileWriter.println(logEntry1);
 
         Thread thread = new Thread(() -> runCommandLine("logs", "get", "--log-file", logFile.toString(),
                 "--filter", "level=DEBUG", "--filter", "thread=idle-connection-reaper", "--filter", "60000",
@@ -90,7 +83,7 @@ public class LogsTest {
 
     @Test
     void testGetHighLightCase() throws InterruptedException {
-        fileWriter.print(logEntry1);
+        fileWriter.println(logEntry1);
 
         Thread thread = new Thread(() -> runCommandLine("logs", "get", "--log-file", logFile.toString(),
                 "--filter", "level=DEBUG", "--filter", "thread=idle-connection-reaper", "--filter", "bad,60000",
@@ -105,14 +98,13 @@ public class LogsTest {
 
     @Test
     void testGetFollowHappyCase() throws InterruptedException {
+        fileWriter.println(logEntry1);
         Thread thread = new Thread(() -> runCommandLine("logs", "get", "--log-file", logFile.toString(),
-                "--time-window", "2020-07-14T02:00:00,+2s", "--follow", "--verbose", "--no-color"));
+                "--time-window", "2020-07-14T02:00:00,+1s", "--follow", "--verbose", "--no-color"));
         thread.start();
-        fileWriter.print(logEntry1);
         // we wait for 500ms to write more entries to the file to test the follow option.
-        sleep(500);
-        fileWriter.print(logEntry2);
-        fileWriter.print(logEntry0);
+        fileWriter.println(logEntry2);
+        fileWriter.println(logEntry0);
         thread.join();
 
         assertThat(TestUtil.byteArrayOutputStreamToString(byteArrayOutputStream), containsString("[DEBUG] "
@@ -120,6 +112,53 @@ public class LogsTest {
         assertThat(TestUtil.byteArrayOutputStreamToString(byteArrayOutputStream), containsString("[DEBUG] "
                 + "(idle-connection-reaper) null: null. Closing connections idle longer than 70000 MILLISECONDS"));
         assertFalse(TestUtil.byteArrayOutputStreamToString(byteArrayOutputStream).contains("80000"));
+    }
+
+    @Test
+    void testGetFollowMultipleGroupCase() throws InterruptedException, FileNotFoundException {
+        Path logFile2 = logDir.resolve("xxx.log");
+        Thread thread = new Thread(() -> runCommandLine("logs", "get", "--log-file", logFile.toString(),
+                "--log-file", logFile2.toString(), "--time-window", "2020-07-14T02:00:00,+1s",
+                "--follow", "--verbose", "--no-color"));
+        thread.start();
+        fileWriter.println(logEntry1);
+
+        PrintStream fileWriter2 = TestUtil.createPrintStreamFromOutputStream(new FileOutputStream(logFile2.toFile()));
+        fileWriter2.println(logEntry2);
+        thread.join();
+
+        assertThat(TestUtil.byteArrayOutputStreamToString(byteArrayOutputStream), containsString("[DEBUG] "
+                + "(idle-connection-reaper) null: null. Closing connections idle longer than 60000 MILLISECONDS"));
+        assertThat(TestUtil.byteArrayOutputStreamToString(byteArrayOutputStream), containsString("[DEBUG] "
+                + "(idle-connection-reaper) null: null. Closing connections idle longer than 70000 MILLISECONDS"));
+    }
+
+    @Test
+    void testGetBeforeHappyCase() throws InterruptedException {
+        fileWriter.println(logEntry2);
+        fileWriter.println(logEntry1);
+        Thread thread = new Thread(() -> runCommandLine("logs", "get", "--log-file", logFile.toString(),
+                "--before", "1", "--verbose", "--no-color", "--filter", "60000"));
+        thread.start();
+        thread.join();
+        assertThat(TestUtil.byteArrayOutputStreamToString(byteArrayOutputStream), containsString("[DEBUG] "
+                + "(idle-connection-reaper) null: null. Closing connections idle longer than 60000 MILLISECONDS"));
+        assertThat(TestUtil.byteArrayOutputStreamToString(byteArrayOutputStream), containsString("[DEBUG] "
+                + "(idle-connection-reaper) null: null. Closing connections idle longer than 70000 MILLISECONDS"));
+    }
+
+    @Test
+    void testGetAfterHappyCase() throws InterruptedException {
+        fileWriter.println(logEntry2);
+        fileWriter.println(logEntry1);
+        Thread thread = new Thread(() -> runCommandLine("logs", "get", "--log-file", logFile.toString(),
+                "--after", "1", "--verbose", "--no-color", "--filter", "70000"));
+        thread.start();
+        thread.join();
+        assertThat(TestUtil.byteArrayOutputStreamToString(byteArrayOutputStream), containsString("[DEBUG] "
+                + "(idle-connection-reaper) null: null. Closing connections idle longer than 60000 MILLISECONDS"));
+        assertThat(TestUtil.byteArrayOutputStreamToString(byteArrayOutputStream), containsString("[DEBUG] "
+                + "(idle-connection-reaper) null: null. Closing connections idle longer than 70000 MILLISECONDS"));
     }
 
     @AfterEach
@@ -130,13 +169,6 @@ public class LogsTest {
     }
 
     private void runCommandLine(String... args) {
-        new CommandLine(new CLI(), new CLI.GuiceFactory(new AdapterModule(), new LogsModule() {
-            @Override
-            protected void configure() {
-                bind(Aggregation.class).to(AggregationImpl.class);
-                bind(Visualization.class).to(VisualizationImpl.class);
-                bind(Filter.class).to(FilterImpl.class);
-            }
-        })).execute(args);
+        new CommandLine(new CLI(), new CLI.GuiceFactory(new AdapterModule(), new LogsModule())).execute(args);
     }
 }

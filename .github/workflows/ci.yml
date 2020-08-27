@@ -6,7 +6,7 @@ on:
     branches: '*'
 jobs:
   build:
-    runs-on: ubuntu-latest
+    runs-on: [self-hosted, Linux, Greengrass]
     steps:
       - uses: actions/checkout@v2
       - name: Set up JDK 1.8
@@ -41,7 +41,7 @@ jobs:
           path: target/jacoco-report
   publish:
     needs: build
-    runs-on: ubuntu-latest
+    runs-on: [self-hosted, Linux, Greengrass]
     if: github.event_name == 'push'
     steps:
       - uses: actions/checkout@v2
@@ -51,12 +51,6 @@ jobs:
           java-version: 1.8
       - name: Build with Maven
         run: mvn -ntp clean package -DskipTests
-      - name: Configure AWS credentials
-        uses: aws-actions/configure-aws-credentials@v1
-        with:
-          aws-access-key-id: ${{ secrets.access_key_id }}
-          aws-secret-access-key: ${{ secrets.access_key_secret }}
-          aws-region: us-west-2
       - run: sudo apt-get install -y awscli
       - name: Upload to S3
         run: aws s3 cp target/evergreen-cli-1.0-SNAPSHOT.zip s3://gg-evergreen-releases/${{github.repository}}/${{github.ref}}/evergreen-cli-${{github.sha}}.zip

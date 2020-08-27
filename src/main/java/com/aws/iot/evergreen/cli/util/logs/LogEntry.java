@@ -19,7 +19,7 @@ public class LogEntry implements Comparable<LogEntry> {
     private long timestamp;
 
     @Setter
-    private boolean filter;
+    private boolean matched;
 
     private List<String> matchedKeywords = new ArrayList<>();
 
@@ -29,10 +29,10 @@ public class LogEntry implements Comparable<LogEntry> {
      * We prefer setter over a constructor because a LogEntry instance is expected to be reused for multiple times.
      * We throw an IOException to the outside to handle failed parsing.
      */
-    public void setLogEntry(String line) throws JsonProcessingException {
+    public LogEntry(String line) throws JsonProcessingException {
         //We handle parsing first so that if JsonProcessingException is thrown we won't change the fields of this class.
         this.map = parseJSONFromString(line);
-        this.filter = false;
+        this.matched = false;
         this.line = line;
         if (map.get("timestamp") instanceof Long) {
             this.timestamp = (long) map.get("timestamp");

@@ -35,8 +35,8 @@ public class Logs extends BaseCommand {
     private Visualization visualization;
 
     @Command(name = "get")
-    public int get(@CommandLine.Option(names = {"--log-file"}, paramLabel = "Log File Path") String[] logFileArray,
-                   @CommandLine.Option(names = {"--log-dir"}, paramLabel = "Log Directory Path") String[] logDirArray,
+    public int get(@CommandLine.Option(names = {"-lf", "--log-file"}, paramLabel = "Log File Path") String[] logFileArray,
+                   @CommandLine.Option(names = {"-ld", "--log-dir"}, paramLabel = "Log Directory Path") String[] logDirArray,
                    @CommandLine.Option(names = {"-t", "--time-window"}, paramLabel = "Time Window") String[] timeWindow,
                    @CommandLine.Option(names = {"-f", "--filter"}, paramLabel = "Filter Expression") String[] filterExpressions,
                    @CommandLine.Option(names = {"-B", "--before"}, paramLabel = "Before", defaultValue = "0") int before,

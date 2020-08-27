@@ -53,29 +53,28 @@ public class FileReader implements Runnable {
                         }
                     }
                     try {
-                        LogEntry entry = new LogEntry();
-                        entry.setLogEntry(line);
-                        // We only put filtered result into blocking queue to save memory.
-                        if (config.getFilterInterface().filter(entry)) {
-                            // We use afterCount to record if the next lines are within context
-                            afterCount = config.getAfter();
-                            entry.setFilter(true);
-                            // Adding entries before the matched line into the queue
-                            for (int i = logEntryList.size() > config.getBefore() ? logEntryList.size() - config.getBefore() : 0;
-                                 i < logEntryList.size(); i++) {
-                                if (!logEntryList.get(i).isFilter()) {
-                                    config.getQueue().put(logEntryList.get(i));
-                                }
-                            }
-                            config.getQueue().put(entry);
-                            continue;
-                        }
+                        LogEntry entry = new LogEntry(line);
                         // Adding entries after the matched line into the queue
                         if (afterCount > 0) {
                             afterCount--;
                             config.getQueue().put(entry);
                             continue;
                         }
+
+                        // We only put filtered result into blocking queue to save memory.
+                        if (config.getFilterInterface().filter(entry)) {
+                            // We use afterCount to record if the next lines are within context
+                            afterCount = config.getAfter();
+                            entry.setMatched(true);
+                            // Adding entries before the matched line into the queue
+                            for (int i = 0; i < logEntryList.size(); i++) {
+                                if (!logEntryList.get(i).isMatched()) {
+                                    config.getQueue().put(logEntryList.get(i));
+                                }
+                            }
+                            config.getQueue().put(entry);
+                        }
+
                         logEntryList.add(entry);
                         // We remove the entry outside the context to save memory
                         if (logEntryList.size() > config.getBefore()) {

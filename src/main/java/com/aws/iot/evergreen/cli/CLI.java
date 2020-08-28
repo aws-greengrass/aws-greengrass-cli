@@ -1,4 +1,4 @@
-/* Copyright 2019 Amazon.com, Inc. or its affiliates. All Rights Reserved.
+/* Copyright Amazon.com, Inc. or its affiliates. All Rights Reserved.
  * SPDX-License-Identifier: Apache-2.0 */
 
 package com.aws.iot.evergreen.cli;
@@ -7,7 +7,9 @@ import com.aws.iot.evergreen.cli.adapter.AdapterModule;
 import com.aws.iot.evergreen.cli.commands.ComponentCommand;
 import com.aws.iot.evergreen.cli.commands.Config;
 import com.aws.iot.evergreen.cli.commands.Health;
+import com.aws.iot.evergreen.cli.commands.Logs;
 import com.aws.iot.evergreen.cli.commands.Service;
+import com.aws.iot.evergreen.cli.util.logs.LogsModule;
 import com.google.inject.ConfigurationException;
 import com.google.inject.Guice;
 import com.google.inject.Injector;
@@ -27,7 +29,7 @@ import java.util.ResourceBundle;
  * Main entry point into the command line.
  */
 @Command(name = "cli",
-        subcommands = {HelpCommand.class, Config.class, Health.class, Service.class, ComponentCommand.class},
+        subcommands = {HelpCommand.class, Config.class, Health.class, Service.class, ComponentCommand.class, Logs.class},
         resourceBundle = "com.aws.iot.evergreen.cli.CLI_messages")
 public class CLI implements Runnable {
     @Option(names = "--host", defaultValue = "localhost")
@@ -39,7 +41,7 @@ public class CLI implements Runnable {
     CommandSpec spec;
 
     public static void main(String... args) {
-        int exitCode = new CommandLine(new CLI(), new GuiceFactory(new AdapterModule())).execute(args);
+        int exitCode = new CommandLine(new CLI(), new GuiceFactory(new AdapterModule(), new LogsModule())).execute(args);
         System.exit(exitCode);
     }
 

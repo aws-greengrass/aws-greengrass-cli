@@ -16,6 +16,7 @@ import picocli.CommandLine.HelpCommand;
 import java.io.File;
 import java.util.Set;
 import java.util.concurrent.BlockingQueue;
+import java.util.concurrent.TimeUnit;
 import javax.inject.Inject;
 
 @Command(name = "logs", resourceBundle = "com.aws.iot.evergreen.cli.CLI_messages", subcommands = HelpCommand.class)
@@ -50,10 +51,14 @@ public class Logs extends BaseCommand {
         BlockingQueue<LogEntry> logQueue = aggregation.readLog(logFileArray, logDirArray);
 
         while (!logQueue.isEmpty() || aggregation.isAlive()) {
-            LogEntry entry = logQueue.poll();
-            if (entry != null) {
-                //TODO: Expand LogEntry class and use it for visualization
-                visualization.visualize(entry, noColor, verbose);
+            try {
+                //TODO: remove busy polling.
+                LogEntry entry = logQueue.poll(10, TimeUnit.MILLISECONDS);
+                if (entry != null) {
+                    visualization.visualize(entry, noColor, verbose);
+                }
+            } catch (InterruptedException e) {
+                throw new RuntimeException("Log tool polling interrupted! " + e.getMessage());
             }
         }
         return 0;

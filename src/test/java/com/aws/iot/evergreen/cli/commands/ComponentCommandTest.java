@@ -35,6 +35,7 @@ class ComponentCommandTest {
     private static final String ARTIFACT_FOLDER_PATH_STR = "artifactFolderPath";
     private static final String NEW_COMPONENT_1 = "newComponent1";
     private static final String NEW_COMPONENT_2 = "newComponent2";
+    private static final String NEW_COMPONENT_3 = "aws.greengrass.componentname";
     private static final String NEW_COMPONENT_1_WITH_VERSION = "newComponent1=1.0.0";
     private static final String NEW_COMPONENT_2_WITH_VERSION = "newComponent2=2.0.0";
 
@@ -144,7 +145,8 @@ class ComponentCommandTest {
     @Test
     void GIVEN_WHEN_params_are_provided_THEN_request_contain_all_params() {
         int exitCode = runCommandLine("component", "update", "--param", "newComponent1:K1=V1", "--param",
-                "newComponent1:nested.K2=V2", "--param", "newComponent2:K3=V3");
+                "newComponent1:nested.K2=V2", "--param", "newComponent2:K3=V3",
+                "--param", "aws.greengrass.componentname:nested.K2=V2");
 
         Map<String, Map<String, Object>> componentNameToConfig = new HashMap<>();
         componentNameToConfig.put(NEW_COMPONENT_1, new HashMap<>());
@@ -154,6 +156,9 @@ class ComponentCommandTest {
 
         componentNameToConfig.put(NEW_COMPONENT_2, new HashMap<>());
         componentNameToConfig.get(NEW_COMPONENT_2).put("K3", "V3");
+        componentNameToConfig.put(NEW_COMPONENT_3, new HashMap<>());
+        componentNameToConfig.get(NEW_COMPONENT_3).put("nested", new HashMap<>());
+        ((HashMap) componentNameToConfig.get(NEW_COMPONENT_3).get("nested")).put("K2", "V2");
 
         LocalOverrideRequest expectedRequest =
                 LocalOverrideRequest.builder().componentNameToConfig(componentNameToConfig).build();

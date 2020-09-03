@@ -64,7 +64,7 @@ public class ComponentCommand extends BaseCommand {
     }
 
     /**
-     * Convert parameters. For example: {Component.path.key: value} -> {Component: {path: {key: {value}}}}
+     * Convert parameters. For example: {Component:path.key: value} -> {Component: {path: {key: {value}}}}
      *
      * @param params runtime parameters in the flat map
      * @return converted runtime parameters map, with each key as component name and each value as the component's
@@ -78,30 +78,29 @@ public class ComponentCommand extends BaseCommand {
         Map<String, Map<String, Object>> componentNameToConfig = new HashMap<>();
 
         for (Map.Entry<String, String> entry : params.entrySet()) {
-            String multiLevelKey = entry.getKey();
+            String componentNameAndKey = entry.getKey();
             String value = entry.getValue();
+            String[] parts = componentNameAndKey.split(":");
 
+            if (parts.length != 2) {
+                throw new IllegalArgumentException("--param is not in the format of <ComponentName>:<key>=<value>");
+            }
+            String componentName = parts[0];
+            String multiLevelKey = parts[1];
             String[] levels = multiLevelKey.split("\\.");
-            String componentName = levels[0];
 
             componentNameToConfig.putIfAbsent(componentName, new HashMap<>());
 
             HashMap map = (HashMap) componentNameToConfig.get(componentName);
 
-            if (levels.length < 2) {
-                throw new IllegalArgumentException("--param is not in the format of <ComponentName>.<key>=<value>");
-            }
-
             String key;
-
-            for (int i = 1; i < levels.length - 1; i++) {
+            for (int i = 0; i < levels.length - 1; i++) {
                 key = levels[i];
                 map.putIfAbsent(key, new HashMap<>());
                 map = (HashMap<Object, Object>) map.get(key);
             }
 
             map.put(levels[levels.length - 1], value);
-
         }
         return componentNameToConfig;
     }

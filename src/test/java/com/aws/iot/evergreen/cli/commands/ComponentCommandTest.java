@@ -143,8 +143,8 @@ class ComponentCommandTest {
 
     @Test
     void GIVEN_WHEN_params_are_provided_THEN_request_contain_all_params() {
-        int exitCode = runCommandLine("component", "update", "--param", "newComponent1.K1=V1", "--param",
-                "newComponent1" + ".nested.K2=V2", "--param", "newComponent2.K3=V3");
+        int exitCode = runCommandLine("component", "update", "--param", "newComponent1:K1=V1", "--param",
+                "newComponent1:nested.K2=V2", "--param", "newComponent2:K3=V3");
 
         Map<String, Map<String, Object>> componentNameToConfig = new HashMap<>();
         componentNameToConfig.put(NEW_COMPONENT_1, new HashMap<>());

@@ -111,7 +111,7 @@ public class AggregationImplTest {
 
     @Test
     void testReadLogEmptyLine() throws InterruptedException {
-        writer.print("\n");
+        writer.print(System.lineSeparator());
 
         String[] logFilePath = {logFile.getAbsolutePath()};
 

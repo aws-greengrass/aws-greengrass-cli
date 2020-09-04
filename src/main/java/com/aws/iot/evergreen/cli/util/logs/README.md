@@ -19,12 +19,13 @@ Type ``greengrass-cli logs help`` or ``greengrass-cli logs help <command>`` for 
 
 ## Detailed Usage
 ```
-$ greengrass-cli logs get [--log-dir <log-directory> ...] [--log-file <file-path> ...]
+$ greengrass-cli logs get [-ld --log-dir <log-directory> ...] [-lf --log-file <file-path> ...]
                           [-t --time-window "beginTime","endTime" ...]
                           [-f --filter "regex","key"="val" ...]
                           [-F --follow] [-V --verbose] [-N --no-color]
-                          [-B --before] [-A --after]
-$ greengrass-cli logs list-log-files [--log-dir <log-directory>] ...
+                          [-B --before] [-A --after] [-S --syslog]
+$ greengrass-cli logs list-log-files [--log-dir <log-directory> ...]
+$ greengrass-cli logs list-keywords [-S --syslog]
 ```
 
 ### Setting source of log information
@@ -45,7 +46,7 @@ $ greengrass-cli logs get --log-file evergreen.log_1 --log-file evergreen.log_2 
 
 For reading directories, the log tool will check all files under the given directory and only files whose name contain
  “log” will be considered as a log file. To help you decide the source of log information, you could also use the 
- command ``list-log-files`` to check the list of log files in a given directory.
+ command ``list-log-files`` to check the list of Greengrass log files in a given directory.
  
 ```
 # display all files under ~/.evergreen
@@ -54,7 +55,7 @@ $ greengrass-cli logs list-log-files --log-dir ~/.evergreen
 
 ### Setting time window
 
-The --time-window option helps you to set start times and end times for filtered log results.
+The ``--time-window`` option helps you to set start times and end times for filtered log results.
  Timestamps entered are converted to local date time of the queried machine. 
  
 ```
@@ -106,7 +107,7 @@ $ greengreass-cli logs get --time-window -2h15min,-1hr --log-file evergreen.log
 
 ### Adding filter
 
-The --filter option is able to filtered log entries based on provided keyword, regular expression, or key-value pair.
+The ``--filter`` option is able to filtered log entries based on provided keyword, regular expression, or key-value pair.
 
 ```
 # filter by keyword or regular expression (getting entries containting HelloWorld)
@@ -125,6 +126,17 @@ $ greengreass-cli logs get --filter thread=main --filter Deployment,HelloWorld -
 ```
 When the user queries a log level, e.g. ``level=DEBUG``, all log entries whose level are above queried level will 
 be displayed. We have ``ALL < DEBUG < INFO < WARN < ERROR < FATAL < OFF``.
+
+The user can use key "error" to search with in all exceptions, e.g. ``error=HelloWorld``. Filter will return true for
+any log entry that contains "HelloWorld" in its exception stack trace. When the user queries ``error=any``,
+filtering any log entry with a valid exception will return true.
+
+To help you filter with key-val pairs, you could also use the command ``list-keywords`` to see a list of frequent keywords
+for filter.
+```
+# show all suggested keywords for Greengrass log
+$ greengrass-cli logs list-keywords
+```
 
 ### Following Realtime Update
 
@@ -161,3 +173,20 @@ If multiple log entries share some parts of context, for example when ``--before
  the log tool will remove the duplicates and only print that context line once.
 
 The default is 0 for both these options.
+
+### Getting system log
+The ``--syslog`` option is a boolean option that decides if the log tool is reading Greengrass log or syslog.
+When specified, the log tool will try to read all input log files with respect to syslog format defined by RFC3164: 
+``<$Priority>$Timestamp $Host $Logger ($Class): $Message``.
+
+This option is only supported in Unix and Linux platforms, where syslog is enabled. If no log file is provided,
+the log tool will try to read from ``/var/log/messages``, ``/var/log/syslog``, and ``/var/log/system.log``. 
+
+``--log-dir`` and ``--verbose`` options are disabled for syslog.
+
+To help you filter with key-val pairs, you could also use the command ``list-keywords`` with ``--syslog`` to see
+a list of frequent keywords for filter.
+```
+# show all suggested keywords for syslog
+$ greengrass-cli logs list-keywords --syslog
+```

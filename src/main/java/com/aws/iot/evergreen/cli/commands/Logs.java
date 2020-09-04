@@ -36,9 +36,9 @@ public class Logs extends BaseCommand {
                    @CommandLine.Option(names = {"-B", "--before"}, paramLabel = "Before", defaultValue = "0") int before,
                    @CommandLine.Option(names = {"-A", "--after"}, paramLabel = "After", defaultValue = "0") int after,
                    @CommandLine.Option(names = {"-F", "--follow"}, paramLabel = "Live Update Flag") boolean follow,
-                   @CommandLine.Option(names = {"-N", "--no-color"}, paramLabel = "Remove color") boolean noColor,
+                   @CommandLine.Option(names = {"-N", "--no-color"}, paramLabel = "Remove Color") boolean noColor,
                    @CommandLine.Option(names = {"-V", "--verbose"}, paramLabel = "Verbosity") boolean verbose,
-                   @CommandLine.Option(names = {"-S", "--syslog"}, paramLabel = "Syslog") boolean syslog) {
+                   @CommandLine.Option(names = {"-S", "--syslog"}, paramLabel = "Syslog Flag") boolean syslog) {
         Runtime.getRuntime().addShutdownHook(new Thread(aggregation::close));
         LogsUtil.setSyslog(syslog);
         if (syslog && verbose) {
@@ -73,5 +73,22 @@ public class Logs extends BaseCommand {
             return;
         }
         LogsUtil.getPrintStream().println("No log file found.");
+    }
+
+    @Command(name = "list-keywords")
+    public void list_keywords(@CommandLine.Option(names = {"-S", "--syslog"}, paramLabel = "Syslog Flag") boolean syslog) {
+        if (syslog) {
+            LogsUtil.getPrintStream().println(new StringBuilder("Here is a list of suggested keywords for syslog: ")
+                    .append(System.lineSeparator()).append("priority=$int").append(System.lineSeparator())
+                    .append("host=$str").append(System.lineSeparator()).append("logger=$str")
+                    .append(System.lineSeparator()).append("class=$str").toString());
+            return;
+        }
+        LogsUtil.getPrintStream().println(new StringBuilder("Here is a list of suggested keywords for Greengrass log: ")
+                .append(System.lineSeparator()).append("level=$str").append(System.lineSeparator())
+                .append("thread=$str").append(System.lineSeparator()).append("loggerName=$str")
+                .append(System.lineSeparator()).append("eventType=$str").append(System.lineSeparator())
+                .append("serviceName=$str").append(System.lineSeparator()).append("error=$str").toString());
+
     }
 }

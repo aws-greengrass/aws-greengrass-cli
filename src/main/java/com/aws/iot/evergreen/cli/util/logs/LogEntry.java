@@ -29,7 +29,7 @@ public class LogEntry implements Comparable<LogEntry> {
     private List<String> matchedKeywords = new ArrayList<>();
 
     // Pattern to match for syslog format defined by RFC 3164 https://tools.ietf.org/html/rfc3164#section-4.1
-    // "<$Priority>$Timestamp $Host $Logger $(Class): $Message"
+    // "<$Priority>$Timestamp $Host $Logger ($Class): $Message"
     private static final Pattern SYSLOG_PATTERN = Pattern.compile("(<([0-9]+)>)?"
                     // Matching for timestamp of format "Mmm dd hh:mm:ss". This is mandatory.
                     + "([a-zA-z]{3}\\s[0-9\\s][0-9]\\s[0-9]{2}:[0-9]{2}:[0-9]{2})"
@@ -71,6 +71,7 @@ public class LogEntry implements Comparable<LogEntry> {
             return;
         }
         map = new HashMap<>();
+        map.put("priority", matcher.group(2));
         map.put("host", matcher.group(6));
         map.put("logger", matcher.group(8));
         map.put("class", matcher.group(10));

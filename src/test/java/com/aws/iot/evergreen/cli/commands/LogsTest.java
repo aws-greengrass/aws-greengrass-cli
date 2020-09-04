@@ -69,12 +69,22 @@ public class LogsTest {
     }
 
     @Test
+    void ListKeywordsHappyCase() {
+        runCommandLine("logs", "list-keywords");
+        runCommandLine("logs", "list-keywords", "--syslog");
+        assertThat(TestUtil.byteArrayOutputStreamToString(byteArrayOutputStream),
+                containsString("Here is a list of suggested keywords for syslog: "));
+        assertThat(TestUtil.byteArrayOutputStreamToString(byteArrayOutputStream),
+                containsString("Here is a list of suggested keywords for Greengrass log: "));
+    }
+
+    @Test
     void testListLogFileHappyCase() {
         fileWriter.println(logEntry1);
         runCommandLine("logs", "list-log-files", "--log-dir", logDir.toString());
 
         assertThat(TestUtil.byteArrayOutputStreamToString(byteArrayOutputStream),
-                containsString(logFile.toString() + "\n" + "Total 1 files found."));
+                containsString(logFile.toString() + System.lineSeparator() + "Total 1 files found."));
     }
 
     @Test

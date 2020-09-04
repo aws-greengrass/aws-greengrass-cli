@@ -72,7 +72,7 @@ public class VisualizationImplTest {
         entry = new LogEntry(logEntry2);
         visualization.visualize(entry, true, false);
         assertThat(TestUtil.byteArrayOutputStreamToString(byteArrayOutputStream), containsString("[DEBUG]"
-                + " aaa.logger: Closing connections idle longer than 60000 MILLISECONDS\n"));
+                + " aaa.logger: Closing connections idle longer than 60000 MILLISECONDS"));
         assertThat(TestUtil.byteArrayOutputStreamToString(byteArrayOutputStream), containsString(ANSI_HIGHLIGHT
                 + "EXCEPTION: Service in broken state after deployment" + ANSI_HIGHLIGHT_RESET));
     }

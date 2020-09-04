@@ -53,6 +53,16 @@ public class AggregationImpl implements Aggregation {
      */
     @Override
     public BlockingQueue<LogEntry> readLog(String[] logFileArray, String[] logDirArray) {
+        if (LogsUtil.isSyslog()) {
+            if (logDirArray != null) {
+                LogsUtil.getErrorStream().println("Syslog does not support directory input!");
+                logDirArray = null;
+            }
+            if (logFileArray == null) {
+                // These three locations are most likely the default location of syslog in Linux or Unix
+                logFileArray = new String[]{"/var/log/system.log", "/var/log/syslog", "/var/log/messages"};
+            }
+        }
         if (logFileArray == null && logDirArray == null) {
             throw new RuntimeException("No valid log input. Please provide a log file or directory.");
         }
@@ -78,7 +88,9 @@ public class AggregationImpl implements Aggregation {
 
         for (Map.Entry<String, List<LogFile>> entry : logGroupMap.entrySet()) {
             // Here we sort all files in a log group by ascending order of their timestamps and indexes.
-            Collections.sort(entry.getValue());
+            if (!LogsUtil.isSyslog()) {
+                Collections.sort(entry.getValue());
+            }
             readLogFutureList.add(executorService.submit(new FileReader(entry.getValue(), config)));
         }
         //TODO: track log rotation
@@ -143,8 +155,16 @@ public class AggregationImpl implements Aggregation {
     }
 
     private Map<String, List<LogFile>> parseLogGroup(Set<File> logFileSet) {
-        //key is logGroupName and value is all files within that log group.
+        // key is logGroupName and value is all files within that log group.
         Map<String, List<LogFile>> logGroupMap = new HashMap<>();
+        // if we are parsing syslog, we default all syslogs into one single log group without ordering.
+        if (LogsUtil.isSyslog()) {
+            logGroupMap.put("syslog", new ArrayList<>());
+            for (File file :logFileSet) {
+                logGroupMap.get("syslog").add(new LogFile(file, null, null));
+            }
+            return logGroupMap;
+        }
 
         for (File file : logFileSet) {
             Matcher fileNameMatcher = fileNamePattern.matcher(file.getName());

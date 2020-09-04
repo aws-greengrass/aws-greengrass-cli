@@ -26,7 +26,9 @@ import static com.aws.iot.evergreen.cli.TestUtil.deleteDir;
 import static java.lang.Thread.sleep;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.containsString;
-import static org.junit.jupiter.api.Assertions.*;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 public class AggregationImplTest {
     private static final String logEntry = "{\"thread\":\"idle-connection-reaper\",\"level\":\"DEBUG\","
@@ -220,6 +222,14 @@ public class AggregationImplTest {
         Exception emptyArgException = assertThrows(RuntimeException.class,
                 () -> aggregation.readLog(null, null));
         assertEquals("No valid log input. Please provide a log file or directory.", emptyArgException.getMessage());
+    }
+
+    @Test
+    void testReadSyslogEmptyArg() {
+        LogsUtil.setSyslog(true);
+        aggregation.readLog(null, null);
+        assertEquals(1, aggregation.getReadLogFutureList().size());
+        LogsUtil.setSyslog(false);
     }
 
     @Test

@@ -8,7 +8,6 @@ import com.aws.iot.evergreen.cli.util.logs.Filter;
 import com.aws.iot.evergreen.cli.util.logs.LogEntry;
 import com.aws.iot.evergreen.cli.util.logs.LogsUtil;
 import com.aws.iot.evergreen.cli.util.logs.Visualization;
-import lombok.Setter;
 import picocli.CommandLine;
 import picocli.CommandLine.Command;
 import picocli.CommandLine.HelpCommand;
@@ -22,17 +21,11 @@ import javax.inject.Inject;
 @Command(name = "logs", resourceBundle = "com.aws.iot.evergreen.cli.CLI_messages", subcommands = HelpCommand.class)
 public class Logs extends BaseCommand {
 
-    // setters created only for unit tests
     @Inject
-    @Setter
     private Aggregation aggregation;
-    // setters created only for unit tests
     @Inject
-    @Setter
     private Filter filter;
-    // setters created only for unit tests
     @Inject
-    @Setter
     private Visualization visualization;
 
     @Command(name = "get")
@@ -44,12 +37,16 @@ public class Logs extends BaseCommand {
                    @CommandLine.Option(names = {"-A", "--after"}, paramLabel = "After", defaultValue = "0") int after,
                    @CommandLine.Option(names = {"-F", "--follow"}, paramLabel = "Live Update Flag") boolean follow,
                    @CommandLine.Option(names = {"-N", "--no-color"}, paramLabel = "Remove color") boolean noColor,
-                   @CommandLine.Option(names = {"-V", "--verbose"}, paramLabel = "Verbosity") boolean verbose) {
+                   @CommandLine.Option(names = {"-V", "--verbose"}, paramLabel = "Verbosity") boolean verbose,
+                   @CommandLine.Option(names = {"-S", "--syslog"}, paramLabel = "Syslog") boolean syslog) {
         Runtime.getRuntime().addShutdownHook(new Thread(aggregation::close));
+        LogsUtil.setSyslog(syslog);
+        if (syslog && verbose) {
+            LogsUtil.getErrorStream().println("Syslog does not support verbosity!");
+        }
         filter.composeRule(timeWindow, filterExpressions);
         aggregation.configure(follow, filter, before, after);
         BlockingQueue<LogEntry> logQueue = aggregation.readLog(logFileArray, logDirArray);
-
         while (!logQueue.isEmpty() || aggregation.isAlive()) {
             try {
                 //TODO: remove busy polling.

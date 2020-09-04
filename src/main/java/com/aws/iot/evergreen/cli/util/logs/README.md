@@ -8,7 +8,7 @@ The goal of this log tool is to improve the customer experience of processing an
 ## Requirements
 
 Evergreen Log Tool is a part of AWS Greengrass CLI. To download and install the latest iteration, clone the repo 
-from https://github.com/aws/aws-greengrass-cli/tree/log-tool, and run the installation commands from [here](https://github.com/aws/aws-greengrass-cli/blob/master/README.md#installation).
+from https://github.com/aws/aws-greengrass-cli, and run the installation commands from [here](https://github.com/aws/aws-greengrass-cli/blob/master/README.md#installation).
 
 Evergreen Log Tool currently only supports parsing log information in JSON format. Hence, for log tool to function
  correctly, use ``-Dlog.fmt=JSON`` and ``-Dlog.store=FILE`` in launch command of Evergreen Kernel to make sure that kernel emits log files in JSON format.

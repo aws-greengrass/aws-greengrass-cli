@@ -146,7 +146,7 @@ public class AggregationImplTest {
         writer = TestUtil.createPrintStreamFromOutputStream(new FileOutputStream(logFile3));
         writer.println(logEntry3);
 
-        File logFile4 = logDir.resolve("evergreen.log_2000-01-01_03_2").toFile();
+        File logFile4 = logDir.resolve("evergreen.log_2000-01-01_03-15_2").toFile();
         writer = TestUtil.createPrintStreamFromOutputStream(new FileOutputStream(logFile4));
         writer.println(logEntry4);
 
@@ -195,14 +195,14 @@ public class AggregationImplTest {
         assertThat(TestUtil.byteArrayOutputStreamToString(errOutputStream),
                 containsString("Unable to parse timestamp from file name: evergreen.log_2020-02-00_03_01"));
 
-        logFile2 = logDir.resolve("/evergreen.log_2020-02-01_03_11111111111111").toFile();
+        logFile2 = logDir.resolve("/evergreen.log_2020-02-01_03-00_11111111111111").toFile();
         String[] logFilePath2 = {logFile2.getPath()};
         aggregation.readLog(logFilePath2, null);
         while (aggregation.isAlive()) {
             sleep(1);
         }
         assertThat(TestUtil.byteArrayOutputStreamToString(errOutputStream),
-                containsString("Unable to parse file index from file name: evergreen.log_2020-02-01_03_11111111111111"));
+                containsString("Unable to parse file index from file name: evergreen.log_2020-02-01_03-00_11111111111111"));
 
     }
 

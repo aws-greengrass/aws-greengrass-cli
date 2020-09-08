@@ -84,13 +84,13 @@ The log tool supports both inputs by timestamp and relative offsets:
 
 # Example:
 # getting log entries between 00:00 and 05:00 of 2020-07-01
-$ greengreass-cli logs get --time-window 2020-07-01,2020-07-01T05:00:00 --log-file evergreen.log
+$ greengrass-cli logs get --time-window 2020-07-01,2020-07-01T05:00:00 --log-file evergreen.log
 
 # getting log entries between 12:00 and 16:00:05 of today
-$ greengreass-cli logs get --time-window 12:00,16:00:05 --log-file evergreen.log
+$ greengrass-cli logs get --time-window 12:00,16:00:05 --log-file evergreen.log
 
 # getting log entries between 12:00 and now of today
-$ greengreass-cli logs get --time-window 12:00, --log-file evergreen.log
+$ greengrass-cli logs get --time-window 12:00, --log-file evergreen.log
 ```
 
 ```
@@ -102,7 +102,7 @@ $ greengreass-cli logs get --time-window 12:00, --log-file evergreen.log
 
 # Example: 
 # getting log entries between 1 hour ago and 2 hours 15 minutes ago
-$ greengreass-cli logs get --time-window -2h15min,-1hr --log-file evergreen.log
+$ greengrass-cli logs get --time-window -2h15min,-1hr --log-file evergreen.log
 ```
 
 ### Adding filter
@@ -111,10 +111,10 @@ The ``--filter`` option is able to filtered log entries based on provided keywor
 
 ```
 # filter by keyword or regular expression (getting entries containting HelloWorld)
-$ greengreass-cli logs get --filter HelloWorld --log-file evergreen.log
+$ greengrass-cli logs get --filter HelloWorld --log-file evergreen.log
 
 # filter by key-value pair (getting entries from main thread)
-$ greengreass-cli logs get --filter thread=main --log-file evergreen.log
+$ greengrass-cli logs get --filter thread=main --log-file evergreen.log
 ```
 
 The log tool supports adding multiple filters, with AND-relation between filter options and OR-relation within filter 
@@ -122,7 +122,7 @@ option, separated by comma.
 ```
 # mulitiple filter
 # getting entries from main thread, that contains either "Deployment" or "HelloWorld".
-$ greengreass-cli logs get --filter thread=main --filter Deployment,HelloWorld --log-file evergreen.log
+$ greengrass-cli logs get --filter thread=main --filter Deployment,HelloWorld --log-file evergreen.log
 ```
 When the user queries a log level, e.g. ``level=DEBUG``, all log entries whose level are above queried level will 
 be displayed. We have ``ALL < DEBUG < INFO < WARN < ERROR < FATAL < OFF``.
@@ -147,7 +147,7 @@ Most commonly, it will follow ``evergreen.log``.
 
 ```
 # follow changes of ~/.evergreen
-$ greengreass-cli logs get --log-dir ~/.evergreen/ --follow
+$ greengrass-cli logs get --log-dir ~/.evergreen/ --follow
 ```
 
 To stop the log tool, the user can either terminates the program manually in command line(i.e. ``Ctrl+C``), or set up a time
@@ -156,7 +156,7 @@ To stop the log tool, the user can either terminates the program manually in com
 
 ```
 # stop follow after 5 minutes.
-$ greengreass-cli logs get --time-window ,+5min --log-dir ~/.evergreen/ --follow
+$ greengrass-cli logs get --time-window ,+5min --log-dir ~/.evergreen/ --follow
 ```
 ### Simplified Output
 Currently two boolean options are supported to control output formats: ``--no-color`` and ``--verbose``.

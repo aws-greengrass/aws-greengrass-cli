@@ -33,12 +33,12 @@ public class Logs extends BaseCommand {
                    @CommandLine.Option(names = {"-ld", "--log-dir"}, paramLabel = "Log Directory Path") String[] logDirArray,
                    @CommandLine.Option(names = {"-t", "--time-window"}, paramLabel = "Time Window") String[] timeWindow,
                    @CommandLine.Option(names = {"-f", "--filter"}, paramLabel = "Filter Expression") String[] filterExpressions,
-                   @CommandLine.Option(names = {"-B", "--before"}, paramLabel = "Before", defaultValue = "0") int before,
-                   @CommandLine.Option(names = {"-A", "--after"}, paramLabel = "After", defaultValue = "0") int after,
-                   @CommandLine.Option(names = {"-F", "--follow"}, paramLabel = "Live Update Flag") boolean follow,
-                   @CommandLine.Option(names = {"-N", "--no-color"}, paramLabel = "Remove Color") boolean noColor,
-                   @CommandLine.Option(names = {"-V", "--verbose"}, paramLabel = "Verbosity") boolean verbose,
-                   @CommandLine.Option(names = {"-S", "--syslog"}, paramLabel = "Syslog Flag") boolean syslog) {
+                   @CommandLine.Option(names = {"-b", "--before"}, paramLabel = "Before", defaultValue = "0") int before,
+                   @CommandLine.Option(names = {"-a", "--after"}, paramLabel = "After", defaultValue = "0") int after,
+                   @CommandLine.Option(names = {"-fol", "--follow"}, paramLabel = "Live Update Flag") boolean follow,
+                   @CommandLine.Option(names = {"-nc", "--no-color"}, paramLabel = "Remove Color") boolean noColor,
+                   @CommandLine.Option(names = {"-v", "--verbose"}, paramLabel = "Verbosity") boolean verbose,
+                   @CommandLine.Option(names = {"-s", "--syslog"}, paramLabel = "Syslog Flag") boolean syslog) {
         Runtime.getRuntime().addShutdownHook(new Thread(aggregation::close));
         LogsUtil.setSyslog(syslog);
         if (syslog && verbose) {
@@ -62,7 +62,7 @@ public class Logs extends BaseCommand {
     }
 
     @Command(name = "list-log-files")
-    public void list_log(@CommandLine.Option(names = {"--log-dir"}, paramLabel = "Log Directory Path")
+    public void list_log(@CommandLine.Option(names = {"-ld", "--log-dir"}, paramLabel = "Log Directory Path")
                                  String[] logDir) {
         Set<File> logFileSet = aggregation.listLog(logDir);
         if (!logFileSet.isEmpty()) {
@@ -76,7 +76,7 @@ public class Logs extends BaseCommand {
     }
 
     @Command(name = "list-keywords")
-    public void list_keywords(@CommandLine.Option(names = {"-S", "--syslog"}, paramLabel = "Syslog Flag") boolean syslog) {
+    public void list_keywords(@CommandLine.Option(names = {"-s", "--syslog"}, paramLabel = "Syslog Flag") boolean syslog) {
         if (syslog) {
             LogsUtil.getPrintStream().println(new StringBuilder("Here is a list of suggested keywords for syslog: ")
                     .append(System.lineSeparator()).append("priority=$int").append(System.lineSeparator())

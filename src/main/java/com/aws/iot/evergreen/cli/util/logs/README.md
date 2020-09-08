@@ -22,10 +22,10 @@ Type ``greengrass-cli logs help`` or ``greengrass-cli logs help <command>`` for 
 $ greengrass-cli logs get [-ld --log-dir <log-directory> ...] [-lf --log-file <file-path> ...]
                           [-t --time-window "beginTime","endTime" ...]
                           [-f --filter "regex","key"="val" ...]
-                          [-F --follow] [-V --verbose] [-N --no-color]
-                          [-B --before] [-A --after] [-S --syslog]
-$ greengrass-cli logs list-log-files [--log-dir <log-directory> ...]
-$ greengrass-cli logs list-keywords [-S --syslog]
+                          [-fol --follow] [-v --verbose] [-n --no-color]
+                          [-b --before] [-a --after] [-s --syslog]
+$ greengrass-cli logs list-log-files [-ld --log-dir <log-directory> ...]
+$ greengrass-cli logs list-keywords [-s --syslog]
 ```
 
 ### Setting source of log information

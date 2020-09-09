@@ -6,8 +6,10 @@
 package com.aws.iot.evergreen.cli.commands;
 
 import com.aws.iot.evergreen.cli.CLI;
-import com.aws.iot.evergreen.cli.adapter.KernelAdapter;
-import com.aws.iot.evergreen.cli.adapter.LocalOverrideRequest;
+import com.aws.iot.evergreen.cli.adapter.KernelAdapterIpc;
+import com.aws.iot.evergreen.ipc.services.cli.exceptions.CliIpcClientException;
+import com.aws.iot.evergreen.ipc.services.cli.exceptions.GenericCliIpcServerException;
+import com.aws.iot.evergreen.ipc.services.cli.models.CreateLocalDeploymentRequest;
 import com.google.common.collect.ImmutableMap;
 import com.google.inject.AbstractModule;
 import org.junit.jupiter.api.Test;
@@ -44,106 +46,83 @@ class ComponentCommandTest {
             ImmutableMap.of(NEW_COMPONENT_1, "1.0.0", NEW_COMPONENT_2, "2.0.0");
 
     @Mock
-    private KernelAdapter kernelAdapter;
+    private KernelAdapterIpc kernelAdapteripc;
 
     @Test
-    void GIVEN_WHEN_components_to_merge_provided_THEN_request_contains_provided_components_to_merge() {
+    void GIVEN_WHEN_components_to_merge_and_remove_provided_THEN_request_contains_the_info()
+            throws CliIpcClientException, GenericCliIpcServerException {
         int exitCode = runCommandLine("component", "update", "-m", NEW_COMPONENT_1_WITH_VERSION, "--merge",
-                NEW_COMPONENT_2_WITH_VERSION);
-
-        LocalOverrideRequest expectedRequest = LocalOverrideRequest.builder().componentsToMerge(ROOT_COMPONENTS)
-                .componentNameToConfig(Collections.emptyMap()).build();
-
-        verify(kernelAdapter).localOverride(expectedRequest);
-        assertThat(exitCode, is(0));
-    }
-
-    @Test
-    void GIVEN_WHEN_components_to_remove_provided_THEN_request_contains_provided_components_to_remove() {
-        int exitCode = runCommandLine("component", "update", "--remove", NEW_COMPONENT_1, "--remove",
+                NEW_COMPONENT_2_WITH_VERSION, "--remove", NEW_COMPONENT_1, "--remove",
                 NEW_COMPONENT_2);
 
-        LocalOverrideRequest expectedRequest =
-                LocalOverrideRequest.builder().componentsToRemove(Arrays.asList(NEW_COMPONENT_1, NEW_COMPONENT_2))
-                        .componentNameToConfig(Collections.emptyMap()).build();
+        CreateLocalDeploymentRequest createLocalDeploymentRequest = CreateLocalDeploymentRequest.builder()
+                .rootComponentVersionsToAdd(ROOT_COMPONENTS)
+                .rootComponentsToRemove(Arrays.asList(NEW_COMPONENT_1, NEW_COMPONENT_2))
+                .componentToConfiguration(Collections.emptyMap()).build();
 
-        verify(kernelAdapter).localOverride(expectedRequest);
+        verify(kernelAdapteripc).createLocalDeployment(createLocalDeploymentRequest);
         assertThat(exitCode, is(0));
     }
 
+
     @Test
-    void GIVEN_WHEN_artifact_dir_is_provided_THEN_request_contains_provided_artifact_dir() {
+    void GIVEN_WHEN_artifact_dir_is_provided_THEN_request_contains_provided_artifact_dir()
+            throws CliIpcClientException, GenericCliIpcServerException {
         int exitCode = runCommandLine("component", "update", "--artifactDir", ARTIFACT_FOLDER_PATH_STR);
-
-        LocalOverrideRequest expectedRequest = LocalOverrideRequest.builder().artifactDir(ARTIFACT_FOLDER_PATH_STR)
-                .componentNameToConfig(Collections.emptyMap()).build();
-
-        verify(kernelAdapter).localOverride(expectedRequest);
+        verify(kernelAdapteripc).updateRecipesAndArtifacts(null, ARTIFACT_FOLDER_PATH_STR);
         assertThat(exitCode, is(0));
     }
 
     @Test
-    void GIVEN_WHEN_artifact_dir_is_provided_with_short_name_THEN_request_contains_provided_artifact_dir() {
+    void GIVEN_WHEN_artifact_dir_is_provided_with_short_name_THEN_request_contains_provided_artifact_dir()
+            throws CliIpcClientException, GenericCliIpcServerException {
         int exitCode = runCommandLine("component", "update", "-a", ARTIFACT_FOLDER_PATH_STR);
 
-        LocalOverrideRequest expectedRequest = LocalOverrideRequest.builder().artifactDir(ARTIFACT_FOLDER_PATH_STR)
-                .componentNameToConfig(Collections.emptyMap()).build();
-
-        verify(kernelAdapter).localOverride(expectedRequest);
+        verify(kernelAdapteripc).updateRecipesAndArtifacts(null, ARTIFACT_FOLDER_PATH_STR);
         assertThat(exitCode, is(0));
     }
 
     @Test
-    void GIVEN_WHEN_artifact_dir_is_provided_more_than_once_THEN_invalid_request_is_returned() {
+    void GIVEN_WHEN_artifact_dir_is_provided_more_than_once_THEN_invalid_request_is_returned()
+            throws CliIpcClientException, GenericCliIpcServerException {
         int exitCode =
-                runCommandLine("component", "update", "-a", ARTIFACT_FOLDER_PATH_STR, "-a", ARTIFACT_FOLDER_PATH_STR);
+                runCommandLine("component", "update", "-a", ARTIFACT_FOLDER_PATH_STR, "-a",
+                        ARTIFACT_FOLDER_PATH_STR);
 
-        LocalOverrideRequest expectedRequest = LocalOverrideRequest.builder().artifactDir(ARTIFACT_FOLDER_PATH_STR)
-                .componentNameToConfig(Collections.emptyMap()).build();
-
-        verify(kernelAdapter, never()).localOverride(expectedRequest);
+        verify(kernelAdapteripc, never()).updateRecipesAndArtifacts(any(), any());
         assertThat(exitCode, is(2));
     }
 
     @Test
-    void GIVEN_WHEN_recipe_dir_is_provided_THEN_request_contains_provided_recipe_dir() {
+    void GIVEN_WHEN_recipe_dir_is_provided_THEN_request_contains_provided_recipe_dir()
+            throws CliIpcClientException, GenericCliIpcServerException {
         int exitCode = runCommandLine("component", "update", "--recipeDir", RECIPE_FOLDER_PATH_STR);
-
-        LocalOverrideRequest expectedRequest = LocalOverrideRequest.builder().recipeDir(RECIPE_FOLDER_PATH_STR)
-                .componentNameToConfig(Collections.emptyMap()).build();
-
-        verify(kernelAdapter).localOverride(expectedRequest);
+        verify(kernelAdapteripc).updateRecipesAndArtifacts(RECIPE_FOLDER_PATH_STR, null);
         assertThat(exitCode, is(0));
     }
 
     @Test
-    void GIVEN_WHEN_recipe_dir_is_provided_with_short_name_THEN_request_contains_provided_recipe_dir() {
+    void GIVEN_WHEN_recipe_dir_is_provided_with_short_name_THEN_request_contains_provided_recipe_dir()
+            throws CliIpcClientException, GenericCliIpcServerException {
         int exitCode = runCommandLine("component", "update", "-r", RECIPE_FOLDER_PATH_STR);
-
-        LocalOverrideRequest expectedRequest = LocalOverrideRequest.builder().recipeDir(RECIPE_FOLDER_PATH_STR)
-                .componentNameToConfig(Collections.emptyMap()).build();
-
-        verify(kernelAdapter).localOverride(expectedRequest);
+        verify(kernelAdapteripc).updateRecipesAndArtifacts(RECIPE_FOLDER_PATH_STR, null);
         assertThat(exitCode, is(0));
     }
 
 
     @Test
-    void GIVEN_WHEN_recipe_dir_is_provided_more_than_once_THEN_invalid_request_is_returned() {
-        int exitCode =
-                runCommandLine("component", "update", "-r", RECIPE_FOLDER_PATH_STR, "-r", RECIPE_FOLDER_PATH_STR);
-
-        LocalOverrideRequest expectedRequest =
-                LocalOverrideRequest.builder().componentsToMerge(ROOT_COMPONENTS).recipeDir(RECIPE_FOLDER_PATH_STR)
-                        .build();
-
-        verify(kernelAdapter, never()).localOverride(expectedRequest);
+    void GIVEN_WHEN_recipe_dir_is_provided_more_than_once_THEN_invalid_request_is_returned()
+            throws CliIpcClientException, GenericCliIpcServerException {
+        int exitCode = runCommandLine("component", "update", "-r", RECIPE_FOLDER_PATH_STR, "-r",
+                RECIPE_FOLDER_PATH_STR);
+        verify(kernelAdapteripc, never()).createLocalDeployment(any());
         assertThat(exitCode, is(2));
     }
 
 
     @Test
-    void GIVEN_WHEN_params_are_provided_THEN_request_contain_all_params() {
+    void GIVEN_WHEN_params_are_provided_THEN_request_contain_all_params()
+            throws CliIpcClientException, GenericCliIpcServerException {
         int exitCode = runCommandLine("component", "update", "--param", "newComponent1:K1=V1", "--param",
                 "newComponent1:nested.K2=V2", "--param", "newComponent2:K3=V3",
                 "--param", "aws.greengrass.componentname:nested.K2=V2");
@@ -160,33 +139,36 @@ class ComponentCommandTest {
         componentNameToConfig.get(NEW_COMPONENT_3).put("nested", new HashMap<>());
         ((HashMap) componentNameToConfig.get(NEW_COMPONENT_3).get("nested")).put("K2", "V2");
 
-        LocalOverrideRequest expectedRequest =
-                LocalOverrideRequest.builder().componentNameToConfig(componentNameToConfig).build();
+        CreateLocalDeploymentRequest createLocalDeploymentRequest = CreateLocalDeploymentRequest.builder()
+                .componentToConfiguration(componentNameToConfig).build();
 
-        verify(kernelAdapter).localOverride(expectedRequest);
+        verify(kernelAdapteripc).createLocalDeployment(createLocalDeploymentRequest);
         assertThat(exitCode, is(0));
     }
 
     @Test
-    void GIVEN_WHEN_no_option_provided_THEN_request_is_empty() {
+    void GIVEN_WHEN_no_option_provided_THEN_request_is_empty()
+            throws CliIpcClientException, GenericCliIpcServerException {
         int exitCode = runCommandLine("component", "update");
-        LocalOverrideRequest expectedRequest =
-                LocalOverrideRequest.builder().componentNameToConfig(Collections.emptyMap()).build();
-        verify(kernelAdapter, only()).localOverride(expectedRequest);
+        CreateLocalDeploymentRequest createLocalDeploymentRequest = CreateLocalDeploymentRequest.builder()
+                .componentToConfiguration(Collections.emptyMap()).build();
+        verify(kernelAdapteripc).createLocalDeployment(createLocalDeploymentRequest);
         assertThat(exitCode, is(0));
     }
 
     @Test
-    void GIVEN_WHEN_invalid_params_are_provided_THEN_exit_1() {
+    void GIVEN_WHEN_invalid_params_are_provided_THEN_exit_1()
+            throws CliIpcClientException, GenericCliIpcServerException {
         int exitCode = runCommandLine("component", "update", "--param", "newComponent1=V1");
-        verify(kernelAdapter, never()).localOverride(any());
+        verify(kernelAdapteripc, never()).createLocalDeployment(any());
         assertThat(exitCode, is(1));
     }
 
     @Test
-    void WHEN_list_command_request_THEN_print_info_and_exit_0() {
+    void WHEN_list_command_request_THEN_print_info_and_exit_0()
+            throws CliIpcClientException, GenericCliIpcServerException {
         int exitCode = runCommandLine("component", "list");
-        verify(kernelAdapter, only()).listComponents();
+        verify(kernelAdapteripc, only()).listComponents();
         assertThat(exitCode, is(0));
     }
 
@@ -194,7 +176,7 @@ class ComponentCommandTest {
         return new CommandLine(new CLI(), new CLI.GuiceFactory(new AbstractModule() {
             @Override
             protected void configure() {
-                bind(KernelAdapter.class).toInstance(kernelAdapter);
+                bind(KernelAdapterIpc.class).toInstance(kernelAdapteripc);
             }
         })).execute(args);
     }

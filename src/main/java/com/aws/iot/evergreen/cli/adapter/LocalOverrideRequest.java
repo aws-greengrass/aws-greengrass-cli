@@ -24,6 +24,7 @@ public class LocalOverrideRequest {
     List<String> componentsToRemove; // remove just need name
     String recipeDir;
     String artifactDir;
+    String groupId;
 
     Map<String, Map<String, Object>> componentNameToConfig;
 }

@@ -3,12 +3,13 @@
 
 package com.aws.iot.evergreen.cli;
 
-import com.google.inject.AbstractModule;
-
 import com.aws.iot.evergreen.cli.adapter.KernelAdapter;
-import java.io.ByteArrayOutputStream;
-import java.io.PrintStream;
-import java.util.Collections;
+import com.aws.iot.evergreen.cli.adapter.KernelAdapterIpc;
+import com.aws.iot.evergreen.ipc.services.cli.exceptions.CliIpcClientException;
+import com.aws.iot.evergreen.ipc.services.cli.exceptions.GenericCliIpcServerException;
+import com.aws.iot.evergreen.ipc.services.cli.models.ComponentDetails;
+import com.aws.iot.evergreen.ipc.services.cli.models.LifecycleState;
+import com.google.inject.AbstractModule;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
@@ -18,10 +19,15 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import picocli.CommandLine;
 
-import static org.hamcrest.core.Is.is;
+import java.io.ByteArrayOutputStream;
+import java.io.PrintStream;
+import java.util.Collections;
+
 import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.core.Is.is;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 
@@ -33,6 +39,8 @@ public class CLITest {
 
     @Mock
     private KernelAdapter kernelAdapter;
+    @Mock
+    private KernelAdapterIpc kernelAdapterIpc;
 
     private final ByteArrayOutputStream outContent = new ByteArrayOutputStream();
     private final ByteArrayOutputStream errContent = new ByteArrayOutputStream();
@@ -58,6 +66,7 @@ public class CLITest {
             @Override
             protected void configure() {
                 bind(KernelAdapter.class).toInstance(kernelAdapter);
+                bind(KernelAdapterIpc.class).toInstance(kernelAdapterIpc);
             }
         })).execute(args);
     }
@@ -66,8 +75,6 @@ public class CLITest {
     public void helpCommand() {
         int exitCode = runCommandLine("help");
         assertThat(exitCode, is(0));
-        assertThat(cli.getHost(), is("localhost"));
-        assertThat(cli.getPort(), is(8080));
     }
 
     @Test
@@ -75,8 +82,6 @@ public class CLITest {
         when(kernelAdapter.getConfigs(any())).thenReturn(Collections.singletonMap("httpd.port", "1441"));
         int exitCode = runCommandLine("config", "get", "-p", "httpd.run,httpd.port,main.run");
         assertThat(exitCode, is(0));
-        assertThat(cli.getHost(), is("localhost"));
-        assertThat(cli.getPort(), is(8080));
 
         assertEquals("httpd.port: 1441\n", outContent.toString());
     }
@@ -85,68 +90,37 @@ public class CLITest {
     public void setConfigCommand() {
         int exitCode = runCommandLine("config", "set", "-p", "main.run", "-v", "/Users/zhengang/sprinting");
         assertThat(exitCode, is(0));
-        assertThat(cli.getHost(), is("localhost"));
-        assertThat(cli.getPort(), is(8080));
     }
 
     @Test
-    public void healthCommand() {
-        when(kernelAdapter.healthPing()).thenReturn("{\"status\": \"good\"}");
-        int exitCode = runCommandLine("health");
+    public void serviceStatusCommand() throws CliIpcClientException, GenericCliIpcServerException {
+        ComponentDetails componentDetails = ComponentDetails.builder().componentName("main")
+                .state(LifecycleState.RUNNING).build();
+        when(kernelAdapterIpc.getComponentDetails(any()))
+                .thenReturn(componentDetails);
+        int exitCode = runCommandLine("service", "status", "-n", "main");
         assertThat(exitCode, is(0));
-        assertThat(cli.getHost(), is("localhost"));
-        assertThat(cli.getPort(), is(8080));
 
-        assertEquals("Kernel health status:\n{\"status\": \"good\"}\n", outContent.toString());
+        assertEquals("main:RUNNING\n", outContent.toString());
     }
 
     @Test
-    public void serviceStatusCommand() {
-        when(kernelAdapter.getServicesStatus(any()))
-                .thenReturn(Collections.singletonMap("main", Collections.singletonMap("status", "running")));
-        int exitCode = runCommandLine("service", "status", "-n", "main,httpd");
-        assertThat(exitCode, is(0));
-        assertThat(cli.getHost(), is("localhost"));
-        assertThat(cli.getPort(), is(8080));
-
-        assertEquals("main:\n    status: running\n", outContent.toString());
-    }
-
-    @Test
-    public void stopServiceCommand() {
-        when(kernelAdapter.stopServices(any()))
-                .thenReturn(Collections.singletonMap("main", Collections.singletonMap("status", "running")));
+    public void stopServiceCommand() throws CliIpcClientException, GenericCliIpcServerException {
         int exitCode = runCommandLine("service", "stop", "-n", "main");
+        verify(kernelAdapterIpc).stopComponent("main");
         assertThat(exitCode, is(0));
-        assertThat(cli.getHost(), is("localhost"));
-        assertThat(cli.getPort(), is(8080));
-
-        assertEquals("main:\n    status: running\n", outContent.toString());
     }
 
     @Test
-    public void restartServiceCommand() {
-        when(kernelAdapter.restartServices(any()))
-                .thenReturn(Collections.singletonMap("main", Collections.singletonMap("status", "running")));
+    public void restartServiceCommand() throws CliIpcClientException, GenericCliIpcServerException {
         int exitCode = runCommandLine("service", "restart", "-n", "main");
+        verify(kernelAdapterIpc).restartComponent("main");
         assertThat(exitCode, is(0));
-        assertThat(cli.getHost(), is("localhost"));
-        assertThat(cli.getPort(), is(8080));
-
-        assertEquals("main:\n    status: running\n", outContent.toString());
     }
 
     @Test
     public void missingCommand() {
         int exitCode = runCommandLine();
         assertThat(exitCode, is(2));
-    }
-
-    @Test
-    public void hostPort() {
-        int exitCode = runCommandLine("--host=foo", "--port=1234");
-        assertThat(exitCode, is(2));
-        assertThat(cli.getHost(), is("foo"));
-        assertThat(cli.getPort(), is(1234));
     }
 }

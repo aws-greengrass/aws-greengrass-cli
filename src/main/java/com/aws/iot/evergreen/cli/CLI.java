@@ -6,7 +6,7 @@ package com.aws.iot.evergreen.cli;
 import com.aws.iot.evergreen.cli.adapter.AdapterModule;
 import com.aws.iot.evergreen.cli.commands.ComponentCommand;
 import com.aws.iot.evergreen.cli.commands.Config;
-import com.aws.iot.evergreen.cli.commands.Health;
+import com.aws.iot.evergreen.cli.commands.DeploymentCommand;
 import com.aws.iot.evergreen.cli.commands.Logs;
 import com.aws.iot.evergreen.cli.commands.Service;
 import com.aws.iot.evergreen.cli.util.logs.LogsModule;
@@ -29,13 +29,9 @@ import java.util.ResourceBundle;
  * Main entry point into the command line.
  */
 @Command(name = "cli",
-        subcommands = {HelpCommand.class, Config.class, Health.class, Service.class, ComponentCommand.class, Logs.class},
+        subcommands = {HelpCommand.class, Config.class, Service.class, ComponentCommand.class, DeploymentCommand.class, Logs.class},
         resourceBundle = "com.aws.iot.evergreen.cli.CLI_messages")
 public class CLI implements Runnable {
-    @Option(names = "--host", defaultValue = "localhost")
-    String host;
-    @Option(names = "--port", defaultValue = "8080")
-    Integer port;
 
     @Spec
     CommandSpec spec;
@@ -43,14 +39,6 @@ public class CLI implements Runnable {
     public static void main(String... args) {
         int exitCode = new CommandLine(new CLI(), new GuiceFactory(new AdapterModule(), new LogsModule())).execute(args);
         System.exit(exitCode);
-    }
-
-    public String getHost() {
-        return host;
-    }
-
-    public Integer getPort() {
-        return port;
     }
 
     @Override

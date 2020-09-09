@@ -1,19 +1,33 @@
 package com.aws.iot.evergreen.cli.adapter;
 
-import java.util.Map;
-import java.util.Set;
+import com.aws.iot.evergreen.ipc.services.cli.exceptions.CliIpcClientException;
+import com.aws.iot.evergreen.ipc.services.cli.exceptions.GenericCliIpcServerException;
+import com.aws.iot.evergreen.ipc.services.cli.models.ComponentDetails;
+import com.aws.iot.evergreen.ipc.services.cli.models.CreateLocalDeploymentRequest;
+import com.aws.iot.evergreen.ipc.services.cli.models.LocalDeployment;
+
+import java.util.List;
 
 public interface KernelAdapterIpc {
 
-    Map<String, String> getComponentDetails(String componentName);
+    ComponentDetails getComponentDetails(String componentName)
+            throws GenericCliIpcServerException, CliIpcClientException;
 
-    void restartComponent(String componentName);
+    void restartComponent(String componentName) throws GenericCliIpcServerException, CliIpcClientException;
 
-    void stopComponent(String componentName);
+    void stopComponent(String componentName) throws GenericCliIpcServerException, CliIpcClientException;
 
-    void updateRecipesAndArtifacts(String recipesDirectoryPath, String artifactsDirectoryPath);
+    void updateRecipesAndArtifacts(String recipesDirectoryPath, String artifactsDirectoryPath)
+            throws GenericCliIpcServerException, CliIpcClientException;
 
-    void createLocalDeployment(LocalOverrideRequest localOverrideRequest);
+    LocalDeployment getLocalDeploymentStatus(String deploymentId)
+            throws GenericCliIpcServerException, CliIpcClientException;
 
-    Set<Map<String, String>> listComponents();
+    List<LocalDeployment> listLocalDeployments() throws GenericCliIpcServerException, CliIpcClientException;
+
+    String createLocalDeployment(CreateLocalDeploymentRequest createLocalDeploymentRequest)
+            throws GenericCliIpcServerException, CliIpcClientException;
+
+    List<ComponentDetails> listComponents() throws GenericCliIpcServerException, CliIpcClientException;
+
 }

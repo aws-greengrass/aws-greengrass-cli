@@ -5,7 +5,6 @@ package com.aws.iot.evergreen.cli.commands;
 
 import com.aws.iot.evergreen.cli.CLI;
 import com.aws.iot.evergreen.cli.TestUtil;
-import com.aws.iot.evergreen.cli.adapter.AdapterModule;
 import com.aws.iot.evergreen.cli.util.logs.LogsModule;
 import com.aws.iot.evergreen.cli.util.logs.LogsUtil;
 import org.junit.jupiter.api.AfterEach;
@@ -245,6 +244,6 @@ public class LogsTest {
     }
 
     private void runCommandLine(String... args) {
-        new CommandLine(new CLI(), new CLI.GuiceFactory(new AdapterModule(), new LogsModule())).execute(args);
+        new CommandLine(new CLI(), new CLI.GuiceFactory(new LogsModule())).execute(args);
     }
 }

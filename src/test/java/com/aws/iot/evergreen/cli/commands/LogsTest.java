@@ -40,6 +40,16 @@ public class LogsTest {
             + "\"eventType\":\"null\",\"message\":\"Closing connections idle longer than 70000 MILLISECONDS\","
             + "\"timestamp\":1594836028090,\"cause\":null}";
 
+    private static final String syslogEntry1 = "Sep  4 11:33:46 3c22fb9c16f9 com.apple.xpc.launchd[1] "
+            + "(com.apple.mdworker.shared.0A000000-0000-0000-0000-000000000000[83373]): "
+            + "Service exited due to SIGKILL | sent by mds[142]";
+
+    private static final String syslogEntry2 = "Aug 30 08:30:01 ip-172-31-55-139 systemd: "
+            + "Created slice User Slice of root.";
+
+    private static final String syslogEntry3 = "Sep  3 20:42:55 ip-172-31-48-70 systemd[1]: "
+            + "Started Load Kernel Modules.";
+
     @TempDir
     Path logDir;
     private Path logFile;
@@ -58,12 +68,29 @@ public class LogsTest {
     }
 
     @Test
+    void ListKeywordsHappyCase() {
+        runCommandLine("logs", "list-keywords");
+        runCommandLine("logs", "list-keywords", "--syslog");
+        assertThat(TestUtil.byteArrayOutputStreamToString(byteArrayOutputStream),
+                containsString("Here is a list of suggested keywords for syslog: "));
+        assertThat(TestUtil.byteArrayOutputStreamToString(byteArrayOutputStream),
+                containsString("Here is a list of suggested keywords for Greengrass log: "));
+    }
+
+    @Test
     void testListLogFileHappyCase() {
         fileWriter.println(logEntry1);
         runCommandLine("logs", "list-log-files", "--log-dir", logDir.toString());
 
         assertThat(TestUtil.byteArrayOutputStreamToString(byteArrayOutputStream),
-                containsString(logFile.toString() + "\n" + "Total 1 files found."));
+                containsString(logFile.toString() + System.lineSeparator() + "Total 1 files found."));
+    }
+
+    @Test
+    void testListLogFileEmptyCase() {
+        runCommandLine("logs", "list-log-files", "--log-dir", logFile.toString());
+        assertThat(TestUtil.byteArrayOutputStreamToString(byteArrayOutputStream),
+                containsString("No log file found."));
     }
 
     @Test
@@ -158,6 +185,52 @@ public class LogsTest {
                 + "(idle-connection-reaper) null: null. Closing connections idle longer than 60000 MILLISECONDS"));
         assertThat(TestUtil.byteArrayOutputStreamToString(byteArrayOutputStream), containsString("[DEBUG] "
                 + "(idle-connection-reaper) null: null. Closing connections idle longer than 70000 MILLISECONDS"));
+    }
+
+    @Test
+    void testGetSyslogHappyCase() throws InterruptedException {
+        fileWriter.println(syslogEntry1);
+        fileWriter.println(syslogEntry2);
+        Thread thread = new Thread(() -> runCommandLine("logs", "get", "--log-file", logFile.toString(),
+                "--syslog", "--time-window", "2020-08-30,2020-09-05", "--filter", "apple,systemd"));
+        thread.start();
+        thread.join();
+        assertThat(TestUtil.byteArrayOutputStreamToString(byteArrayOutputStream), containsString("Sep  4 11:33:46 3c22fb9c16f9 com."
+                + ANSI_HIGHLIGHT + "apple" + ANSI_HIGHLIGHT_RESET + ".xpc.launchd[1] (com."
+                + ANSI_HIGHLIGHT + "apple" + ANSI_HIGHLIGHT_RESET + ".mdworker.shared.0A000000-0000-0000-0000-000000000000[83373]): "
+                + "Service exited due to SIGKILL | sent by mds[142]"));
+        assertThat(TestUtil.byteArrayOutputStreamToString(byteArrayOutputStream), containsString("Aug 30 08:30:01 ip-172-31-55-139 "
+                + ANSI_HIGHLIGHT + "systemd" + ANSI_HIGHLIGHT_RESET + ": Created slice User Slice of root."));
+    }
+
+    @Test
+    void testGetSyslogFollowHappyCase() throws InterruptedException {
+        fileWriter.println(syslogEntry1);
+        Thread thread = new Thread(() -> runCommandLine("logs", "get", "--log-file", logFile.toString(),
+                "--time-window", "2020-08-30,+1s", "--follow", "--syslog", "--no-color"));
+        thread.start();
+        // we wait for 500ms to write more entries to the file to test the follow option.
+        fileWriter.println(syslogEntry2);
+        fileWriter.println(syslogEntry3);
+        thread.join();
+
+        assertThat(TestUtil.byteArrayOutputStreamToString(byteArrayOutputStream), containsString(syslogEntry1));
+        assertThat(TestUtil.byteArrayOutputStreamToString(byteArrayOutputStream), containsString(syslogEntry2));
+        assertThat(TestUtil.byteArrayOutputStreamToString(byteArrayOutputStream), containsString(syslogEntry3));
+    }
+
+    @Test
+    void testGetSyslogDirAndVerbose() throws InterruptedException {
+        LogsUtil.setErrorStream(printStream);
+        Thread thread = new Thread(() -> runCommandLine("logs", "get", "--log-file", logFile.toString(),
+                "--syslog", "--time-window", "2020-08-30,2020-09-05", "--log-dir", logDir.toString(), "--verbose"));
+        thread.start();
+        thread.join();
+        assertThat(TestUtil.byteArrayOutputStreamToString(byteArrayOutputStream),
+                containsString("Syslog does not support directory input!"));
+        assertThat(TestUtil.byteArrayOutputStreamToString(byteArrayOutputStream),
+                containsString("Syslog does not support verbosity!"));
+
     }
 
     @AfterEach

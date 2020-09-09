@@ -8,7 +8,6 @@ import com.aws.iot.evergreen.cli.util.logs.Filter;
 import com.aws.iot.evergreen.cli.util.logs.LogEntry;
 import com.aws.iot.evergreen.cli.util.logs.LogsUtil;
 import com.aws.iot.evergreen.cli.util.logs.Visualization;
-import lombok.Setter;
 import picocli.CommandLine;
 import picocli.CommandLine.Command;
 import picocli.CommandLine.HelpCommand;
@@ -22,17 +21,11 @@ import javax.inject.Inject;
 @Command(name = "logs", resourceBundle = "com.aws.iot.evergreen.cli.CLI_messages", subcommands = HelpCommand.class)
 public class Logs extends BaseCommand {
 
-    // setters created only for unit tests
     @Inject
-    @Setter
     private Aggregation aggregation;
-    // setters created only for unit tests
     @Inject
-    @Setter
     private Filter filter;
-    // setters created only for unit tests
     @Inject
-    @Setter
     private Visualization visualization;
 
     @Command(name = "get")
@@ -40,16 +33,20 @@ public class Logs extends BaseCommand {
                    @CommandLine.Option(names = {"-ld", "--log-dir"}, paramLabel = "Log Directory Path") String[] logDirArray,
                    @CommandLine.Option(names = {"-t", "--time-window"}, paramLabel = "Time Window") String[] timeWindow,
                    @CommandLine.Option(names = {"-f", "--filter"}, paramLabel = "Filter Expression") String[] filterExpressions,
-                   @CommandLine.Option(names = {"-B", "--before"}, paramLabel = "Before", defaultValue = "0") int before,
-                   @CommandLine.Option(names = {"-A", "--after"}, paramLabel = "After", defaultValue = "0") int after,
-                   @CommandLine.Option(names = {"-F", "--follow"}, paramLabel = "Live Update Flag") boolean follow,
-                   @CommandLine.Option(names = {"-N", "--no-color"}, paramLabel = "Remove color") boolean noColor,
-                   @CommandLine.Option(names = {"-V", "--verbose"}, paramLabel = "Verbosity") boolean verbose) {
+                   @CommandLine.Option(names = {"-b", "--before"}, paramLabel = "Before", defaultValue = "0") int before,
+                   @CommandLine.Option(names = {"-a", "--after"}, paramLabel = "After", defaultValue = "0") int after,
+                   @CommandLine.Option(names = {"-fol", "--follow"}, paramLabel = "Live Update Flag") boolean follow,
+                   @CommandLine.Option(names = {"-nc", "--no-color"}, paramLabel = "Remove Color") boolean noColor,
+                   @CommandLine.Option(names = {"-v", "--verbose"}, paramLabel = "Verbosity") boolean verbose,
+                   @CommandLine.Option(names = {"-s", "--syslog"}, paramLabel = "Syslog Flag") boolean syslog) {
         Runtime.getRuntime().addShutdownHook(new Thread(aggregation::close));
+        LogsUtil.setSyslog(syslog);
+        if (syslog && verbose) {
+            LogsUtil.getErrorStream().println("Syslog does not support verbosity!");
+        }
         filter.composeRule(timeWindow, filterExpressions);
         aggregation.configure(follow, filter, before, after);
         BlockingQueue<LogEntry> logQueue = aggregation.readLog(logFileArray, logDirArray);
-
         while (!logQueue.isEmpty() || aggregation.isAlive()) {
             try {
                 //TODO: remove busy polling.
@@ -65,7 +62,7 @@ public class Logs extends BaseCommand {
     }
 
     @Command(name = "list-log-files")
-    public void list_log(@CommandLine.Option(names = {"--log-dir"}, paramLabel = "Log Directory Path")
+    public void list_log(@CommandLine.Option(names = {"-ld", "--log-dir"}, paramLabel = "Log Directory Path")
                                  String[] logDir) {
         Set<File> logFileSet = aggregation.listLog(logDir);
         if (!logFileSet.isEmpty()) {
@@ -76,5 +73,22 @@ public class Logs extends BaseCommand {
             return;
         }
         LogsUtil.getPrintStream().println("No log file found.");
+    }
+
+    @Command(name = "list-keywords")
+    public void list_keywords(@CommandLine.Option(names = {"-s", "--syslog"}, paramLabel = "Syslog Flag") boolean syslog) {
+        if (syslog) {
+            LogsUtil.getPrintStream().println(new StringBuilder("Here is a list of suggested keywords for syslog: ")
+                    .append(System.lineSeparator()).append("priority=$int").append(System.lineSeparator())
+                    .append("host=$str").append(System.lineSeparator()).append("logger=$str")
+                    .append(System.lineSeparator()).append("class=$str").toString());
+            return;
+        }
+        LogsUtil.getPrintStream().println(new StringBuilder("Here is a list of suggested keywords for Greengrass log: ")
+                .append(System.lineSeparator()).append("level=$str").append(System.lineSeparator())
+                .append("thread=$str").append(System.lineSeparator()).append("loggerName=$str")
+                .append(System.lineSeparator()).append("eventType=$str").append(System.lineSeparator())
+                .append("serviceName=$str").append(System.lineSeparator()).append("error=$str").toString());
+
     }
 }

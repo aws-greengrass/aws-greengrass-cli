@@ -20,6 +20,9 @@ public class LogsUtil {
     @Getter
     private static PrintStream errorStream = System.err;
 
+    @Setter
+    @Getter
+    private static boolean syslog = false;
     public static final ObjectReader MAP_READER = new ObjectMapper().readerFor(Map.class);
 
     public static final ObjectReader EVERGREEN_STRUCTURED_LOG_READER = new ObjectMapper()

@@ -26,7 +26,9 @@ import static com.aws.iot.evergreen.cli.TestUtil.deleteDir;
 import static java.lang.Thread.sleep;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.containsString;
-import static org.junit.jupiter.api.Assertions.*;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 public class AggregationImplTest {
     private static final String logEntry = "{\"thread\":\"idle-connection-reaper\",\"level\":\"DEBUG\","
@@ -109,7 +111,7 @@ public class AggregationImplTest {
 
     @Test
     void testReadLogEmptyLine() throws InterruptedException {
-        writer.print("\n");
+        writer.print(System.lineSeparator());
 
         String[] logFilePath = {logFile.getAbsolutePath()};
 
@@ -144,7 +146,7 @@ public class AggregationImplTest {
         writer = TestUtil.createPrintStreamFromOutputStream(new FileOutputStream(logFile3));
         writer.println(logEntry3);
 
-        File logFile4 = logDir.resolve("evergreen.log_2000-01-01_03_2").toFile();
+        File logFile4 = logDir.resolve("evergreen.log_2000-01-01_03-15_2").toFile();
         writer = TestUtil.createPrintStreamFromOutputStream(new FileOutputStream(logFile4));
         writer.println(logEntry4);
 
@@ -193,14 +195,14 @@ public class AggregationImplTest {
         assertThat(TestUtil.byteArrayOutputStreamToString(errOutputStream),
                 containsString("Unable to parse timestamp from file name: evergreen.log_2020-02-00_03_01"));
 
-        logFile2 = logDir.resolve("/evergreen.log_2020-02-01_03_11111111111111").toFile();
+        logFile2 = logDir.resolve("/evergreen.log_2020-02-01_03-00_11111111111111").toFile();
         String[] logFilePath2 = {logFile2.getPath()};
         aggregation.readLog(logFilePath2, null);
         while (aggregation.isAlive()) {
             sleep(1);
         }
         assertThat(TestUtil.byteArrayOutputStreamToString(errOutputStream),
-                containsString("Unable to parse file index from file name: evergreen.log_2020-02-01_03_11111111111111"));
+                containsString("Unable to parse file index from file name: evergreen.log_2020-02-01_03-00_11111111111111"));
 
     }
 
@@ -220,6 +222,14 @@ public class AggregationImplTest {
         Exception emptyArgException = assertThrows(RuntimeException.class,
                 () -> aggregation.readLog(null, null));
         assertEquals("No valid log input. Please provide a log file or directory.", emptyArgException.getMessage());
+    }
+
+    @Test
+    void testReadSyslogEmptyArg() {
+        LogsUtil.setSyslog(true);
+        aggregation.readLog(null, null);
+        assertEquals(1, aggregation.getReadLogFutureList().size());
+        LogsUtil.setSyslog(false);
     }
 
     @Test

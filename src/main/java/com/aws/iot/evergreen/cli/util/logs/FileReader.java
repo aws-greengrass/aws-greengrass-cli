@@ -26,7 +26,7 @@ public class FileReader implements Runnable {
     public FileReader(List<LogFile> fileToRead, AggregationImplConfig config) {
         this.filesToRead = fileToRead;
         this.config = config;
-        //TODO: investigate which data strucure to use for logEntryList
+        //TODO: investigate which data structure to use for logEntryList
         this.beforeContextList = new ArrayList<>();
     }
 
@@ -61,8 +61,8 @@ public class FileReader implements Runnable {
                             // We use afterCount to record if the next lines are within context
                             afterCount = config.getAfter();
                             // Adding entries before the matched line into the queue
-                            for (int i = 0; i < beforeContextList.size(); i++) {
-                                config.getQueue().put(beforeContextList.get(i));
+                            for (LogEntry logEntry : beforeContextList) {
+                                config.getQueue().put(logEntry);
                             }
                             beforeContextList.clear();
                             config.getQueue().put(entry);

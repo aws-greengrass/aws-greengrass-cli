@@ -28,9 +28,12 @@ import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 public class AggregationImpl implements Aggregation {
-    // Log file name is assumed to be of pattern {$logGroupName}.log_yyyy-MM-dd_HH_index,
-    // which follows the log file rotation pattern in kernel
-    private static final Pattern fileNamePattern = Pattern.compile("(\\w+)\\.log(_([0-9]+-[0-9]+-[0-9]+_[0-9]+)_([0-9]+))?$");
+    // Log file name is assumed to be one of patterns {}.log_yyyy-MM-dd_HH_index or {}.log_yyyy-MM-dd_HH-mm_index.
+    // Kernel currently rotate log files every hour, but it likely will change to rotate by 15 minutes in future iteration.
+    // We support both patterns now and we can remove one of the patterns in future.
+    // TODO: remove unused file name pattern
+    private static final Pattern fileNamePatternByHour = Pattern.compile("(\\w+)\\.log(_([0-9]+-[0-9]+-[0-9]+_[0-9]+)_([0-9]+))?$");
+    private static final Pattern fileNamePatternByMin = Pattern.compile("(\\w+)\\.log(_([0-9]+-[0-9]+-[0-9]+_[0-9]+-[0-9]+)_([0-9]+))?$");
 
     private final ExecutorService executorService = Executors.newCachedThreadPool();
     @Getter
@@ -53,6 +56,16 @@ public class AggregationImpl implements Aggregation {
      */
     @Override
     public BlockingQueue<LogEntry> readLog(String[] logFileArray, String[] logDirArray) {
+        if (LogsUtil.isSyslog()) {
+            if (logDirArray != null) {
+                LogsUtil.getErrorStream().println("Syslog does not support directory input!");
+                logDirArray = null;
+            }
+            if (logFileArray == null) {
+                // These three locations are most likely the default location of syslog in Linux or Unix
+                logFileArray = new String[]{"/var/log/system.log", "/var/log/syslog", "/var/log/messages"};
+            }
+        }
         if (logFileArray == null && logDirArray == null) {
             throw new RuntimeException("No valid log input. Please provide a log file or directory.");
         }
@@ -78,7 +91,9 @@ public class AggregationImpl implements Aggregation {
 
         for (Map.Entry<String, List<LogFile>> entry : logGroupMap.entrySet()) {
             // Here we sort all files in a log group by ascending order of their timestamps and indexes.
-            Collections.sort(entry.getValue());
+            if (!LogsUtil.isSyslog()) {
+                Collections.sort(entry.getValue());
+            }
             readLogFutureList.add(executorService.submit(new FileReader(entry.getValue(), config)));
         }
         //TODO: track log rotation
@@ -143,11 +158,21 @@ public class AggregationImpl implements Aggregation {
     }
 
     private Map<String, List<LogFile>> parseLogGroup(Set<File> logFileSet) {
-        //key is logGroupName and value is all files within that log group.
+        // key is logGroupName and value is all files within that log group.
         Map<String, List<LogFile>> logGroupMap = new HashMap<>();
+        // if we are parsing syslog, we default all syslogs into one single log group without ordering.
+        if (LogsUtil.isSyslog()) {
+            logGroupMap.put("syslog", new ArrayList<>());
+            for (File file : logFileSet) {
+                logGroupMap.get("syslog").add(new LogFile(file, null, null, false));
+            }
+            return logGroupMap;
+        }
 
         for (File file : logFileSet) {
-            Matcher fileNameMatcher = fileNamePattern.matcher(file.getName());
+            boolean patternByHour = fileNamePatternByHour.matcher(file.getName()).matches();
+            Matcher fileNameMatcher = patternByHour ? fileNamePatternByHour.matcher(file.getName())
+                    : fileNamePatternByMin.matcher(file.getName());
             if (!fileNameMatcher.matches()) {
                 LogsUtil.getErrorStream().println("Unable to parse file name: " + file.getName());
                 continue;
@@ -156,7 +181,7 @@ public class AggregationImpl implements Aggregation {
             //group(1) = logGroupName, group2 = timestamp + index, group(3) = timestamp, group(4) = index.
             String logGroupName = fileNameMatcher.group(1);
             try {
-                LogFile logFile = new LogFile(file, fileNameMatcher.group(3), fileNameMatcher.group(4));
+                LogFile logFile = new LogFile(file, fileNameMatcher.group(3), fileNameMatcher.group(4), patternByHour);
                 logGroupMap.putIfAbsent(logGroupName, new ArrayList<>());
                 logGroupMap.get(logGroupName).add(logFile);
             } catch (DateTimeParseException e) {

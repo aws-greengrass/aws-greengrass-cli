@@ -13,9 +13,10 @@ public class LogFile implements Comparable<LogFile> {
     private int index;
     private boolean update;
 
-    private static final DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd_HH");
+    private static final DateTimeFormatter formatterByHour = DateTimeFormatter.ofPattern("yyyy-MM-dd_HH");
+    private static final DateTimeFormatter formatterByMin = DateTimeFormatter.ofPattern("yyyy-MM-dd_HH-mm");
 
-    public LogFile(File file, String timeString, String indexString) {
+    public LogFile(File file, String timeString, String indexString, boolean patternByHour) {
         this.file = file;
         // If no timestamp or index string is provided, we default the timestamp and index to be maximum,
         // so that they will be latest in an ascending order.
@@ -26,9 +27,13 @@ public class LogFile implements Comparable<LogFile> {
             this.update = true;
             return;
         }
-        this.timestamp = LocalDateTime.parse(timeString, formatter);
         this.index = Integer.parseInt(indexString);
         this.update = false;
+        if (patternByHour) {
+            this.timestamp = LocalDateTime.parse(timeString, formatterByHour);
+            return;
+        }
+        this.timestamp = LocalDateTime.parse(timeString, formatterByMin);
     }
 
     @Override

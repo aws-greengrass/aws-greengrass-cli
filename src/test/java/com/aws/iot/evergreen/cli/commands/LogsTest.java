@@ -76,6 +76,7 @@ public class LogsTest {
                 containsString("Here is a list of suggested keywords for syslog: "));
         assertThat(TestUtil.byteArrayOutputStreamToString(byteArrayOutputStream),
                 containsString("Here is a list of suggested keywords for Greengrass log: "));
+        LogsUtil.setSyslog(false);
     }
 
     @Test
@@ -202,6 +203,7 @@ public class LogsTest {
                 + "Service exited due to SIGKILL | sent by mds[142]"));
         assertThat(TestUtil.byteArrayOutputStreamToString(byteArrayOutputStream), containsString("Aug 30 08:30:01 ip-172-31-55-139 "
                 + ANSI_HIGHLIGHT + "systemd" + ANSI_HIGHLIGHT_RESET + ": Created slice User Slice of root."));
+        LogsUtil.setSyslog(false);
     }
 
     @Test
@@ -218,6 +220,7 @@ public class LogsTest {
         assertThat(TestUtil.byteArrayOutputStreamToString(byteArrayOutputStream), containsString(syslogEntry1));
         assertThat(TestUtil.byteArrayOutputStreamToString(byteArrayOutputStream), containsString(syslogEntry2));
         assertThat(TestUtil.byteArrayOutputStreamToString(byteArrayOutputStream), containsString(syslogEntry3));
+        LogsUtil.setSyslog(false);
     }
 
     @Test
@@ -231,7 +234,7 @@ public class LogsTest {
                 containsString("Syslog does not support directory input!"));
         assertThat(TestUtil.byteArrayOutputStreamToString(byteArrayOutputStream),
                 containsString("Syslog does not support verbosity!"));
-
+        LogsUtil.setSyslog(false);
     }
 
     @AfterEach

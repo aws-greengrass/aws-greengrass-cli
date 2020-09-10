@@ -5,7 +5,6 @@ package com.aws.iot.evergreen.cli;
 
 import com.aws.iot.evergreen.cli.adapter.AdapterModule;
 import com.aws.iot.evergreen.cli.commands.ComponentCommand;
-import com.aws.iot.evergreen.cli.commands.Config;
 import com.aws.iot.evergreen.cli.commands.DeploymentCommand;
 import com.aws.iot.evergreen.cli.commands.Logs;
 import com.aws.iot.evergreen.cli.commands.Service;
@@ -19,7 +18,6 @@ import picocli.CommandLine.Command;
 import picocli.CommandLine.HelpCommand;
 import picocli.CommandLine.IFactory;
 import picocli.CommandLine.Model.CommandSpec;
-import picocli.CommandLine.Option;
 import picocli.CommandLine.ParameterException;
 import picocli.CommandLine.Spec;
 
@@ -29,16 +27,25 @@ import java.util.ResourceBundle;
  * Main entry point into the command line.
  */
 @Command(name = "cli",
-        subcommands = {HelpCommand.class, Config.class, Service.class, ComponentCommand.class, DeploymentCommand.class, Logs.class},
+        subcommands = {HelpCommand.class, Service.class, ComponentCommand.class, DeploymentCommand.class, Logs.class},
         resourceBundle = "com.aws.iot.evergreen.cli.CLI_messages")
 public class CLI implements Runnable {
+
+    @CommandLine.Option(names = "--ggcRootPath")
+    String ggcRootPath;
 
     @Spec
     CommandSpec spec;
 
     public static void main(String... args) {
-        int exitCode = new CommandLine(new CLI(), new GuiceFactory(new AdapterModule(), new LogsModule())).execute(args);
+        CLI cli = new CLI();
+        CommandLine.populateCommand(cli, args);
+        int exitCode = new CommandLine(cli, new GuiceFactory(new AdapterModule(cli.getGgcRootPath()), new LogsModule())).execute(args);
         System.exit(exitCode);
+    }
+
+    public String getGgcRootPath() {
+        return ggcRootPath;
     }
 
     @Override

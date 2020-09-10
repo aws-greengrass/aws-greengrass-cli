@@ -3,7 +3,6 @@
 
 package com.aws.iot.evergreen.cli;
 
-import com.aws.iot.evergreen.cli.adapter.KernelAdapter;
 import com.aws.iot.evergreen.cli.adapter.KernelAdapterIpc;
 import com.aws.iot.evergreen.ipc.services.cli.exceptions.CliIpcClientException;
 import com.aws.iot.evergreen.ipc.services.cli.exceptions.GenericCliIpcServerException;
@@ -21,7 +20,6 @@ import picocli.CommandLine;
 
 import java.io.ByteArrayOutputStream;
 import java.io.PrintStream;
-import java.util.Collections;
 
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.core.Is.is;
@@ -37,8 +35,6 @@ public class CLITest {
 
     private CLI cli;
 
-    @Mock
-    private KernelAdapter kernelAdapter;
     @Mock
     private KernelAdapterIpc kernelAdapterIpc;
 
@@ -65,7 +61,6 @@ public class CLITest {
         return new CommandLine(cli, new CLI.GuiceFactory(new AbstractModule() {
             @Override
             protected void configure() {
-                bind(KernelAdapter.class).toInstance(kernelAdapter);
                 bind(KernelAdapterIpc.class).toInstance(kernelAdapterIpc);
             }
         })).execute(args);
@@ -78,21 +73,6 @@ public class CLITest {
     }
 
     @Test
-    public void getConfigCommand() {
-        when(kernelAdapter.getConfigs(any())).thenReturn(Collections.singletonMap("httpd.port", "1441"));
-        int exitCode = runCommandLine("config", "get", "-p", "httpd.run,httpd.port,main.run");
-        assertThat(exitCode, is(0));
-
-        assertEquals("httpd.port: 1441\n", outContent.toString());
-    }
-
-    @Test
-    public void setConfigCommand() {
-        int exitCode = runCommandLine("config", "set", "-p", "main.run", "-v", "/Users/zhengang/sprinting");
-        assertThat(exitCode, is(0));
-    }
-
-    @Test
     public void serviceStatusCommand() throws CliIpcClientException, GenericCliIpcServerException {
         ComponentDetails componentDetails = ComponentDetails.builder().componentName("main")
                 .state(LifecycleState.RUNNING).build();
@@ -101,7 +81,7 @@ public class CLITest {
         int exitCode = runCommandLine("service", "status", "-n", "main");
         assertThat(exitCode, is(0));
 
-        assertEquals("main:RUNNING\n", outContent.toString());
+        assertEquals("main: state: RUNNING\n", outContent.toString());
     }
 
     @Test

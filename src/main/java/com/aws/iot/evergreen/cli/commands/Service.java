@@ -22,7 +22,7 @@ public class Service extends BaseCommand {
         String[] serviceNames = names.split(" *[&,]+ *");
         for (String serviceName : serviceNames) {
             ComponentDetails componentDetails = kernelAdapterIpc.getComponentDetails(serviceName);
-            System.out.printf("%s:%s\n", componentDetails.getComponentName(), componentDetails.getState().toString());
+            System.out.printf("%s: state: %s\n", componentDetails.getComponentName(), componentDetails.getState().toString());
         }
         return 0;
     }

@@ -1,7 +1,6 @@
 package com.aws.iot.evergreen.cli.adapter.impl;
 
 import com.aws.iot.evergreen.cli.adapter.KernelAdapterIpc;
-import com.aws.iot.evergreen.cli.adapter.LocalOverrideRequest;
 import com.aws.iot.evergreen.ipc.IPCClient;
 import com.aws.iot.evergreen.ipc.IPCClientImpl;
 import com.aws.iot.evergreen.ipc.config.KernelIPCClientConfig;
@@ -21,7 +20,11 @@ import com.aws.iot.evergreen.ipc.services.cli.models.StopComponentRequest;
 import com.aws.iot.evergreen.ipc.services.cli.models.UpdateRecipesAndArtifactsRequest;
 import com.fasterxml.jackson.databind.DeserializationFeature;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.google.inject.Inject;
+import com.google.inject.name.Named;
 
+
+import javax.annotation.Nullable;
 import java.io.IOException;
 import java.net.URI;
 import java.net.URISyntaxException;
@@ -44,13 +47,17 @@ public class KernelAdapterIpcClientImpl implements KernelAdapterIpc {
     private IPCClient ipcClient;
     private Cli cliClient;
 
-    public KernelAdapterIpcClientImpl()
+    @Inject
+    public KernelAdapterIpcClientImpl(@Nullable @Named("ggcRootPath") String root)
             throws InterruptedException, IPCClientException, IOException, URISyntaxException {
         // TODO: When the greengrass-cli is installed in the kernel root path this will derived from the current working
         // directory, instead of an env variable. Until then using env variable.
-        String ggcRootPath = System.getenv("GGC_ROOT_PATH");
+        // check if root path was passed as an argument to the command line, else fall back to env variable
+        // if root path not found then throw exception
+        String ggcRootPath = root != null ? root : System.getenv("GGC_ROOT_PATH");
         if (ggcRootPath == null) {
-            throw new RuntimeException("Kernel root path not configured");
+            throw new RuntimeException("GGC root path not configured. Provide ggc root path via cli greengrass-cli --root {PATH} {rest of the arguments} " +
+                    "or set the environment variable GGC_ROOT_PATH");
         }
         Path filepath = Paths.get(ggcRootPath).resolve(CLI_IPC_INFO_FILENAME);
         if (!Files.exists(filepath)) {

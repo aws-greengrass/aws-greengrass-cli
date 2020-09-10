@@ -20,15 +20,16 @@ public class DeploymentCommand extends BaseCommand {
     @Inject
     private KernelAdapterIpc kernelAdapterIpc;
 
+    //TODO: input validation and better error handling https://sim.amazon.com/issues/P39478724
     @CommandLine.Command(name = "create",
             description = "Create local deployment with provided recipes, artifacts, and runtime parameters")
-    public int deploy
-            (@CommandLine.Option(names = {"-m", "--merge"}, paramLabel = "Component") Map<String, String> componentsToMerge,
-             @CommandLine.Option(names = {"--remove"}, paramLabel = "Component Name") List<String> componentsToRemove,
-             @CommandLine.Option(names = {"-r", "--recipeDir"}, paramLabel = "Folder") String recipeDir,
-             @CommandLine.Option(names = {"-g", "--groupId"}, paramLabel = "group Id") String groupId,
-             @CommandLine.Option(names = {"-a", "--artifactDir"}, paramLabel = "Folder") String artifactDir,
-             @CommandLine.Option(names = {"-p", "--param"}, paramLabel = "Key Value Pair") Map<String, String> parameters)
+    public int create
+    (@CommandLine.Option(names = {"-m", "--merge"}, paramLabel = "Component and version") Map<String, String> componentsToMerge,
+     @CommandLine.Option(names = {"--remove"}, paramLabel = "Component Names") List<String> componentsToRemove,
+     @CommandLine.Option(names = {"-g", "--groupId"}, paramLabel = "group Id") String groupId,
+     @CommandLine.Option(names = {"-r", "--recipeDir"}, paramLabel = "Recipe Folder Path") String recipeDir,
+     @CommandLine.Option(names = {"-a", "--artifactDir"}, paramLabel = "Artifacts Folder Path") String artifactDir,
+     @CommandLine.Option(names = {"-p", "--param"}, paramLabel = "Runtime parameters") Map<String, String> parameters)
             throws CliIpcClientException, GenericCliIpcServerException {
         // TODO Validate folder exists and folder structure
         Map<String, Map<String, Object>> componentNameToConfig = convertParameters(parameters);
@@ -46,9 +47,10 @@ public class DeploymentCommand extends BaseCommand {
         return 0;
     }
 
+    //TODO: input validation and better error handling https://sim.amazon.com/issues/P39478724
     @CommandLine.Command(name = "status",
             description = "Retrieve the status of a deployment")
-    public int status(@CommandLine.Option(names = {"-i", "--deploymentId"}) String deploymentId)
+    public int status(@CommandLine.Option(names = {"-i", "--deploymentId"}, paramLabel = "Deployment Id") String deploymentId)
             throws CliIpcClientException, GenericCliIpcServerException {
 
         LocalDeployment status = kernelAdapterIpc.getLocalDeploymentStatus(deploymentId);
@@ -56,7 +58,7 @@ public class DeploymentCommand extends BaseCommand {
         return 0;
     }
 
-
+    //TODO: input validation and better error handling https://sim.amazon.com/issues/P39478724
     @CommandLine.Command(name = "list", description = "Retrieve the status of local deployments")
     public int list() throws CliIpcClientException, GenericCliIpcServerException {
         List<LocalDeployment> localDeployments = kernelAdapterIpc.listLocalDeployments();

@@ -8,7 +8,6 @@ import com.aws.iot.evergreen.ipc.services.cli.exceptions.CliIpcClientException;
 import com.aws.iot.evergreen.ipc.services.cli.exceptions.GenericCliIpcServerException;
 import com.aws.iot.evergreen.ipc.services.cli.models.ComponentDetails;
 import com.aws.iot.evergreen.ipc.services.cli.models.CreateLocalDeploymentRequest;
-import com.fasterxml.jackson.databind.ObjectMapper;
 import picocli.CommandLine;
 
 import javax.inject.Inject;
@@ -25,7 +24,7 @@ public class ComponentCommand extends BaseCommand {
     private KernelAdapterIpc kernelAdapterIpc;
 
     @CommandLine.Command(name = "restart")
-    public int reload(@CommandLine.Option(names = {"-n", "--names"}, paramLabel = "names", descriptionKey = "names", required = true) String names)
+    public int restart(@CommandLine.Option(names = {"-n", "--names"}, paramLabel = "component names separated by comma", descriptionKey = "names", required = true) String names)
             throws CliIpcClientException, GenericCliIpcServerException {
         String[] componentNames = names.split(" *[&,]+ *");
         for (String componentName : componentNames) {
@@ -35,7 +34,7 @@ public class ComponentCommand extends BaseCommand {
     }
 
     @CommandLine.Command(name = "stop")
-    public int close(@CommandLine.Option(names = {"-n", "--names"}, paramLabel = "names", descriptionKey = "names", required = true) String names)
+    public int stop(@CommandLine.Option(names = {"-n", "--names"}, paramLabel = "component names separated by comma", descriptionKey = "names", required = true) String names)
             throws CliIpcClientException, GenericCliIpcServerException {
         String[] componentNames = names.split(" *[&,]+ *");
         for (String componentName : componentNames) {
@@ -46,15 +45,16 @@ public class ComponentCommand extends BaseCommand {
 
 
     //TODO: deprecate this for "create" sub command under deployment command space. (pending UAT update)
+    //TODO: input validation and better error handling https://sim.amazon.com/issues/P39478724
     @CommandLine.Command(name = "update",
             description = "Updates Evergreen applications with provided recipes, artifacts, and runtime parameters")
     public int deploy
-    (@CommandLine.Option(names = {"-m", "--merge"}, paramLabel = "Component") Map<String, String> componentsToMerge,
-     @CommandLine.Option(names = {"--remove"}, paramLabel = "Component Name") List<String> componentsToRemove,
+    (@CommandLine.Option(names = {"-m", "--merge"}, paramLabel = "Component and version") Map<String, String> componentsToMerge,
+     @CommandLine.Option(names = {"--remove"}, paramLabel = "Component Names") List<String> componentsToRemove,
      @CommandLine.Option(names = {"-g", "--groupId"}, paramLabel = "group Id") String groupId,
-     @CommandLine.Option(names = {"-r", "--recipeDir"}, paramLabel = "Folder") String recipeDir,
-     @CommandLine.Option(names = {"-a", "--artifactDir"}, paramLabel = "Folder") String artifactDir,
-     @CommandLine.Option(names = {"-p", "--param"}, paramLabel = "Key Value Pair") Map<String, String> parameters)
+     @CommandLine.Option(names = {"-r", "--recipeDir"}, paramLabel = "Recipe Folder Path") String recipeDir,
+     @CommandLine.Option(names = {"-a", "--artifactDir"}, paramLabel = "Artifacts Folder Path") String artifactDir,
+     @CommandLine.Option(names = {"-p", "--param"}, paramLabel = "Runtime parameters") Map<String, String> parameters)
             throws CliIpcClientException, GenericCliIpcServerException {
         // TODO Validate folder exists and folder structure
         Map<String, Map<String, Object>> componentNameToConfig = convertParameters(parameters);
@@ -72,6 +72,7 @@ public class ComponentCommand extends BaseCommand {
         return 0;
     }
 
+    //TODO: input validation and better error handling https://sim.amazon.com/issues/P39478724
     @CommandLine.Command(name = "list",
             description = "Prints root level components names, component information and runtime parameters")
     public int list() throws CliIpcClientException, GenericCliIpcServerException {
@@ -81,8 +82,9 @@ public class ComponentCommand extends BaseCommand {
         return 0;
     }
 
+    //TODO: input validation and better error handling https://sim.amazon.com/issues/P39478724
     @CommandLine.Command(name = "details")
-    public int details(@CommandLine.Option(names = {"-n", "--name"}, paramLabel = "name", descriptionKey = "name", required = true) String componentName) throws CliIpcClientException, GenericCliIpcServerException {
+    public int details(@CommandLine.Option(names = {"-n", "--name"}, paramLabel = " component name", descriptionKey = "name", required = true) String componentName) throws CliIpcClientException, GenericCliIpcServerException {
         ComponentDetails componentDetails = kernelAdapterIpc.getComponentDetails(componentName);
         printComponentDetails(componentDetails);
         return 0;
@@ -90,9 +92,9 @@ public class ComponentCommand extends BaseCommand {
 
     private void printComponentDetails(ComponentDetails component){
         System.out.println("Component Name: " + component.getComponentName());
-        System.out.println("Component Version: " + component.getVersion());
-        System.out.println("Component State: " + component.getState());
-        System.out.println("Component Configuration: " + component.getConfiguration());
+        System.out.println("Version: " + component.getVersion());
+        System.out.println("State: " + component.getState());
+        System.out.println("Configuration: " + component.getConfiguration());
     }
 
     /**

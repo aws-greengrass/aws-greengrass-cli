@@ -190,3 +190,11 @@ a list of frequent keywords for filter.
 # show all suggested keywords for syslog
 $ greengrass-cli logs list-keywords --syslog
 ```
+
+### Optimize memory usage
+The log tool uses ``--max-log-queue-size`` options to input the maximum number of log entries allowed to allocate. 
+Since reading logs from file is faster than writing to output, when the number of log entries read but not written
+reaches the maximum number specified, the thread for reading will block and wait until all remaining read entries are 
+written. 
+
+The default number for ``--max`` is 100.

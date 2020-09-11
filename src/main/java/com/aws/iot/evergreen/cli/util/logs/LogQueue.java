@@ -27,8 +27,9 @@ public class LogQueue {
     }
 
     public LogEntry take() throws InterruptedException {
+        LogEntry entry = queue.take();
         sem.release();
-        return queue.take();
+        return entry;
     }
 
     public void put(LogEntry e) throws InterruptedException {

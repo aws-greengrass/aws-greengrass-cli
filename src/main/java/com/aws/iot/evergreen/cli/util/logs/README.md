@@ -192,7 +192,7 @@ $ greengrass-cli logs list-keywords --syslog
 ```
 
 ### Optimize memory usage
-The log tool uses ``--max`` options to input the maximum number of log entries allowed to allocate. 
+The log tool uses ``--max-log-queue-size`` options to input the maximum number of log entries allowed to allocate. 
 Since reading logs from file is faster than writing to output, when the number of log entries read but not written
 reaches the maximum number specified, the thread for reading will block and wait until all remaining read entries are 
 written. 

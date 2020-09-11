@@ -233,7 +233,7 @@ public class KernelAdapterHttpClientImpl implements KernelAdapter {
 
         } catch (IOException e) {
             throw new RuntimeException(String.format("Failed to send http %s request, uri %s", requestBase.getMethod(),
-                    requestBase.getURI()));
+                    requestBase.getURI()), e);
         }
     }
 

@@ -5,12 +5,11 @@ package com.aws.iot.evergreen.cli.util.logs;
 
 import java.io.File;
 import java.util.Set;
-import java.util.concurrent.BlockingQueue;
 
 public interface Aggregation {
-    void configure(boolean follow, Filter filter, int before, int after);
+    void configure(boolean follow, Filter filter, int before, int after, int max);
 
-    BlockingQueue<LogEntry> readLog(String[] logFileArray, String[] logDirArray);
+    LogQueue readLog(String[] logFileArray, String[] logDirArray);
 
     Set<File> listLog(String[] logDir);
 

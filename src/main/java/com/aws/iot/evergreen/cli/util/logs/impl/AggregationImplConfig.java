@@ -1,10 +1,9 @@
 package com.aws.iot.evergreen.cli.util.logs.impl;
 
 import com.aws.iot.evergreen.cli.util.logs.Filter;
-import com.aws.iot.evergreen.cli.util.logs.LogEntry;
+import com.aws.iot.evergreen.cli.util.logs.LogQueue;
 import lombok.Getter;
 
-import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.PriorityBlockingQueue;
 
 /*
@@ -19,17 +18,19 @@ public class AggregationImplConfig {
     private Filter filterInterface;
     private int before;
     private int after;
+    private int max;
 
-    private BlockingQueue<LogEntry> queue;
+    private LogQueue queue;
 
-    AggregationImplConfig(boolean follow, Filter filter, int before, int after) {
+    AggregationImplConfig(boolean follow, Filter filter, int before, int after, int max) {
         this.follow = follow;
         this.filterInterface = filter;
         this.before = before;
         this.after = after;
+        this.max = max;
     }
 
     public void initialize() {
-        this.queue = new PriorityBlockingQueue<>();
+        this.queue = new LogQueue(new PriorityBlockingQueue<>(), max);
     }
 }

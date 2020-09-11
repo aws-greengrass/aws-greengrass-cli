@@ -5,7 +5,7 @@ package com.aws.iot.evergreen.cli.util.logs.impl;
 
 import com.aws.iot.evergreen.cli.TestUtil;
 import com.aws.iot.evergreen.cli.util.logs.Filter;
-import com.aws.iot.evergreen.cli.util.logs.LogEntry;
+import com.aws.iot.evergreen.cli.util.logs.LogQueue;
 import com.aws.iot.evergreen.cli.util.logs.LogsUtil;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
@@ -20,7 +20,6 @@ import java.io.IOException;
 import java.io.PrintStream;
 import java.nio.file.Path;
 import java.util.Set;
-import java.util.concurrent.BlockingQueue;
 
 import static com.aws.iot.evergreen.cli.TestUtil.deleteDir;
 import static java.lang.Thread.sleep;
@@ -58,13 +57,13 @@ public class AggregationImplTest {
     private ByteArrayOutputStream errOutputStream;
     private PrintStream errorStream;
     private PrintStream writer;
-    private BlockingQueue<LogEntry> logQueue;
+    private LogQueue logQueue;
     private Filter filterInterface = new FilterImpl();
 
     @BeforeEach
     void init() throws FileNotFoundException {
         aggregation = new AggregationImpl();
-        aggregation.configure(false, filterInterface, 0, 0);
+        aggregation.configure(false, filterInterface, 0, 0, 100);
         errOutputStream = new ByteArrayOutputStream();
         errorStream = TestUtil.createPrintStreamFromOutputStream(errOutputStream);
         LogsUtil.setErrorStream(errorStream);

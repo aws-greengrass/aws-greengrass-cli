@@ -6,8 +6,8 @@ package com.aws.iot.evergreen.cli.util.logs.impl;
 import com.aws.iot.evergreen.cli.util.logs.Aggregation;
 import com.aws.iot.evergreen.cli.util.logs.FileReader;
 import com.aws.iot.evergreen.cli.util.logs.Filter;
-import com.aws.iot.evergreen.cli.util.logs.LogEntry;
 import com.aws.iot.evergreen.cli.util.logs.LogFile;
+import com.aws.iot.evergreen.cli.util.logs.LogQueue;
 import com.aws.iot.evergreen.cli.util.logs.LogsUtil;
 import lombok.Getter;
 
@@ -20,7 +20,6 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
-import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
@@ -42,8 +41,8 @@ public class AggregationImpl implements Aggregation {
     private AggregationImplConfig config;
 
     @Override
-    public void configure(boolean follow, Filter filter, int before, int after) {
-        config = new AggregationImplConfig(follow, filter, before, after);
+    public void configure(boolean follow, Filter filter, int before, int after, int max) {
+        config = new AggregationImplConfig(follow, filter, before, after, max);
     }
 
     /*
@@ -55,7 +54,7 @@ public class AggregationImpl implements Aggregation {
      *  will read into this queue concurrently ordered by their timestamps.
      */
     @Override
-    public BlockingQueue<LogEntry> readLog(String[] logFileArray, String[] logDirArray) {
+    public LogQueue readLog(String[] logFileArray, String[] logDirArray) {
         if (LogsUtil.isSyslog()) {
             if (logDirArray != null) {
                 LogsUtil.getErrorStream().println("Syslog does not support directory input!");

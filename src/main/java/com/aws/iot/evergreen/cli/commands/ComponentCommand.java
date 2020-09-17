@@ -8,6 +8,8 @@ import com.aws.iot.evergreen.ipc.services.cli.exceptions.CliIpcClientException;
 import com.aws.iot.evergreen.ipc.services.cli.exceptions.GenericCliIpcServerException;
 import com.aws.iot.evergreen.ipc.services.cli.models.ComponentDetails;
 import com.aws.iot.evergreen.ipc.services.cli.models.CreateLocalDeploymentRequest;
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import picocli.CommandLine;
 
 import javax.inject.Inject;
@@ -20,6 +22,7 @@ import java.util.Map;
         subcommands = CommandLine.HelpCommand.class)
 public class ComponentCommand extends BaseCommand {
 
+    private ObjectMapper mapper = new ObjectMapper();
     @Inject
     private KernelAdapterIpc kernelAdapterIpc;
 
@@ -75,26 +78,29 @@ public class ComponentCommand extends BaseCommand {
     //TODO: input validation and better error handling https://sim.amazon.com/issues/P39478724
     @CommandLine.Command(name = "list",
             description = "Prints root level components names, component information and runtime parameters")
-    public int list() throws CliIpcClientException, GenericCliIpcServerException {
+    public int list() throws CliIpcClientException, GenericCliIpcServerException, JsonProcessingException {
         List<ComponentDetails> componentDetails = kernelAdapterIpc.listComponents();
         System.out.println("Components currently running in Evergreen:");
-        componentDetails.forEach(c -> printComponentDetails(c));
+        for (ComponentDetails c : componentDetails) {
+            printComponentDetails(c);
+        }
         return 0;
     }
 
     //TODO: input validation and better error handling https://sim.amazon.com/issues/P39478724
     @CommandLine.Command(name = "details")
-    public int details(@CommandLine.Option(names = {"-n", "--name"}, paramLabel = " component name", descriptionKey = "name", required = true) String componentName) throws CliIpcClientException, GenericCliIpcServerException {
+    public int details(@CommandLine.Option(names = {"-n", "--name"}, paramLabel = " component name", descriptionKey = "name", required = true) String componentName)
+            throws CliIpcClientException, GenericCliIpcServerException, JsonProcessingException {
         ComponentDetails componentDetails = kernelAdapterIpc.getComponentDetails(componentName);
         printComponentDetails(componentDetails);
         return 0;
     }
 
-    private void printComponentDetails(ComponentDetails component){
+    private void printComponentDetails(ComponentDetails component) throws JsonProcessingException {
         System.out.println("Component Name: " + component.getComponentName());
         System.out.println("Version: " + component.getVersion());
         System.out.println("State: " + component.getState());
-        System.out.println("Configuration: " + component.getConfiguration());
+        System.out.println("Configuration: " + mapper.writeValueAsString(component.getConfiguration()));
     }
 
     /**

@@ -4,7 +4,6 @@ import com.aws.iot.evergreen.cli.adapter.KernelAdapterIpc;
 import com.aws.iot.evergreen.ipc.IPCClient;
 import com.aws.iot.evergreen.ipc.IPCClientImpl;
 import com.aws.iot.evergreen.ipc.config.KernelIPCClientConfig;
-import com.aws.iot.evergreen.ipc.exceptions.IPCClientException;
 import com.aws.iot.evergreen.ipc.services.cli.Cli;
 import com.aws.iot.evergreen.ipc.services.cli.CliImpl;
 import com.aws.iot.evergreen.ipc.services.cli.exceptions.CliIpcClientException;
@@ -23,16 +22,14 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.inject.Inject;
 import com.google.inject.name.Named;
 
-import javax.annotation.Nullable;
-import java.io.IOException;
 import java.net.URI;
-import java.net.URISyntaxException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import javax.annotation.Nullable;
 
 public class KernelAdapterIpcClientImpl implements KernelAdapterIpc {
 
@@ -114,7 +111,8 @@ public class KernelAdapterIpcClientImpl implements KernelAdapterIpc {
         // if root path not found then throw exception
         String ggcRootPath = root != null ? root : System.getenv("GGC_ROOT_PATH");
         if (ggcRootPath == null) {
-            throw new RuntimeException("GGC root path not configured. Provide ggc root path via cli greengrass-cli --root {PATH} {rest of the arguments} " +
+            throw new RuntimeException("GGC root path not configured. Provide ggc root path via cli greengrass-cli "
+                    + "--ggcRootPath {PATH} {rest of the arguments} " +
                     "or set the environment variable GGC_ROOT_PATH");
         }
         Path filepath = Paths.get(ggcRootPath).resolve(CLI_IPC_INFO_FILENAME);

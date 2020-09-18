@@ -19,6 +19,6 @@ else
 fi
 
 CLI_JAR="${CLI_HOME}/lib/*"
-CLI_LAUNCHER=com.aws.iot.evergreen.cli.CLI
+CLI_LAUNCHER=com.aws.greengrass.cli.CLI
 
 "${JAVACMD:=java}" -classpath "${CLI_JAR}" ${CLI_LAUNCHER} "$@"

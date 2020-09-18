@@ -42,7 +42,7 @@
         <dependency>
             <groupId>info.picocli</groupId>
             <artifactId>picocli</artifactId>
-            <version>4.0.4</version>
+            <version>4.5.1</version>
         </dependency>
         <dependency>
             <groupId>org.hamcrest</groupId>
@@ -127,7 +127,7 @@
                         <argument>--force</argument><!-- overwrite if exists -->
                         <argument>--completionScript</argument>
                         <argument>${project.build.directory}/cli_completion.sh</argument>
-                        <argument>com.aws.iot.evergreen.cli.CLI</argument>
+                        <argument>com.aws.greengrass.cli.CLI</argument>
                         <argument>-n</argument>
                         <argument>greengrass-cli</argument>
                     </arguments>

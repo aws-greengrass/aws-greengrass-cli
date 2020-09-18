@@ -1,6 +1,6 @@
-package com.aws.iot.evergreen.cli;
+package com.aws.greengrass.cli;
 
-import com.aws.iot.evergreen.cli.util.logs.LogsUtil;
+import com.aws.greengrass.cli.util.logs.LogsUtil;
 
 import java.io.ByteArrayOutputStream;
 import java.io.File;

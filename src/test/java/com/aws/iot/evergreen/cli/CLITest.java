@@ -1,13 +1,13 @@
 /* Copyright 2019 Amazon.com, Inc. or its affiliates. All Rights Reserved.
  * SPDX-License-Identifier: Apache-2.0 */
 
-package com.aws.iot.evergreen.cli;
+package com.aws.greengrass.cli;
 
-import com.aws.iot.evergreen.cli.adapter.KernelAdapterIpc;
-import com.aws.iot.evergreen.ipc.services.cli.exceptions.CliIpcClientException;
-import com.aws.iot.evergreen.ipc.services.cli.exceptions.GenericCliIpcServerException;
-import com.aws.iot.evergreen.ipc.services.cli.models.ComponentDetails;
-import com.aws.iot.evergreen.ipc.services.cli.models.LifecycleState;
+import com.aws.greengrass.cli.adapter.KernelAdapterIpc;
+import com.aws.greengrass.ipc.services.cli.exceptions.CliIpcClientException;
+import com.aws.greengrass.ipc.services.cli.exceptions.GenericCliIpcServerException;
+import com.aws.greengrass.ipc.services.cli.models.ComponentDetails;
+import com.aws.greengrass.ipc.services.cli.models.LifecycleState;
 import com.google.inject.AbstractModule;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;

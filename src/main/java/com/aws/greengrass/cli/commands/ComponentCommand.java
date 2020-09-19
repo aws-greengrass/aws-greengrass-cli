@@ -54,7 +54,7 @@ public class ComponentCommand extends BaseCommand {
     public int deploy
     (@CommandLine.Option(names = {"-m", "--merge"}, paramLabel = "Component and version") Map<String, String> componentsToMerge,
      @CommandLine.Option(names = {"--remove"}, paramLabel = "Component Names") List<String> componentsToRemove,
-     @CommandLine.Option(names = {"-g", "--groupId"}, paramLabel = "group Id") String groupId,
+     @CommandLine.Option(names = {"-g", "--group-name"}, paramLabel = "IoT Thing Group Name") String groupName,
      @CommandLine.Option(names = {"-r", "--recipeDir"}, paramLabel = "Recipe Folder Path") String recipeDir,
      @CommandLine.Option(names = {"-a", "--artifactDir"}, paramLabel = "Artifacts Folder Path") String artifactDir,
      @CommandLine.Option(names = {"-p", "--param"}, paramLabel = "Runtime parameters") Map<String, String> parameters)
@@ -65,7 +65,7 @@ public class ComponentCommand extends BaseCommand {
             kernelAdapterIpc.updateRecipesAndArtifacts(recipeDir, artifactDir);
         }
         CreateLocalDeploymentRequest createLocalDeploymentRequest = CreateLocalDeploymentRequest.builder()
-                .groupName(groupId)
+                .groupName(groupName)
                 .componentToConfiguration(componentNameToConfig)
                 .rootComponentVersionsToAdd(componentsToMerge)
                 .rootComponentsToRemove(componentsToRemove)

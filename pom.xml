@@ -166,6 +166,9 @@
                 <configuration>
                     <excludes>
                         <exclude>**/*Exception*</exclude>
+                        <exclude>**/*_Provides*</exclude>
+                        <exclude>**/*_Factory*</exclude>
+                        <exclude>**/Dagger*</exclude>
                     </excludes>
                 </configuration>
                 <executions>

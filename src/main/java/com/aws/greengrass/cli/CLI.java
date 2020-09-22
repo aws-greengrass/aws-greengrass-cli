@@ -11,6 +11,7 @@ import com.aws.greengrass.cli.commands.DeploymentCommand;
 import com.aws.greengrass.cli.commands.Logs;
 import com.aws.greengrass.cli.commands.Service;
 import com.aws.greengrass.cli.util.logs.LogsModule;
+import com.aws.greengrass.ipc.services.cli.exceptions.GenericCliIpcServerException;
 import com.google.inject.ConfigurationException;
 import com.google.inject.Guice;
 import com.google.inject.Injector;
@@ -41,8 +42,28 @@ public class CLI implements Runnable {
 
     public static void main(String... args) {
         CLI cli = new CLI();
-        CommandLine.populateCommand(cli, args);
-        int exitCode = new CommandLine(cli, new GuiceFactory(new AdapterModule(cli.getGgcRootPath()), new LogsModule())).execute(args);
+        int exitCode = 0;
+        try {
+            CommandLine.populateCommand(cli, args);
+            exitCode = new CommandLine(cli, new GuiceFactory(new AdapterModule(cli.getGgcRootPath()), new LogsModule()))
+                    .setExecutionExceptionHandler(new CommandLine.IExecutionExceptionHandler() {
+                        @Override
+                        public int handleExecutionException(Exception e, CommandLine commandLine, CommandLine.ParseResult parseResult) throws Exception {
+                            if (e instanceof CommandLine.UnmatchedArgumentException
+                                    || e instanceof CommandLine.MissingParameterException
+                                    || e instanceof GenericCliIpcServerException) {
+                                System.out.println(commandLine.getColorScheme().errorText(e.getMessage()));
+                                commandLine.usage(System.out);
+                                return 0;
+                            } else {
+                                throw e;
+                            }
+                        }
+                    })
+                    .execute(args);
+        } catch (ParameterException e) {
+            CommandLine.defaultExceptionHandler().handleParseException(e, args);
+        }
         System.exit(exitCode);
     }
 
@@ -75,3 +96,4 @@ public class CLI implements Runnable {
         }
     }
 }
+

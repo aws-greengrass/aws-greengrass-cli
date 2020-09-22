@@ -5,21 +5,17 @@
 
 package com.aws.greengrass.cli;
 
-import com.aws.greengrass.cli.adapter.AdapterModule;
 import com.aws.greengrass.cli.commands.ComponentCommand;
 import com.aws.greengrass.cli.commands.DeploymentCommand;
 import com.aws.greengrass.cli.commands.Logs;
 import com.aws.greengrass.cli.commands.Service;
-import com.aws.greengrass.cli.util.logs.LogsModule;
+import com.aws.greengrass.cli.module.AdapterModule;
+import com.aws.greengrass.cli.module.CommandsComponent;
+import com.aws.greengrass.cli.module.DaggerCommandsComponent;
 import com.aws.greengrass.ipc.services.cli.exceptions.GenericCliIpcServerException;
-import com.google.inject.ConfigurationException;
-import com.google.inject.Guice;
-import com.google.inject.Injector;
-import com.google.inject.Module;
 import picocli.CommandLine;
 import picocli.CommandLine.Command;
 import picocli.CommandLine.HelpCommand;
-import picocli.CommandLine.IFactory;
 import picocli.CommandLine.Model.CommandSpec;
 import picocli.CommandLine.ParameterException;
 import picocli.CommandLine.Spec;
@@ -44,8 +40,8 @@ public class CLI implements Runnable {
         CLI cli = new CLI();
         int exitCode = 0;
         try {
-            CommandLine.populateCommand(cli, args);
-            exitCode = new CommandLine(cli, new GuiceFactory(new AdapterModule(cli.getGgcRootPath()), new LogsModule()))
+            populateCommand(cli, args);
+            exitCode = new CommandLine(cli, new CommandFactory(cli.createCommandComponent()))
                     .setExecutionExceptionHandler(new CommandLine.IExecutionExceptionHandler() {
                         @Override
                         public int handleExecutionException(Exception e, CommandLine commandLine, CommandLine.ParseResult parseResult) throws Exception {
@@ -61,10 +57,24 @@ public class CLI implements Runnable {
                         }
                     })
                     .execute(args);
+
         } catch (ParameterException e) {
             CommandLine.defaultExceptionHandler().handleParseException(e, args);
         }
         System.exit(exitCode);
+    }
+
+    private static void populateCommand(CLI cli, String[] args) {
+        CommandLine parser = new CommandLine(cli, new CommandFactory(DaggerCommandsComponent.builder()
+                .adapterModule(new AdapterModule(null))
+                .build()));
+        parser.parseArgs(args);
+    }
+
+    private CommandsComponent createCommandComponent() {
+        return DaggerCommandsComponent.builder()
+                .adapterModule(new AdapterModule(getGgcRootPath()))
+                .build();
     }
 
     public String getGgcRootPath() {
@@ -76,24 +86,6 @@ public class CLI implements Runnable {
         String msg = ResourceBundle.getBundle("com.aws.greengrass.cli.CLI_messages")
                 .getString("exception.missing.command");
         throw new ParameterException(spec.commandLine(), msg);
-    }
-
-
-    public static class GuiceFactory implements IFactory {
-        private final Injector injector;
-
-        public GuiceFactory(Module... modules) {
-            injector = Guice.createInjector(modules);
-        }
-
-        @Override
-        public <K> K create(Class<K> aClass) throws Exception {
-            try {
-                return injector.getInstance(aClass);
-            } catch (ConfigurationException ex) {
-                return CommandLine.defaultFactory().create(aClass);
-            }
-        }
     }
 }
 

@@ -19,8 +19,6 @@ import com.aws.greengrass.ipc.services.cli.models.StopComponentRequest;
 import com.aws.greengrass.ipc.services.cli.models.UpdateRecipesAndArtifactsRequest;
 import com.fasterxml.jackson.databind.DeserializationFeature;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.google.inject.Inject;
-import com.google.inject.name.Named;
 
 import java.net.URI;
 import java.nio.file.Files;
@@ -30,6 +28,8 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import javax.annotation.Nullable;
+import javax.inject.Inject;
+import javax.inject.Named;
 
 public class KernelAdapterIpcClientImpl implements KernelAdapterIpc {
 

@@ -4,11 +4,12 @@
 package com.aws.greengrass.cli;
 
 import com.aws.greengrass.cli.adapter.KernelAdapterIpc;
+import com.aws.greengrass.cli.module.AdapterModule;
+import com.aws.greengrass.cli.module.DaggerCommandsComponent;
 import com.aws.greengrass.ipc.services.cli.exceptions.CliIpcClientException;
 import com.aws.greengrass.ipc.services.cli.exceptions.GenericCliIpcServerException;
 import com.aws.greengrass.ipc.services.cli.models.ComponentDetails;
 import com.aws.greengrass.ipc.services.cli.models.LifecycleState;
-import com.google.inject.AbstractModule;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
@@ -58,12 +59,14 @@ public class CLITest {
     }
 
     int runCommandLine(String... args) {
-        return new CommandLine(cli, new CLI.GuiceFactory(new AbstractModule() {
-            @Override
-            protected void configure() {
-                bind(KernelAdapterIpc.class).toInstance(kernelAdapterIpc);
-            }
-        })).execute(args);
+        return new CommandLine(cli, new CommandFactory(DaggerCommandsComponent.builder()
+                .adapterModule(new AdapterModule(null) {
+                    @Override
+                    protected KernelAdapterIpc providesKernelAdapter() {
+                        return kernelAdapterIpc;
+                    }
+                }).build()))
+                .execute(args);
     }
 
     @Test

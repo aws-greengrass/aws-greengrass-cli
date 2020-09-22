@@ -13,8 +13,15 @@ import java.util.Map;
 @CommandLine.Command(name = "service", resourceBundle = "com.aws.greengrass.cli.CLI_messages", subcommands = CommandLine.HelpCommand.class)
 public class Service extends BaseCommand {
 
+    private final KernelAdapterIpc kernelAdapterIpc;
+
     @Inject
-    private KernelAdapterIpc kernelAdapterIpc;
+    public Service(
+            KernelAdapterIpc kernelAdapterIpc
+    ) {
+        this.kernelAdapterIpc = kernelAdapterIpc;
+    }
+
     //TODO : status provides a subset of information from getComponentDetails. Move UAT to use getComponentDetails and
     // remove this command.
     @CommandLine.Command(name = "status")

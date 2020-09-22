@@ -22,9 +22,15 @@ import java.util.Map;
         subcommands = CommandLine.HelpCommand.class)
 public class ComponentCommand extends BaseCommand {
 
-    private ObjectMapper mapper = new ObjectMapper();
+    private final ObjectMapper mapper = new ObjectMapper();
+    private final KernelAdapterIpc kernelAdapterIpc;
+
     @Inject
-    private KernelAdapterIpc kernelAdapterIpc;
+    public ComponentCommand(
+            KernelAdapterIpc kernelAdapterIpc
+    ) {
+        this.kernelAdapterIpc = kernelAdapterIpc;
+    }
 
     @CommandLine.Command(name = "restart")
     public int restart(@CommandLine.Option(names = {"-n", "--names"}, paramLabel = "component names separated by comma", descriptionKey = "names", required = true) String names)

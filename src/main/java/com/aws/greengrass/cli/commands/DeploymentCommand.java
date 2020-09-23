@@ -56,7 +56,7 @@ public class DeploymentCommand extends BaseCommand {
     //TODO: input validation and better error handling https://sim.amazon.com/issues/P39478724
     @CommandLine.Command(name = "status",
             description = "Retrieve the status of a deployment")
-    public int status(@CommandLine.Option(names = {"-i", "--deploymentId"}, paramLabel = "Deployment Id") String deploymentId)
+    public int status(@CommandLine.Option(names = {"-i", "--deploymentId"}, paramLabel = "Deployment Id", required = true) String deploymentId)
             throws CliIpcClientException, GenericCliIpcServerException {
 
         LocalDeployment status = kernelAdapterIpc.getLocalDeploymentStatus(deploymentId);
@@ -68,7 +68,7 @@ public class DeploymentCommand extends BaseCommand {
     @CommandLine.Command(name = "list", description = "Retrieve the status of local deployments")
     public int list() throws CliIpcClientException, GenericCliIpcServerException {
         List<LocalDeployment> localDeployments = kernelAdapterIpc.listLocalDeployments();
-        localDeployments.forEach((status) -> System.out.printf("%s: %s", status.getDeploymentId(), status.getStatus()));
+        localDeployments.forEach((status) -> System.out.println(status.getDeploymentId() + ": " + status.getStatus()));
         return 0;
     }
 }

@@ -4,8 +4,10 @@
 package com.aws.greengrass.cli.commands;
 
 import com.aws.greengrass.cli.CLI;
+import com.aws.greengrass.cli.CommandFactory;
 import com.aws.greengrass.cli.TestUtil;
-import com.aws.greengrass.cli.util.logs.LogsModule;
+import com.aws.greengrass.cli.module.AdapterModule;
+import com.aws.greengrass.cli.module.DaggerCommandsComponent;
 import com.aws.greengrass.cli.util.logs.LogsUtil;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
@@ -244,6 +246,6 @@ public class LogsTest {
     }
 
     private void runCommandLine(String... args) {
-        new CommandLine(new CLI(), new CLI.GuiceFactory(new LogsModule())).execute(args);
+        new CommandLine(new CLI(), new CommandFactory(DaggerCommandsComponent.builder().adapterModule(new AdapterModule(null)).build())).execute(args);
     }
 }

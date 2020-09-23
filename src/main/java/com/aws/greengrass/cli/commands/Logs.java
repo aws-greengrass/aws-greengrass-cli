@@ -21,12 +21,20 @@ import javax.inject.Inject;
 @Command(name = "logs", resourceBundle = "com.aws.greengrass.cli.CLI_messages", subcommands = HelpCommand.class)
 public class Logs extends BaseCommand {
 
+    private final Aggregation aggregation;
+    private final Filter filter;
+    private final Visualization visualization;
+
     @Inject
-    private Aggregation aggregation;
-    @Inject
-    private Filter filter;
-    @Inject
-    private Visualization visualization;
+    public Logs(
+            Aggregation aggregation,
+            Filter filter,
+            Visualization visualization
+    ) {
+        this.aggregation = aggregation;
+        this.filter = filter;
+        this.visualization = visualization;
+    }
 
     @Command(name = "get")
     public int get(@CommandLine.Option(names = {"-lf", "--log-file"}, paramLabel = "Log File Path") String[] logFileArray,

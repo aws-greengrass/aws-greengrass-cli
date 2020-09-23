@@ -6,12 +6,14 @@
 package com.aws.greengrass.cli.commands;
 
 import com.aws.greengrass.cli.CLI;
+import com.aws.greengrass.cli.CommandFactory;
 import com.aws.greengrass.cli.adapter.KernelAdapterIpc;
+import com.aws.greengrass.cli.module.AdapterModule;
+import com.aws.greengrass.cli.module.DaggerCommandsComponent;
 import com.aws.greengrass.ipc.services.cli.exceptions.CliIpcClientException;
 import com.aws.greengrass.ipc.services.cli.exceptions.GenericCliIpcServerException;
 import com.aws.greengrass.ipc.services.cli.models.CreateLocalDeploymentRequest;
 import com.google.common.collect.ImmutableMap;
-import com.google.inject.AbstractModule;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
@@ -173,11 +175,13 @@ class ComponentCommandTest {
     }
 
     private int runCommandLine(String... args) {
-        return new CommandLine(new CLI(), new CLI.GuiceFactory(new AbstractModule() {
-            @Override
-            protected void configure() {
-                bind(KernelAdapterIpc.class).toInstance(kernelAdapteripc);
-            }
-        })).execute(args);
+        return new CommandLine(new CLI(), new CommandFactory(DaggerCommandsComponent.builder()
+            .adapterModule(new AdapterModule(null) {
+                @Override
+                protected KernelAdapterIpc providesKernelAdapter() {
+                    return kernelAdapteripc;
+                }
+            }).build()
+        )).execute(args);
     }
 }

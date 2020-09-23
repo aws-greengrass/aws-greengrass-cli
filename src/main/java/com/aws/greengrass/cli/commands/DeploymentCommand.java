@@ -17,8 +17,14 @@ import static com.aws.greengrass.cli.commands.ComponentCommand.convertParameters
         subcommands = CommandLine.HelpCommand.class)
 public class DeploymentCommand extends BaseCommand {
 
+    private final KernelAdapterIpc kernelAdapterIpc;
+
     @Inject
-    private KernelAdapterIpc kernelAdapterIpc;
+    public DeploymentCommand(
+            KernelAdapterIpc kernelAdapterIpc
+    ) {
+        this.kernelAdapterIpc = kernelAdapterIpc;
+    }
 
     //TODO: input validation and better error handling https://sim.amazon.com/issues/P39478724
     @CommandLine.Command(name = "create",

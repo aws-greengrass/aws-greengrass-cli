@@ -66,7 +66,7 @@ public class VisualizationImpl implements Visualization {
      * @return String
      */
     private String abbreviate(GreengrassLogMessage message) {
-        StringBuilder msg = new StringBuilder(new SimpleDateFormat("yyyy-MM-dd hh:mm:ss z")
+        StringBuilder msg = new StringBuilder(new SimpleDateFormat("yyyy-MM-dd HH:mm:ss z")
                 .format(new Date(message.getTimestamp())));
 
         msg.append(" [").append(message.getLevel()).append("] ")

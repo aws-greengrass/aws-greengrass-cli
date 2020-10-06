@@ -10,6 +10,7 @@ import com.aws.greengrass.ipc.services.cli.models.ComponentDetails;
 import com.aws.greengrass.ipc.services.cli.models.CreateLocalDeploymentRequest;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import org.apache.commons.codec.binary.StringUtils;
 import picocli.CommandLine;
 
 import javax.inject.Inject;
@@ -63,15 +64,21 @@ public class ComponentCommand extends BaseCommand {
      @CommandLine.Option(names = {"-g", "--groupId"}, paramLabel = "group Id") String groupId,
      @CommandLine.Option(names = {"-r", "--recipeDir"}, paramLabel = "Recipe Folder Path") String recipeDir,
      @CommandLine.Option(names = {"-a", "--artifactDir"}, paramLabel = "Artifacts Folder Path") String artifactDir,
-     @CommandLine.Option(names = {"-p", "--param"}, paramLabel = "Runtime parameters") Map<String, String> parameters)
-            throws CliIpcClientException, GenericCliIpcServerException {
+     @CommandLine.Option(names = {"-p", "--param"}, paramLabel = "Runtime parameters") Map<String, String> parameters,
+     @CommandLine.Option(names = {"-c", "--update-config"}, paramLabel = "Update configuration") String configUpdate)
+            throws CliIpcClientException, GenericCliIpcServerException, JsonProcessingException {
         // TODO Validate folder exists and folder structure
         Map<String, Map<String, Object>> componentNameToConfig = convertParameters(parameters);
+        Map<String, Map<String, Object>> configurationUpdate = null;
+        if (configUpdate != null && !configUpdate.isEmpty()) {
+            configurationUpdate = mapper.readValue(configUpdate, Map.class);
+        }
         if (recipeDir != null || artifactDir != null) {
             kernelAdapterIpc.updateRecipesAndArtifacts(recipeDir, artifactDir);
         }
         CreateLocalDeploymentRequest createLocalDeploymentRequest = CreateLocalDeploymentRequest.builder()
                 .groupName(groupId)
+                .configurationUpdate(configurationUpdate)
                 .componentToConfiguration(componentNameToConfig)
                 .rootComponentVersionsToAdd(componentsToMerge)
                 .rootComponentsToRemove(componentsToRemove)
@@ -116,6 +123,7 @@ public class ComponentCommand extends BaseCommand {
      * @return converted runtime parameters map, with each key as component name and each value as the component's
      *         configuration map
      */
+    @Deprecated
      static Map<String, Map<String, Object>> convertParameters(Map<String, String> params) {
         if (params == null || params.isEmpty()) {
             return Collections.emptyMap();

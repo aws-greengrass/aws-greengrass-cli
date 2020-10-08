@@ -5,9 +5,12 @@ import com.aws.greengrass.ipc.services.cli.exceptions.CliIpcClientException;
 import com.aws.greengrass.ipc.services.cli.exceptions.GenericCliIpcServerException;
 import com.aws.greengrass.ipc.services.cli.models.CreateLocalDeploymentRequest;
 import com.aws.greengrass.ipc.services.cli.models.LocalDeployment;
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import picocli.CommandLine;
 
 import javax.inject.Inject;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
@@ -17,6 +20,7 @@ import static com.aws.greengrass.cli.commands.ComponentCommand.convertParameters
         subcommands = CommandLine.HelpCommand.class)
 public class DeploymentCommand extends BaseCommand {
 
+    private final ObjectMapper mapper = new ObjectMapper();
     private final KernelAdapterIpc kernelAdapterIpc;
 
     @Inject
@@ -35,15 +39,21 @@ public class DeploymentCommand extends BaseCommand {
      @CommandLine.Option(names = {"-g", "--groupId"}, paramLabel = "group Id") String groupId,
      @CommandLine.Option(names = {"-r", "--recipeDir"}, paramLabel = "Recipe Folder Path") String recipeDir,
      @CommandLine.Option(names = {"-a", "--artifactDir"}, paramLabel = "Artifacts Folder Path") String artifactDir,
-     @CommandLine.Option(names = {"-p", "--param"}, paramLabel = "Runtime parameters") Map<String, String> parameters)
-            throws CliIpcClientException, GenericCliIpcServerException {
+     @CommandLine.Option(names = {"-p", "--param"}, paramLabel = "Runtime parameters") Map<String, String> parameters,
+     @CommandLine.Option(names = {"-c", "--update-config"}, paramLabel = "Update configuration") String configUpdate)
+            throws CliIpcClientException, GenericCliIpcServerException, JsonProcessingException {
         // TODO Validate folder exists and folder structure
         Map<String, Map<String, Object>> componentNameToConfig = convertParameters(parameters);
+        Map<String, Map<String, Object>> configurationUpdate = null;
+        if (configUpdate != null && !configUpdate.isEmpty()) {
+            configurationUpdate = mapper.readValue(configUpdate, Map.class);
+        }
         if (recipeDir != null || artifactDir != null) {
             kernelAdapterIpc.updateRecipesAndArtifacts(recipeDir, artifactDir);
         }
         CreateLocalDeploymentRequest createLocalDeploymentRequest = CreateLocalDeploymentRequest.builder()
                 .groupName(groupId)
+                .configurationUpdate(configurationUpdate)
                 .componentToConfiguration(componentNameToConfig)
                 .rootComponentVersionsToAdd(componentsToMerge)
                 .rootComponentsToRemove(componentsToRemove)

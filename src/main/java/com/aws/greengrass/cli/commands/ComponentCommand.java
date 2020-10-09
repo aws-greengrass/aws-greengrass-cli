@@ -10,14 +10,13 @@ import com.aws.greengrass.ipc.services.cli.models.ComponentDetails;
 import com.aws.greengrass.ipc.services.cli.models.CreateLocalDeploymentRequest;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import org.apache.commons.codec.binary.StringUtils;
 import picocli.CommandLine;
 
-import javax.inject.Inject;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import javax.inject.Inject;
 
 @CommandLine.Command(name = "component", resourceBundle = "com.aws.greengrass.cli.CLI_messages",
         subcommands = CommandLine.HelpCommand.class)
@@ -114,6 +113,7 @@ public class ComponentCommand extends BaseCommand {
         System.out.println("Version: " + component.getVersion());
         System.out.println("State: " + component.getState());
         System.out.println("Configuration: " + mapper.writeValueAsString(component.getConfiguration()));
+        System.out.println("Configurations: " + mapper.writeValueAsString(component.getNestedConfiguration()));
     }
 
     /**

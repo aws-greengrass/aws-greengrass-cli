@@ -39,6 +39,7 @@ public class KernelAdapterIpcClientImpl implements KernelAdapterIpc {
     private static final String CLI_IPC_INFO_FILENAME = "cli_ipc_info";
     private static final String CLI_AUTH_TOKEN = "cli_auth_token";
     private static final String SOCKET_URL = "socket_url";
+    private static final String HOME_DIR_PREFIX = "~/";
 
     private String root;
     private Cli cliClient;
@@ -69,8 +70,8 @@ public class KernelAdapterIpcClientImpl implements KernelAdapterIpc {
     public void updateRecipesAndArtifacts(String recipesDirectoryPath, String artifactsDirectoryPath)
             throws GenericCliIpcServerException, CliIpcClientException {
         UpdateRecipesAndArtifactsRequest updateRecipesAndArtifactsRequest = UpdateRecipesAndArtifactsRequest.builder()
-                .recipeDirectoryPath(recipesDirectoryPath)
-                .artifactDirectoryPath(artifactsDirectoryPath)
+                .recipeDirectoryPath(Paths.get(deTilde(recipesDirectoryPath)).toAbsolutePath().toString())
+                .artifactDirectoryPath(Paths.get(deTilde(artifactsDirectoryPath)).toAbsolutePath().toString())
                 .build();
         getCliClient().updateRecipesAndArtifacts(updateRecipesAndArtifactsRequest);
     }
@@ -115,9 +116,9 @@ public class KernelAdapterIpcClientImpl implements KernelAdapterIpc {
                     + "--ggcRootPath {PATH} {rest of the arguments} " +
                     "or set the environment variable GGC_ROOT_PATH");
         }
-        Path filepath = Paths.get(ggcRootPath).resolve(CLI_IPC_INFO_FILENAME);
+        Path filepath = Paths.get(deTilde(ggcRootPath)).resolve(CLI_IPC_INFO_FILENAME);
         if (!Files.exists(filepath)) {
-            throw new RuntimeException("CLI IPC info file not present");
+            throw new RuntimeException("CLI IPC info file not present at " + filepath);
         }
         try {
             Map<String, String> ipcInfoMap = OBJECT_MAPPER.readValue(Files.readAllBytes(filepath), HashMap.class);
@@ -136,5 +137,13 @@ public class KernelAdapterIpcClientImpl implements KernelAdapterIpc {
             System.exit(1);
         }
         return cliClient;
+    }
+
+    private String deTilde(String path) {
+        if (path.startsWith(HOME_DIR_PREFIX)) {
+            return Paths.get(System.getProperty("user.home"))
+                    .resolve(path.substring(HOME_DIR_PREFIX.length())).toString();
+        }
+        return path;
     }
 }

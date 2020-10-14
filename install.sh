@@ -1,6 +1,6 @@
-#!/usr/bin/env bash
+#!/usr/bin/env sh
 
-SCRIPT_DIR="$(dirname "$(readlink -f "$0")")"
+SCRIPT_DIR="$(dirname "$(readlink -f "$0" || echo "$(pwd)/""$0")")"
 if [ "$(uname)" != "Darwin" ]; then
     echo "Setting up auto-complete for Greengrass CLI."
     # Autocomplete is a feature provided by picocli, which is currently NOT supported on Mac https://github.com/remkop/picocli/issues/396
@@ -14,6 +14,5 @@ if [ "$(uname)" != "Darwin" ]; then
     echo "Source the bash completion script"
     source $SCRIPT_DIR/cli_completion.sh
 fi
-
 ln -fs $SCRIPT_DIR/bin/greengrass-cli /usr/local/bin/greengrass-cli || sudo ln -fs $SCRIPT_DIR/bin/greengrass-cli /usr/local/bin/greengrass-cli
 echo "Start using greengrass-cli"

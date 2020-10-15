@@ -1,9 +1,11 @@
-/* Copyright 2019 Amazon.com, Inc. or its affiliates. All Rights Reserved.
- * SPDX-License-Identifier: Apache-2.0 */
+/*
+ * Copyright Amazon.com, Inc. or its affiliates. All Rights Reserved.
+ * SPDX-License-Identifier: Apache-2.0
+ */
 
 package com.aws.greengrass.cli;
 
-import com.aws.greengrass.cli.adapter.KernelAdapterIpc;
+import com.aws.greengrass.cli.adapter.NucleusAdapterIpc;
 import com.aws.greengrass.cli.module.AdapterModule;
 import com.aws.greengrass.cli.module.DaggerCommandsComponent;
 import com.aws.greengrass.ipc.services.cli.exceptions.CliIpcClientException;
@@ -37,7 +39,7 @@ public class CLITest {
     private CLI cli;
 
     @Mock
-    private KernelAdapterIpc kernelAdapterIpc;
+    private NucleusAdapterIpc nucleusAdapterIpc;
 
     private final ByteArrayOutputStream outContent = new ByteArrayOutputStream();
     private final ByteArrayOutputStream errContent = new ByteArrayOutputStream();
@@ -62,8 +64,8 @@ public class CLITest {
         return new CommandLine(cli, new CommandFactory(DaggerCommandsComponent.builder()
                 .adapterModule(new AdapterModule(null) {
                     @Override
-                    protected KernelAdapterIpc providesKernelAdapter() {
-                        return kernelAdapterIpc;
+                    protected NucleusAdapterIpc providesAdapter() {
+                        return nucleusAdapterIpc;
                     }
                 }).build()))
                 .execute(args);
@@ -79,7 +81,7 @@ public class CLITest {
     public void serviceStatusCommand() throws CliIpcClientException, GenericCliIpcServerException {
         ComponentDetails componentDetails = ComponentDetails.builder().componentName("main")
                 .state(LifecycleState.RUNNING).build();
-        when(kernelAdapterIpc.getComponentDetails(any()))
+        when(nucleusAdapterIpc.getComponentDetails(any()))
                 .thenReturn(componentDetails);
         int exitCode = runCommandLine("service", "status", "-n", "main");
         assertThat(exitCode, is(0));
@@ -90,14 +92,14 @@ public class CLITest {
     @Test
     public void stopServiceCommand() throws CliIpcClientException, GenericCliIpcServerException {
         int exitCode = runCommandLine("service", "stop", "-n", "main");
-        verify(kernelAdapterIpc).stopComponent("main");
+        verify(nucleusAdapterIpc).stopComponent("main");
         assertThat(exitCode, is(0));
     }
 
     @Test
     public void restartServiceCommand() throws CliIpcClientException, GenericCliIpcServerException {
         int exitCode = runCommandLine("service", "restart", "-n", "main");
-        verify(kernelAdapterIpc).restartComponent("main");
+        verify(nucleusAdapterIpc).restartComponent("main");
         assertThat(exitCode, is(0));
     }
 

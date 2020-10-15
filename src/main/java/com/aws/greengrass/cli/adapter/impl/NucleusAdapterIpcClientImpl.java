@@ -1,6 +1,6 @@
 package com.aws.greengrass.cli.adapter.impl;
 
-import com.aws.greengrass.cli.adapter.KernelAdapterIpc;
+import com.aws.greengrass.cli.adapter.NucleusAdapterIpc;
 import com.aws.greengrass.ipc.IPCClient;
 import com.aws.greengrass.ipc.IPCClientImpl;
 import com.aws.greengrass.ipc.config.KernelIPCClientConfig;
@@ -31,7 +31,7 @@ import javax.annotation.Nullable;
 import javax.inject.Inject;
 import javax.inject.Named;
 
-public class KernelAdapterIpcClientImpl implements KernelAdapterIpc {
+public class NucleusAdapterIpcClientImpl implements NucleusAdapterIpc {
 
     protected static final ObjectMapper OBJECT_MAPPER =
             new ObjectMapper().configure(DeserializationFeature.FAIL_ON_INVALID_SUBTYPE, false)
@@ -45,7 +45,7 @@ public class KernelAdapterIpcClientImpl implements KernelAdapterIpc {
     private Cli cliClient;
 
     @Inject
-    public KernelAdapterIpcClientImpl(@Nullable @Named("ggcRootPath") String root) {
+    public NucleusAdapterIpcClientImpl(@Nullable @Named("ggcRootPath") String root) {
         this.root = root;
     }
 
@@ -106,8 +106,8 @@ public class KernelAdapterIpcClientImpl implements KernelAdapterIpc {
         if (cliClient != null) {
             return cliClient;
         }
-        // TODO: When the greengrass-cli is installed in the kernel root path this will derived from the current working
-        // directory, instead of an env variable. Until then using env variable.
+        // TODO: When the greengrass-cli is installed in the Greengrass root path this will derived from the current
+        // working directory, instead of an env variable. Until then using env variable.
         // check if root path was passed as an argument to the command line, else fall back to env variable
         // if root path not found then throw exception
         String ggcRootPath = root != null ? root : System.getenv("GGC_ROOT_PATH");

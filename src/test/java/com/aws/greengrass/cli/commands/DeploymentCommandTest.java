@@ -2,7 +2,7 @@ package com.aws.greengrass.cli.commands;
 
 import com.aws.greengrass.cli.CLI;
 import com.aws.greengrass.cli.CommandFactory;
-import com.aws.greengrass.cli.adapter.KernelAdapterIpc;
+import com.aws.greengrass.cli.adapter.NucleusAdapterIpc;
 import com.aws.greengrass.cli.module.AdapterModule;
 import com.aws.greengrass.cli.module.DaggerCommandsComponent;
 import com.aws.greengrass.ipc.services.cli.exceptions.CliIpcClientException;
@@ -29,7 +29,7 @@ public class DeploymentCommandTest {
     private final ObjectMapper mapper = new ObjectMapper();
 
     @Mock
-    private KernelAdapterIpc kernelAdapteripc;
+    private NucleusAdapterIpc nucleusAdapteripc;
 
     @Test
     void GIVEN_WHEN_configs_are_provided_THEN_request_contain_all_config()
@@ -43,7 +43,7 @@ public class DeploymentCommandTest {
                 .configurationUpdate(componentNameToConfig)
                 .componentToConfiguration(new HashMap<>()).build();
 
-        verify(kernelAdapteripc).createLocalDeployment(createLocalDeploymentRequest);
+        verify(nucleusAdapteripc).createLocalDeployment(createLocalDeploymentRequest);
         assertThat(exitCode, is(0));
     }
 
@@ -51,8 +51,8 @@ public class DeploymentCommandTest {
         return new CommandLine(new CLI(), new CommandFactory(DaggerCommandsComponent.builder()
                 .adapterModule(new AdapterModule(null) {
                     @Override
-                    protected KernelAdapterIpc providesKernelAdapter() {
-                        return kernelAdapteripc;
+                    protected NucleusAdapterIpc providesAdapter() {
+                        return nucleusAdapteripc;
                     }
                 }).build()
         )).execute(args);

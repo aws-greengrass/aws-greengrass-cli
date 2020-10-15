@@ -8,7 +8,7 @@ This module is the stand-alone CLI associated with aws-greengrass-kernel
 Run the following commands to install and use AWS Greengrass CLI:
 ```
 $ mvn install
-$ cd $YOUR_INSTALL_ROOT; unzip $PKG_ROOT/target/evergreen-cli-1.0-SNAPSHOT.zip; cd evergreen-cli-1.0-SNAPSHOT;
+$ cd $YOUR_INSTALL_ROOT; unzip $PKG_ROOT/target/cli-1.0-SNAPSHOT.zip; cd cli-1.0-SNAPSHOT;
 $ source install.sh
 $ greengrass-cli help
 ```

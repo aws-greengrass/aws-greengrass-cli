@@ -7,7 +7,7 @@ package com.aws.greengrass.cli.commands;
 
 import com.aws.greengrass.cli.CLI;
 import com.aws.greengrass.cli.CommandFactory;
-import com.aws.greengrass.cli.adapter.KernelAdapterIpc;
+import com.aws.greengrass.cli.adapter.NucleusAdapterIpc;
 import com.aws.greengrass.cli.module.AdapterModule;
 import com.aws.greengrass.cli.module.DaggerCommandsComponent;
 import com.aws.greengrass.ipc.services.cli.exceptions.CliIpcClientException;
@@ -56,7 +56,7 @@ class ComponentCommandTest {
             ImmutableMap.of(NEW_COMPONENT_1, "1.0.0", NEW_COMPONENT_2, "2.0.0");
 
     @Mock
-    private KernelAdapterIpc kernelAdapteripc;
+    private NucleusAdapterIpc nucleusAdapteripc;
 
     @Test
     void GIVEN_WHEN_components_to_merge_and_remove_provided_THEN_request_contains_the_info()
@@ -71,7 +71,7 @@ class ComponentCommandTest {
                 .componentToConfiguration(Collections.emptyMap())
                 .build();
 
-        verify(kernelAdapteripc).createLocalDeployment(createLocalDeploymentRequest);
+        verify(nucleusAdapteripc).createLocalDeployment(createLocalDeploymentRequest);
         assertThat(exitCode, is(0));
     }
 
@@ -80,7 +80,7 @@ class ComponentCommandTest {
     void GIVEN_WHEN_artifact_dir_is_provided_THEN_request_contains_provided_artifact_dir()
             throws CliIpcClientException, GenericCliIpcServerException {
         int exitCode = runCommandLine("component", "update", "--artifactDir", ARTIFACT_FOLDER_PATH_STR);
-        verify(kernelAdapteripc).updateRecipesAndArtifacts(null, ARTIFACT_FOLDER_PATH_STR);
+        verify(nucleusAdapteripc).updateRecipesAndArtifacts(null, ARTIFACT_FOLDER_PATH_STR);
         assertThat(exitCode, is(0));
     }
 
@@ -89,7 +89,7 @@ class ComponentCommandTest {
             throws CliIpcClientException, GenericCliIpcServerException {
         int exitCode = runCommandLine("component", "update", "-a", ARTIFACT_FOLDER_PATH_STR);
 
-        verify(kernelAdapteripc).updateRecipesAndArtifacts(null, ARTIFACT_FOLDER_PATH_STR);
+        verify(nucleusAdapteripc).updateRecipesAndArtifacts(null, ARTIFACT_FOLDER_PATH_STR);
         assertThat(exitCode, is(0));
     }
 
@@ -99,7 +99,7 @@ class ComponentCommandTest {
         int exitCode =
                 runCommandLine("component", "update", "-a", ARTIFACT_FOLDER_PATH_STR, "-a", ARTIFACT_FOLDER_PATH_STR);
 
-        verify(kernelAdapteripc, never()).updateRecipesAndArtifacts(any(), any());
+        verify(nucleusAdapteripc, never()).updateRecipesAndArtifacts(any(), any());
         assertThat(exitCode, is(2));
     }
 
@@ -107,7 +107,7 @@ class ComponentCommandTest {
     void GIVEN_WHEN_recipe_dir_is_provided_THEN_request_contains_provided_recipe_dir()
             throws CliIpcClientException, GenericCliIpcServerException {
         int exitCode = runCommandLine("component", "update", "--recipeDir", RECIPE_FOLDER_PATH_STR);
-        verify(kernelAdapteripc).updateRecipesAndArtifacts(RECIPE_FOLDER_PATH_STR, null);
+        verify(nucleusAdapteripc).updateRecipesAndArtifacts(RECIPE_FOLDER_PATH_STR, null);
         assertThat(exitCode, is(0));
     }
 
@@ -115,7 +115,7 @@ class ComponentCommandTest {
     void GIVEN_WHEN_recipe_dir_is_provided_with_short_name_THEN_request_contains_provided_recipe_dir()
             throws CliIpcClientException, GenericCliIpcServerException {
         int exitCode = runCommandLine("component", "update", "-r", RECIPE_FOLDER_PATH_STR);
-        verify(kernelAdapteripc).updateRecipesAndArtifacts(RECIPE_FOLDER_PATH_STR, null);
+        verify(nucleusAdapteripc).updateRecipesAndArtifacts(RECIPE_FOLDER_PATH_STR, null);
         assertThat(exitCode, is(0));
     }
 
@@ -125,7 +125,7 @@ class ComponentCommandTest {
             throws CliIpcClientException, GenericCliIpcServerException {
         int exitCode =
                 runCommandLine("component", "update", "-r", RECIPE_FOLDER_PATH_STR, "-r", RECIPE_FOLDER_PATH_STR);
-        verify(kernelAdapteripc, never()).createLocalDeployment(any());
+        verify(nucleusAdapteripc, never()).createLocalDeployment(any());
         assertThat(exitCode, is(2));
     }
 
@@ -135,7 +135,7 @@ class ComponentCommandTest {
 
         // GIVEN
         ComponentDetails componentDetails = getTestComponentDetails();
-        when(kernelAdapteripc.listComponents()).thenReturn(Collections.singletonList(componentDetails));
+        when(nucleusAdapteripc.listComponents()).thenReturn(Collections.singletonList(componentDetails));
 
         // WHEN
         // We need to do some print stream magic here to verify the content of System.out.println
@@ -167,7 +167,7 @@ class ComponentCommandTest {
 
         // GIVEN
         ComponentDetails componentDetails = getTestComponentDetails();
-        when(kernelAdapteripc.getComponentDetails(any())).thenReturn(componentDetails);
+        when(nucleusAdapteripc.getComponentDetails(any())).thenReturn(componentDetails);
 
         // WHEN
         // We need to do some print stream magic here to verify the content of System.out.println
@@ -233,7 +233,7 @@ class ComponentCommandTest {
         CreateLocalDeploymentRequest createLocalDeploymentRequest =
                 CreateLocalDeploymentRequest.builder().componentToConfiguration(componentNameToConfig).build();
 
-        verify(kernelAdapteripc).createLocalDeployment(createLocalDeploymentRequest);
+        verify(nucleusAdapteripc).createLocalDeployment(createLocalDeploymentRequest);
         assertThat(exitCode, is(0));
     }
 
@@ -243,7 +243,7 @@ class ComponentCommandTest {
         int exitCode = runCommandLine("component", "update");
         CreateLocalDeploymentRequest createLocalDeploymentRequest =
                 CreateLocalDeploymentRequest.builder().componentToConfiguration(Collections.emptyMap()).build();
-        verify(kernelAdapteripc).createLocalDeployment(createLocalDeploymentRequest);
+        verify(nucleusAdapteripc).createLocalDeployment(createLocalDeploymentRequest);
         assertThat(exitCode, is(0));
     }
 
@@ -251,7 +251,7 @@ class ComponentCommandTest {
     void GIVEN_WHEN_invalid_params_are_provided_THEN_exit_1()
             throws CliIpcClientException, GenericCliIpcServerException {
         int exitCode = runCommandLine("component", "update", "--param", "newComponent1=V1");
-        verify(kernelAdapteripc, never()).createLocalDeployment(any());
+        verify(nucleusAdapteripc, never()).createLocalDeployment(any());
         assertThat(exitCode, is(1));
     }
 
@@ -259,7 +259,7 @@ class ComponentCommandTest {
     void WHEN_list_command_request_THEN_print_info_and_exit_0()
             throws CliIpcClientException, GenericCliIpcServerException {
         int exitCode = runCommandLine("component", "list");
-        verify(kernelAdapteripc, only()).listComponents();
+        verify(nucleusAdapteripc, only()).listComponents();
         assertThat(exitCode, is(0));
     }
 
@@ -267,8 +267,8 @@ class ComponentCommandTest {
         return new CommandLine(new CLI(), new CommandFactory(
                 DaggerCommandsComponent.builder().adapterModule(new AdapterModule(null) {
                     @Override
-                    protected KernelAdapterIpc providesKernelAdapter() {
-                        return kernelAdapteripc;
+                    protected NucleusAdapterIpc providesAdapter() {
+                        return nucleusAdapteripc;
                     }
                 }).build())).execute(args);
     }

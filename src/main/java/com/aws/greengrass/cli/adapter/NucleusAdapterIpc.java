@@ -8,7 +8,7 @@ import com.aws.greengrass.ipc.services.cli.models.LocalDeployment;
 
 import java.util.List;
 
-public interface KernelAdapterIpc {
+public interface NucleusAdapterIpc {
 
     ComponentDetails getComponentDetails(String componentName)
             throws GenericCliIpcServerException, CliIpcClientException;

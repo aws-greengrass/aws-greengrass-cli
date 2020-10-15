@@ -53,4 +53,4 @@ jobs:
         run: mvn -ntp clean package -DskipTests
       - run: sudo apt-get install -y awscli
       - name: Upload to S3
-        run: aws s3 cp target/evergreen-cli-1.0-SNAPSHOT.zip s3://gg-evergreen-releases/${{github.repository}}/${{github.ref}}/evergreen-cli-${{github.sha}}.zip
+        run: aws s3 cp target/cli-1.0-SNAPSHOT.zip s3://gg-evergreen-releases/${{github.repository}}/${{github.ref}}/evergreen-cli-${{github.sha}}.zip

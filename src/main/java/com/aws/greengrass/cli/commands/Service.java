@@ -1,25 +1,24 @@
 package com.aws.greengrass.cli.commands;
 
-import com.aws.greengrass.cli.adapter.KernelAdapterIpc;
+import com.aws.greengrass.cli.adapter.NucleusAdapterIpc;
 import com.aws.greengrass.ipc.services.cli.exceptions.CliIpcClientException;
 import com.aws.greengrass.ipc.services.cli.exceptions.GenericCliIpcServerException;
 import com.aws.greengrass.ipc.services.cli.models.ComponentDetails;
 import picocli.CommandLine;
 
 import javax.inject.Inject;
-import java.util.Map;
 
 //TODO: Moved stop/restart as sub-commands of "component" name space space. Remove these methods after UAT's are updated
 @CommandLine.Command(name = "service", resourceBundle = "com.aws.greengrass.cli.CLI_messages", subcommands = CommandLine.HelpCommand.class)
 public class Service extends BaseCommand {
 
-    private final KernelAdapterIpc kernelAdapterIpc;
+    private final NucleusAdapterIpc nucleusAdapterIpc;
 
     @Inject
     public Service(
-            KernelAdapterIpc kernelAdapterIpc
+            NucleusAdapterIpc nucleusAdapterIpc
     ) {
-        this.kernelAdapterIpc = kernelAdapterIpc;
+        this.nucleusAdapterIpc = nucleusAdapterIpc;
     }
 
     //TODO : status provides a subset of information from getComponentDetails. Move UAT to use getComponentDetails and
@@ -28,7 +27,7 @@ public class Service extends BaseCommand {
     public int status(@CommandLine.Option(names = {"-n", "--names"}, paramLabel = "names", descriptionKey = "names", required = true) String names) throws CliIpcClientException, GenericCliIpcServerException {
         String[] serviceNames = names.split(" *[&,]+ *");
         for (String serviceName : serviceNames) {
-            ComponentDetails componentDetails = kernelAdapterIpc.getComponentDetails(serviceName);
+            ComponentDetails componentDetails = nucleusAdapterIpc.getComponentDetails(serviceName);
             System.out.printf("%s: state: %s\n", componentDetails.getComponentName(), componentDetails.getState().toString());
         }
         return 0;
@@ -39,7 +38,7 @@ public class Service extends BaseCommand {
             throws CliIpcClientException, GenericCliIpcServerException {
         String[] serviceNames = names.split(" *[&,]+ *");
         for (String serviceName : serviceNames) {
-            kernelAdapterIpc.restartComponent(serviceName);
+            nucleusAdapterIpc.restartComponent(serviceName);
         }
         return 0;
     }
@@ -49,7 +48,7 @@ public class Service extends BaseCommand {
             throws CliIpcClientException, GenericCliIpcServerException {
         String[] serviceNames = names.split(" *[&,]+ *");
         for (String serviceName : serviceNames) {
-            kernelAdapterIpc.stopComponent(serviceName);
+            nucleusAdapterIpc.stopComponent(serviceName);
         }
         return 0;
     }

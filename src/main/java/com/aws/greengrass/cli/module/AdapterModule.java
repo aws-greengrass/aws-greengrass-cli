@@ -1,7 +1,7 @@
 package com.aws.greengrass.cli.module;
 
-import com.aws.greengrass.cli.adapter.KernelAdapterIpc;
-import com.aws.greengrass.cli.adapter.impl.KernelAdapterIpcClientImpl;
+import com.aws.greengrass.cli.adapter.NucleusAdapterIpc;
+import com.aws.greengrass.cli.adapter.impl.NucleusAdapterIpcClientImpl;
 import dagger.Module;
 import dagger.Provides;
 
@@ -17,7 +17,7 @@ public class AdapterModule {
 
     @Provides
     @Singleton
-    protected KernelAdapterIpc providesKernelAdapter() {
-        return new KernelAdapterIpcClientImpl(ggcRootPath);
+    protected NucleusAdapterIpc providesAdapter() {
+        return new NucleusAdapterIpcClientImpl(ggcRootPath);
     }
 }

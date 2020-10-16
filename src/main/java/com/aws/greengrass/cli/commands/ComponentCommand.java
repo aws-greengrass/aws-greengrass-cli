@@ -3,7 +3,7 @@
 
 package com.aws.greengrass.cli.commands;
 
-import com.aws.greengrass.cli.adapter.KernelAdapterIpc;
+import com.aws.greengrass.cli.adapter.NucleusAdapterIpc;
 import com.aws.greengrass.ipc.services.cli.exceptions.CliIpcClientException;
 import com.aws.greengrass.ipc.services.cli.exceptions.GenericCliIpcServerException;
 import com.aws.greengrass.ipc.services.cli.models.ComponentDetails;
@@ -23,13 +23,13 @@ import javax.inject.Inject;
 public class ComponentCommand extends BaseCommand {
 
     private final ObjectMapper mapper = new ObjectMapper();
-    private final KernelAdapterIpc kernelAdapterIpc;
+    private final NucleusAdapterIpc nucleusAdapterIpc;
 
     @Inject
     public ComponentCommand(
-            KernelAdapterIpc kernelAdapterIpc
+            NucleusAdapterIpc nucleusAdapterIpc
     ) {
-        this.kernelAdapterIpc = kernelAdapterIpc;
+        this.nucleusAdapterIpc = nucleusAdapterIpc;
     }
 
     @CommandLine.Command(name = "restart")
@@ -37,7 +37,7 @@ public class ComponentCommand extends BaseCommand {
             throws CliIpcClientException, GenericCliIpcServerException {
         String[] componentNames = names.split(" *[&,]+ *");
         for (String componentName : componentNames) {
-            kernelAdapterIpc.restartComponent(componentName);
+            nucleusAdapterIpc.restartComponent(componentName);
         }
         return 0;
     }
@@ -47,7 +47,7 @@ public class ComponentCommand extends BaseCommand {
             throws CliIpcClientException, GenericCliIpcServerException {
         String[] componentNames = names.split(" *[&,]+ *");
         for (String componentName : componentNames) {
-            kernelAdapterIpc.stopComponent(componentName);
+            nucleusAdapterIpc.stopComponent(componentName);
         }
         return 0;
     }
@@ -73,7 +73,7 @@ public class ComponentCommand extends BaseCommand {
             configurationUpdate = mapper.readValue(configUpdate, Map.class);
         }
         if (recipeDir != null || artifactDir != null) {
-            kernelAdapterIpc.updateRecipesAndArtifacts(recipeDir, artifactDir);
+            nucleusAdapterIpc.updateRecipesAndArtifacts(recipeDir, artifactDir);
         }
         CreateLocalDeploymentRequest createLocalDeploymentRequest = CreateLocalDeploymentRequest.builder()
                 .groupName(groupId)
@@ -82,7 +82,7 @@ public class ComponentCommand extends BaseCommand {
                 .rootComponentVersionsToAdd(componentsToMerge)
                 .rootComponentsToRemove(componentsToRemove)
                 .build();
-        String deploymentId = kernelAdapterIpc.createLocalDeployment(createLocalDeploymentRequest);
+        String deploymentId = nucleusAdapterIpc.createLocalDeployment(createLocalDeploymentRequest);
         System.out.println("Local deployment has been submitted! Deployment Id: "+ deploymentId);
         return 0;
     }
@@ -91,7 +91,7 @@ public class ComponentCommand extends BaseCommand {
     @CommandLine.Command(name = "list",
             description = "Prints root level components names, component information and runtime parameters")
     public int list() throws CliIpcClientException, GenericCliIpcServerException, JsonProcessingException {
-        List<ComponentDetails> componentDetails = kernelAdapterIpc.listComponents();
+        List<ComponentDetails> componentDetails = nucleusAdapterIpc.listComponents();
         System.out.println("Components currently running in Greengrass:");
         for (ComponentDetails c : componentDetails) {
             printComponentDetails(c);
@@ -103,7 +103,7 @@ public class ComponentCommand extends BaseCommand {
     @CommandLine.Command(name = "details")
     public int details(@CommandLine.Option(names = {"-n", "--name"}, paramLabel = " component name", descriptionKey = "name", required = true) String componentName)
             throws CliIpcClientException, GenericCliIpcServerException, JsonProcessingException {
-        ComponentDetails componentDetails = kernelAdapterIpc.getComponentDetails(componentName);
+        ComponentDetails componentDetails = nucleusAdapterIpc.getComponentDetails(componentName);
         printComponentDetails(componentDetails);
         return 0;
     }

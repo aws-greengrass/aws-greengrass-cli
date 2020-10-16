@@ -1,6 +1,6 @@
 package com.aws.greengrass.cli.commands;
 
-import com.aws.greengrass.cli.adapter.KernelAdapterIpc;
+import com.aws.greengrass.cli.adapter.NucleusAdapterIpc;
 import com.aws.greengrass.ipc.services.cli.exceptions.CliIpcClientException;
 import com.aws.greengrass.ipc.services.cli.exceptions.GenericCliIpcServerException;
 import com.aws.greengrass.ipc.services.cli.models.CreateLocalDeploymentRequest;
@@ -10,7 +10,6 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import picocli.CommandLine;
 
 import javax.inject.Inject;
-import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
@@ -21,13 +20,13 @@ import static com.aws.greengrass.cli.commands.ComponentCommand.convertParameters
 public class DeploymentCommand extends BaseCommand {
 
     private final ObjectMapper mapper = new ObjectMapper();
-    private final KernelAdapterIpc kernelAdapterIpc;
+    private final NucleusAdapterIpc nucleusAdapterIpc;
 
     @Inject
     public DeploymentCommand(
-            KernelAdapterIpc kernelAdapterIpc
+            NucleusAdapterIpc nucleusAdapterIpc
     ) {
-        this.kernelAdapterIpc = kernelAdapterIpc;
+        this.nucleusAdapterIpc = nucleusAdapterIpc;
     }
 
     //TODO: input validation and better error handling https://sim.amazon.com/issues/P39478724
@@ -49,7 +48,7 @@ public class DeploymentCommand extends BaseCommand {
             configurationUpdate = mapper.readValue(configUpdate, Map.class);
         }
         if (recipeDir != null || artifactDir != null) {
-            kernelAdapterIpc.updateRecipesAndArtifacts(recipeDir, artifactDir);
+            nucleusAdapterIpc.updateRecipesAndArtifacts(recipeDir, artifactDir);
         }
         CreateLocalDeploymentRequest createLocalDeploymentRequest = CreateLocalDeploymentRequest.builder()
                 .groupName(groupId)
@@ -58,7 +57,7 @@ public class DeploymentCommand extends BaseCommand {
                 .rootComponentVersionsToAdd(componentsToMerge)
                 .rootComponentsToRemove(componentsToRemove)
                 .build();
-        String deploymentId = kernelAdapterIpc.createLocalDeployment(createLocalDeploymentRequest);
+        String deploymentId = nucleusAdapterIpc.createLocalDeployment(createLocalDeploymentRequest);
         System.out.println("Local deployment has been submitted! Deployment Id: " + deploymentId);
         return 0;
     }
@@ -69,7 +68,7 @@ public class DeploymentCommand extends BaseCommand {
     public int status(@CommandLine.Option(names = {"-i", "--deploymentId"}, paramLabel = "Deployment Id", required = true) String deploymentId)
             throws CliIpcClientException, GenericCliIpcServerException {
 
-        LocalDeployment status = kernelAdapterIpc.getLocalDeploymentStatus(deploymentId);
+        LocalDeployment status = nucleusAdapterIpc.getLocalDeploymentStatus(deploymentId);
         System.out.printf("%s: %s", status.getDeploymentId(), status.getStatus());
         return 0;
     }
@@ -77,7 +76,7 @@ public class DeploymentCommand extends BaseCommand {
     //TODO: input validation and better error handling https://sim.amazon.com/issues/P39478724
     @CommandLine.Command(name = "list", description = "Retrieve the status of local deployments")
     public int list() throws CliIpcClientException, GenericCliIpcServerException {
-        List<LocalDeployment> localDeployments = kernelAdapterIpc.listLocalDeployments();
+        List<LocalDeployment> localDeployments = nucleusAdapterIpc.listLocalDeployments();
         localDeployments.forEach((status) -> System.out.println(status.getDeploymentId() + ": " + status.getStatus()));
         return 0;
     }

@@ -1,17 +1,18 @@
-# Evergreen Log Tool User Guide
+# Greengrass Log Tool User Guide
 
 ## Overview
 
-The goal of this log tool is to improve the customer experience of processing and analyzing Evergreen logs,
- by supporting customer’s queries from Evergreen CLI to parse/filter log files and displaying human-readable information.
+The goal of this log tool is to improve the customer experience of processing and analyzing Greengrass logs,
+ by supporting customer’s queries from Greengrass CLI to parse/filter log files and displaying human-readable information.
 
 ## Requirements
 
-Evergreen Log Tool is a part of AWS Greengrass CLI. To download and install the latest iteration, clone the repo 
+Greengrass Log Tool is a part of AWS Greengrass CLI. To download and install the latest iteration, clone the repo 
 from https://github.com/aws/aws-greengrass-cli, and run the installation commands from [here](https://github.com/aws/aws-greengrass-cli/blob/master/README.md#installation).
 
-Evergreen Log Tool currently only supports parsing log information in JSON format. Hence, for log tool to function
- correctly, use ``-Dlog.fmt=JSON`` and ``-Dlog.store=FILE`` in launch command of Evergreen Kernel to make sure that kernel emits log files in JSON format.
+Greengrass Log Tool currently only supports parsing log information in JSON format. Hence, for log tool to function
+ correctly, use ``-Dlog.fmt=JSON`` and ``-Dlog.store=FILE`` in launch command of Greengrass Nucleus to make sure that
+  Greengrass emits log files in JSON format.
 
 ## Getting Help
 
@@ -33,15 +34,15 @@ $ greengrass-cli logs list-keywords [-s --syslog]
 Use at least one of ``--log-dir`` and ``--log-file`` options to specify the location of log information. The two options
  work in association. For example:
 ```
-# collect all logs from ~/.evergreen
-$ greengrass-cli logs get --log-dir ~/.evegreen
+# collect all logs from ~/.greengrass
+$ greengrass-cli logs get --log-dir ~/.greengrass
 
-# collect log from file ~/.evergreen/evergreen.log
-$ greengrass-cli logs get --log-file ~/.evergreen/evergreen.log
+# collect log from file ~/.greengrass/greengrass.log
+$ greengrass-cli logs get --log-file ~/.greengrass/greengrass.log
 
 # multiple options work in association
-# collect log from evergreen.log_1, evergreen.log_2, and ~/.evergreen
-$ greengrass-cli logs get --log-file evergreen.log_1 --log-file evergreen.log_2 --log-dir ~/.evergreen
+# collect log from greengrass.log_1, greengrass.log_2, and ~/.greengrass
+$ greengrass-cli logs get --log-file greengrass.log_1 --log-file greengrass.log_2 --log-dir ~/.greengrass
 ```
 
 For reading directories, the log tool will check all files under the given directory and only files whose name contain
@@ -49,8 +50,8 @@ For reading directories, the log tool will check all files under the given direc
  command ``list-log-files`` to check the list of Greengrass log files in a given directory.
  
 ```
-# display all files under ~/.evergreen
-$ greengrass-cli logs list-log-files --log-dir ~/.evergreen
+# display all files under ~/.greengrass
+$ greengrass-cli logs list-log-files --log-dir ~/.greengrass
 ```
 
 ### Setting time window
@@ -84,13 +85,13 @@ The log tool supports both inputs by timestamp and relative offsets:
 
 # Example:
 # getting log entries between 00:00 and 05:00 of 2020-07-01
-$ greengrass-cli logs get --time-window 2020-07-01,2020-07-01T05:00:00 --log-file evergreen.log
+$ greengrass-cli logs get --time-window 2020-07-01,2020-07-01T05:00:00 --log-file greengrass.log
 
 # getting log entries between 12:00 and 16:00:05 of today
-$ greengrass-cli logs get --time-window 12:00,16:00:05 --log-file evergreen.log
+$ greengrass-cli logs get --time-window 12:00,16:00:05 --log-file greengrass.log
 
 # getting log entries between 12:00 and now of today
-$ greengrass-cli logs get --time-window 12:00, --log-file evergreen.log
+$ greengrass-cli logs get --time-window 12:00, --log-file greengrass.log
 ```
 
 ```
@@ -102,7 +103,7 @@ $ greengrass-cli logs get --time-window 12:00, --log-file evergreen.log
 
 # Example: 
 # getting log entries between 1 hour ago and 2 hours 15 minutes ago
-$ greengrass-cli logs get --time-window -2h15min,-1hr --log-file evergreen.log
+$ greengrass-cli logs get --time-window -2h15min,-1hr --log-file greengrass.log
 ```
 
 ### Adding filter
@@ -111,10 +112,10 @@ The ``--filter`` option is able to filtered log entries based on provided keywor
 
 ```
 # filter by keyword or regular expression (getting entries containting HelloWorld)
-$ greengrass-cli logs get --filter HelloWorld --log-file evergreen.log
+$ greengrass-cli logs get --filter HelloWorld --log-file greengrass.log
 
 # filter by key-value pair (getting entries from main thread)
-$ greengrass-cli logs get --filter thread=main --log-file evergreen.log
+$ greengrass-cli logs get --filter thread=main --log-file greengrass.log
 ```
 
 The log tool supports adding multiple filters, with AND-relation between filter options and OR-relation within filter 
@@ -122,7 +123,7 @@ option, separated by comma.
 ```
 # mulitiple filter
 # getting entries from main thread, that contains either "Deployment" or "HelloWorld".
-$ greengrass-cli logs get --filter thread=main --filter Deployment,HelloWorld --log-file evergreen.log
+$ greengrass-cli logs get --filter thread=main --filter Deployment,HelloWorld --log-file greengrass.log
 ```
 When the user queries a log level, e.g. ``level=DEBUG``, all log entries whose level are above queried level will 
 be displayed. We have ``ALL < DEBUG < INFO < WARN < ERROR < FATAL < OFF``.
@@ -141,13 +142,13 @@ $ greengrass-cli logs list-keywords
 ### Following Realtime Update
 
 The ``--follow`` option is a boolean option that decides if the log tool is actively following real time changes in 
-queried log files/directories. In accordance with log rotation rule of Evergreen, ``--follow`` option is specified, 
+queried log files/directories. In accordance with log rotation rule of Greengrass, ``--follow`` option is specified, 
 the log tool will continuously follow and update files that doesn’t contain a timestamp in their file name. 
-Most commonly, it will follow ``evergreen.log``.
+Most commonly, it will follow ``greengrass.log``.
 
 ```
-# follow changes of ~/.evergreen
-$ greengrass-cli logs get --log-dir ~/.evergreen/ --follow
+# follow changes of ~/.greengrass
+$ greengrass-cli logs get --log-dir ~/.greengrass/ --follow
 ```
 
 To stop the log tool, the user can either terminates the program manually in command line(i.e. ``Ctrl+C``), or set up a time
@@ -156,7 +157,7 @@ To stop the log tool, the user can either terminates the program manually in com
 
 ```
 # stop follow after 5 minutes.
-$ greengrass-cli logs get --time-window ,+5min --log-dir ~/.evergreen/ --follow
+$ greengrass-cli logs get --time-window ,+5min --log-dir ~/.greengrass/ --follow
 ```
 ### Simplified Output
 Currently two boolean options are supported to control output formats: ``--no-color`` and ``--verbose``.

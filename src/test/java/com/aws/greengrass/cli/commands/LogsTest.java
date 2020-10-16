@@ -62,7 +62,7 @@ public class LogsTest {
 
     @BeforeEach
     void init() throws FileNotFoundException {
-        logFile = logDir.resolve("evergreen.log");
+        logFile = logDir.resolve("greengrass.log");
         byteArrayOutputStream = new ByteArrayOutputStream();
         printStream = TestUtil.createPrintStreamFromOutputStream(byteArrayOutputStream);
         LogsUtil.setPrintStream(printStream);

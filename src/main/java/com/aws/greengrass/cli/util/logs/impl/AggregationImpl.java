@@ -28,7 +28,7 @@ import java.util.regex.Pattern;
 
 public class AggregationImpl implements Aggregation {
     // Log file name is assumed to be one of patterns {}.log_yyyy-MM-dd_HH_index or {}.log_yyyy-MM-dd_HH-mm_index.
-    // Kernel currently rotate log files every hour, but it likely will change to rotate by 15 minutes in future iteration.
+    // Greengrass currently rotate log files every hour, but it likely will change to rotate by 15 minutes in future iteration.
     // We support both patterns now and we can remove one of the patterns in future.
     // TODO: remove unused file name pattern
     private static final Pattern fileNamePatternByHour = Pattern.compile("(\\w+)\\.log(_([0-9]+-[0-9]+-[0-9]+_[0-9]+)_([0-9]+))?$");

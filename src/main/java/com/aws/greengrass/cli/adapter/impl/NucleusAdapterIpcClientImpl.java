@@ -116,7 +116,7 @@ public class NucleusAdapterIpcClientImpl implements NucleusAdapterIpc {
                     + "--ggcRootPath {PATH} {rest of the arguments} " +
                     "or set the environment variable GGC_ROOT_PATH");
         }
-        Path filepath = Paths.get(deTilde(ggcRootPath)).resolve(CLI_IPC_INFO_FILENAME);
+        Path filepath = Paths.get(deTilde(ggcRootPath)).resolve(CLI_IPC_INFO_FILENAME).toAbsolutePath();
         if (!Files.exists(filepath)) {
             throw new RuntimeException("CLI IPC info file not present at " + filepath);
         }

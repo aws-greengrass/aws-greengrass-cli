@@ -65,9 +65,9 @@ public class NucleusAdapterIpcClientImpl implements NucleusAdapterIpc {
         try {
             GetComponentDetailsRequest request = new GetComponentDetailsRequest();
             request.setComponentName(componentName);
-            GetComponentDetailsResponseHandler componentDetails = getIpcClient().getComponentDetails(request, Optional.empty());
-            software.amazon.awssdk.aws.greengrass.model.ComponentDetails componentDetails1 = componentDetails.getResponse().get().getComponentDetails();
-            return componentDetails1;
+            ComponentDetails componentDetails = getIpcClient().getComponentDetails(request, Optional.empty())
+                    .getResponse().get().getComponentDetails();
+            return componentDetails;
         } catch (ExecutionException | InterruptedException e) {
             //TODO: update when the sdk method signature includes exceptions
             throw new RuntimeException(e);
@@ -197,16 +197,15 @@ public class NucleusAdapterIpcClientImpl implements NucleusAdapterIpc {
 
             final EventStreamRPCConnection clientConnection = connectToGGCOverEventStreamIPC(socketOptions, token, domainSocketPath);
 
-            GreengrassCoreIPCClient greengrassCoreIPCClient = new GreengrassCoreIPCClient(clientConnection);
-            ipcClient = greengrassCoreIPCClient;
-            return greengrassCoreIPCClient;
+            ipcClient = new GreengrassCoreIPCClient(clientConnection);
+            return ipcClient;
         } catch (Exception e) {
             throw new RuntimeException("Unable to create ipc client", e);
         }
 
     }
 
-    public static EventStreamRPCConnection connectToGGCOverEventStreamIPC(SocketOptions socketOptions, String authToken,
+    private static EventStreamRPCConnection connectToGGCOverEventStreamIPC(SocketOptions socketOptions, String authToken,
                                                                           String ipcServerSocketPath)  {
 
         try (EventLoopGroup elGroup = new EventLoopGroup(1);
@@ -217,11 +216,6 @@ public class NucleusAdapterIpcClientImpl implements NucleusAdapterIpc {
                     GreengrassConnectMessageSupplier.connectMessageSupplier(authToken));
             final CompletableFuture<Void> connected = new CompletableFuture<>();
             final EventStreamRPCConnection connection = new EventStreamRPCConnection(config);
-            final boolean disconnected[] = {false};
-            final int disconnectedCode[] = {-1};
-            //this is a bit cumbersome but does not prevent a convenience wrapper from exposing a sync
-            //connect() or a connect() that returns a CompletableFuture that errors
-            //this could be wrapped by utility methods to provide a more
             connection.connect(new EventStreamRPCConnection.LifecycleHandler() {
                 //only called on successful connection. That is full on Connect -> ConnectAck(ConnectionAccepted=true)
                 @Override
@@ -231,8 +225,6 @@ public class NucleusAdapterIpcClientImpl implements NucleusAdapterIpc {
 
                 @Override
                 public void onDisconnect(int errorCode) {
-                    disconnected[0] = true;
-                    disconnectedCode[0] = errorCode;
                 }
 
                 //This on error is for any errors that is connection level, including problems during connect()

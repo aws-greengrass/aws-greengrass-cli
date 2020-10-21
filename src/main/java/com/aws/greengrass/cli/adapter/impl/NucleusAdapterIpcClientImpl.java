@@ -28,6 +28,8 @@ import software.amazon.awssdk.eventstreamrpc.EventStreamRPCConnectionConfig;
 import software.amazon.awssdk.eventstreamrpc.GreengrassConnectMessageSupplier;
 
 import javax.annotation.Nullable;
+import javax.inject.Inject;
+import javax.inject.Named;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
@@ -52,7 +54,8 @@ public class NucleusAdapterIpcClientImpl implements NucleusAdapterIpc {
     private String root;
     private GreengrassCoreIPCClient ipcClient;
 
-    public NucleusAdapterIpcClientImpl(String root) {
+    @Inject
+    public NucleusAdapterIpcClientImpl(@Nullable @Named("ggcRootPath") String root) {
         this.root = root;
     }
 
@@ -66,7 +69,7 @@ public class NucleusAdapterIpcClientImpl implements NucleusAdapterIpc {
             software.amazon.awssdk.aws.greengrass.model.ComponentDetails componentDetails1 = componentDetails.getResponse().get().getComponentDetails();
             return componentDetails1;
         } catch (ExecutionException | InterruptedException e) {
-            e.printStackTrace();
+            //TODO: update when the sdk method signature includes exceptions
             throw new RuntimeException(e);
         }
 
@@ -79,7 +82,7 @@ public class NucleusAdapterIpcClientImpl implements NucleusAdapterIpc {
             request.setComponentName(componentName);
             getIpcClient().restartComponent(request, Optional.empty()).getResponse().get();
         } catch (ExecutionException | InterruptedException e) {
-            e.printStackTrace();
+            //TODO: update when the sdk method signature includes exceptions
             throw new RuntimeException(e);
         }
     }
@@ -91,7 +94,7 @@ public class NucleusAdapterIpcClientImpl implements NucleusAdapterIpc {
             request.setComponentName(componentName);
             getIpcClient().stopComponent(request, Optional.empty()).getResponse().get();
         } catch (ExecutionException | InterruptedException e) {
-            e.printStackTrace();
+            //TODO: update when the sdk method signature includes exceptions
             throw new RuntimeException(e);
         }
     }
@@ -105,7 +108,7 @@ public class NucleusAdapterIpcClientImpl implements NucleusAdapterIpc {
             request.setArtifactsDirectoryPath(artifactsDirectoryPath);
             getIpcClient().updateRecipesAndArtifacts(request, Optional.empty()).getResponse().get();
         } catch (ExecutionException | InterruptedException e) {
-            e.printStackTrace();
+            //TODO: update when the sdk method signature includes exceptions
             throw new RuntimeException(e);
         }
     }
@@ -120,7 +123,7 @@ public class NucleusAdapterIpcClientImpl implements NucleusAdapterIpc {
             LocalDeployment deployment = localDeploymentStatus.getResponse().get().getDeployment();
             return deployment;
         } catch (ExecutionException | InterruptedException e) {
-            e.printStackTrace();
+            //TODO: update when the sdk method signature includes exceptions
             throw new RuntimeException(e);
         }
     }
@@ -132,7 +135,7 @@ public class NucleusAdapterIpcClientImpl implements NucleusAdapterIpc {
             ListLocalDeploymentsResponse listLocalDeploymentsResponse = getIpcClient().listLocalDeployments(request, Optional.empty()).getResponse().get();
             return listLocalDeploymentsResponse.getLocalDeployments();
         } catch (ExecutionException | InterruptedException e) {
-            e.printStackTrace();
+            //TODO: update when the sdk method signature includes exceptions
             throw new RuntimeException(e);
         }
 
@@ -145,7 +148,7 @@ public class NucleusAdapterIpcClientImpl implements NucleusAdapterIpc {
                     getIpcClient().createLocalDeployment(createLocalDeploymentRequest, Optional.empty()).getResponse().get();
             return createLocalDeploymentResponse.getDeploymentId();
         } catch (ExecutionException | InterruptedException e) {
-            e.printStackTrace();
+            //TODO: update when the sdk method signature includes exceptions
             throw new RuntimeException(e);
         }
 
@@ -158,7 +161,7 @@ public class NucleusAdapterIpcClientImpl implements NucleusAdapterIpc {
             ListComponentsResponse listComponentsResponse = getIpcClient().listComponents(request, Optional.empty()).getResponse().get();
             return listComponentsResponse.getComponents();
         } catch (ExecutionException | InterruptedException e) {
-            e.printStackTrace();
+            //TODO: update when the sdk method signature includes exceptions
             throw new RuntimeException(e);
         }
     }
@@ -198,7 +201,7 @@ public class NucleusAdapterIpcClientImpl implements NucleusAdapterIpc {
             ipcClient = greengrassCoreIPCClient;
             return greengrassCoreIPCClient;
         } catch (Exception e) {
-            throw new RuntimeException("Unable to create cli client", e);
+            throw new RuntimeException("Unable to create ipc client", e);
         }
 
     }
@@ -242,7 +245,7 @@ public class NucleusAdapterIpcClientImpl implements NucleusAdapterIpc {
             try {
                 connected.get();
             } catch (InterruptedException | ExecutionException e) {
-                e.printStackTrace();
+               throw new RuntimeException(e);
             }
             return connection;
         }
@@ -256,11 +259,4 @@ public class NucleusAdapterIpcClientImpl implements NucleusAdapterIpc {
         }
         return path;
     }
-
-
-//    public static void main(String[] args) {
-//        NucleusAdapterIpcClientImpl impl = new NucleusAdapterIpcClientImpl("/Users/faham/.evergreen");
-//        List<ComponentDetails> c =  impl.listComponents();
-//        System.out.println(c.size());
-//    }
 }

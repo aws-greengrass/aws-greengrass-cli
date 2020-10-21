@@ -18,6 +18,11 @@
             <source>${project.build.directory}/${project.artifactId}-${project.version}.jar</source>
             <outputDirectory>lib</outputDirectory>
         </file>
+        <!-- TODO: remove when sdk jar is consumed from a maven repo-->
+        <file>
+            <source>${project.basedir}/src/main/resources/aws-greengrass-ipc-sdk.jar</source>
+            <outputDirectory>lib</outputDirectory>
+        </file>
         <file>
             <source>${project.build.directory}/cli_completion.sh</source>
             <outputDirectory>/</outputDirectory>

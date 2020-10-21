@@ -1,7 +1,7 @@
 name: CI with Maven
 on:
   push:
-    branches: [ master ]
+    branches: [ master, new-ipc-client ]
   pull_request:
     branches: '*'
 jobs:
@@ -54,3 +54,19 @@ jobs:
       - run: sudo apt-get install -y awscli
       - name: Upload to S3
         run: aws s3 cp target/cli-1.0-SNAPSHOT.zip s3://gg-evergreen-releases/${{github.repository}}/${{github.ref}}/evergreen-cli-${{github.sha}}.zip
+  # remove this job when branch is merged in
+  publishnewCli:
+    needs: build
+    runs-on: [self-hosted, Linux, Greengrass]
+    if: github.ref == 'refs/heads/new-ipc-client'
+    steps:
+      - uses: actions/checkout@v2
+      - name: Set up JDK 1.8
+        uses: actions/setup-java@v1
+        with:
+          java-version: 1.8
+      - name: Build with Maven
+        run: mvn -ntp clean package -DskipTests
+      - run: sudo apt-get install -y awscli
+      - name: Upload to S3
+        run: aws s3 cp target/cli-1.0-SNAPSHOT.zip s3://gg-evergreen-releases/${{github.repository}}-new-sdk/${{github.ref}}/evergreen-cli-${{github.sha}}.zip

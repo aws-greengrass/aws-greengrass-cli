@@ -1,33 +1,28 @@
 package com.aws.greengrass.cli.adapter;
 
-import com.aws.greengrass.ipc.services.cli.exceptions.CliIpcClientException;
-import com.aws.greengrass.ipc.services.cli.exceptions.GenericCliIpcServerException;
-import com.aws.greengrass.ipc.services.cli.models.ComponentDetails;
-import com.aws.greengrass.ipc.services.cli.models.CreateLocalDeploymentRequest;
-import com.aws.greengrass.ipc.services.cli.models.LocalDeployment;
+
+import software.amazon.awssdk.aws.greengrass.model.ComponentDetails;
+import software.amazon.awssdk.aws.greengrass.model.CreateLocalDeploymentRequest;
+import software.amazon.awssdk.aws.greengrass.model.LocalDeployment;
 
 import java.util.List;
 
 public interface NucleusAdapterIpc {
 
-    ComponentDetails getComponentDetails(String componentName)
-            throws GenericCliIpcServerException, CliIpcClientException;
+    ComponentDetails getComponentDetails(String componentName);
 
-    void restartComponent(String componentName) throws GenericCliIpcServerException, CliIpcClientException;
+    void restartComponent(String componentName);
 
-    void stopComponent(String componentName) throws GenericCliIpcServerException, CliIpcClientException;
+    void stopComponent(String componentName);
 
-    void updateRecipesAndArtifacts(String recipesDirectoryPath, String artifactsDirectoryPath)
-            throws GenericCliIpcServerException, CliIpcClientException;
+    void updateRecipesAndArtifacts(String recipesDirectoryPath, String artifactsDirectoryPath);
 
-    LocalDeployment getLocalDeploymentStatus(String deploymentId)
-            throws GenericCliIpcServerException, CliIpcClientException;
+    LocalDeployment getLocalDeploymentStatus(String deploymentId);
 
-    List<LocalDeployment> listLocalDeployments() throws GenericCliIpcServerException, CliIpcClientException;
+    List<LocalDeployment> listLocalDeployments();
 
-    String createLocalDeployment(CreateLocalDeploymentRequest createLocalDeploymentRequest)
-            throws GenericCliIpcServerException, CliIpcClientException;
+    String createLocalDeployment(CreateLocalDeploymentRequest createLocalDeploymentRequest);
 
-    List<ComponentDetails> listComponents() throws GenericCliIpcServerException, CliIpcClientException;
+    List<ComponentDetails> listComponents();
 
 }

@@ -8,7 +8,6 @@ package com.aws.greengrass.cli;
 import com.aws.greengrass.cli.commands.ComponentCommand;
 import com.aws.greengrass.cli.commands.DeploymentCommand;
 import com.aws.greengrass.cli.commands.Logs;
-import com.aws.greengrass.cli.commands.Service;
 import com.aws.greengrass.cli.module.AdapterModule;
 import com.aws.greengrass.cli.module.CommandsComponent;
 import com.aws.greengrass.cli.module.DaggerCommandsComponent;
@@ -26,7 +25,7 @@ import java.util.ResourceBundle;
  * Main entry point into the command line.
  */
 @Command(name = "cli",
-        subcommands = {HelpCommand.class, Service.class, ComponentCommand.class, DeploymentCommand.class, Logs.class},
+        subcommands = {HelpCommand.class, ComponentCommand.class, DeploymentCommand.class, Logs.class},
         resourceBundle = "com.aws.greengrass.cli.CLI_messages")
 public class CLI implements Runnable {
 

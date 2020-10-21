@@ -10,13 +10,7 @@ import com.aws.greengrass.cli.CommandFactory;
 import com.aws.greengrass.cli.adapter.NucleusAdapterIpc;
 import com.aws.greengrass.cli.module.AdapterModule;
 import com.aws.greengrass.cli.module.DaggerCommandsComponent;
-import com.aws.greengrass.ipc.services.cli.exceptions.CliIpcClientException;
-import com.aws.greengrass.ipc.services.cli.exceptions.GenericCliIpcServerException;
-import com.aws.greengrass.ipc.services.cli.models.ComponentDetails;
-import com.aws.greengrass.ipc.services.cli.models.CreateLocalDeploymentRequest;
-import com.aws.greengrass.ipc.services.cli.models.LifecycleState;
 import com.fasterxml.jackson.core.JsonProcessingException;
-import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.common.collect.ImmutableMap;
 import org.hamcrest.core.StringContains;
 import org.junit.jupiter.api.Test;
@@ -24,6 +18,9 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import picocli.CommandLine;
+import software.amazon.awssdk.aws.greengrass.model.ComponentDetails;
+import software.amazon.awssdk.aws.greengrass.model.CreateLocalDeploymentRequest;
+import software.amazon.awssdk.aws.greengrass.model.LifecycleState;
 
 import java.io.ByteArrayOutputStream;
 import java.io.PrintStream;
@@ -59,79 +56,69 @@ class ComponentCommandTest {
     private NucleusAdapterIpc nucleusAdapteripc;
 
     @Test
-    void GIVEN_WHEN_components_to_merge_and_remove_provided_THEN_request_contains_the_info()
-            throws CliIpcClientException, GenericCliIpcServerException {
-        int exitCode = runCommandLine("component", "update", "-m", NEW_COMPONENT_1_WITH_VERSION, "--merge",
+    void GIVEN_WHEN_components_to_merge_and_remove_provided_THEN_request_contains_the_info() {
+        int exitCode = runCommandLine("deployment", "create", "-m", NEW_COMPONENT_1_WITH_VERSION, "--merge",
                                       NEW_COMPONENT_2_WITH_VERSION, "--remove", NEW_COMPONENT_1, "--remove",
                                       NEW_COMPONENT_2);
 
-        CreateLocalDeploymentRequest createLocalDeploymentRequest = CreateLocalDeploymentRequest.builder()
-                .rootComponentVersionsToAdd(ROOT_COMPONENTS)
-                .rootComponentsToRemove(Arrays.asList(NEW_COMPONENT_1, NEW_COMPONENT_2))
-                .componentToConfiguration(Collections.emptyMap())
-                .build();
+        CreateLocalDeploymentRequest request = new CreateLocalDeploymentRequest();
+        request.setRootComponentVersionsToAdd(ROOT_COMPONENTS);
+        request.setRootComponentsToRemove(Arrays.asList(NEW_COMPONENT_1, NEW_COMPONENT_2));
 
-        verify(nucleusAdapteripc).createLocalDeployment(createLocalDeploymentRequest);
+        verify(nucleusAdapteripc).createLocalDeployment(request);
         assertThat(exitCode, is(0));
     }
 
 
     @Test
-    void GIVEN_WHEN_artifact_dir_is_provided_THEN_request_contains_provided_artifact_dir()
-            throws CliIpcClientException, GenericCliIpcServerException {
-        int exitCode = runCommandLine("component", "update", "--artifactDir", ARTIFACT_FOLDER_PATH_STR);
+    void GIVEN_WHEN_artifact_dir_is_provided_THEN_request_contains_provided_artifact_dir() {
+        int exitCode = runCommandLine("deployment", "create", "--artifactDir", ARTIFACT_FOLDER_PATH_STR);
         verify(nucleusAdapteripc).updateRecipesAndArtifacts(null, ARTIFACT_FOLDER_PATH_STR);
         assertThat(exitCode, is(0));
     }
 
     @Test
-    void GIVEN_WHEN_artifact_dir_is_provided_with_short_name_THEN_request_contains_provided_artifact_dir()
-            throws CliIpcClientException, GenericCliIpcServerException {
-        int exitCode = runCommandLine("component", "update", "-a", ARTIFACT_FOLDER_PATH_STR);
+    void GIVEN_WHEN_artifact_dir_is_provided_with_short_name_THEN_request_contains_provided_artifact_dir() {
+        int exitCode = runCommandLine("deployment", "create", "-a", ARTIFACT_FOLDER_PATH_STR);
 
         verify(nucleusAdapteripc).updateRecipesAndArtifacts(null, ARTIFACT_FOLDER_PATH_STR);
         assertThat(exitCode, is(0));
     }
 
     @Test
-    void GIVEN_WHEN_artifact_dir_is_provided_more_than_once_THEN_invalid_request_is_returned()
-            throws CliIpcClientException, GenericCliIpcServerException {
+    void GIVEN_WHEN_artifact_dir_is_provided_more_than_once_THEN_invalid_request_is_returned() {
         int exitCode =
-                runCommandLine("component", "update", "-a", ARTIFACT_FOLDER_PATH_STR, "-a", ARTIFACT_FOLDER_PATH_STR);
+                runCommandLine("deployment", "create", "-a", ARTIFACT_FOLDER_PATH_STR, "-a", ARTIFACT_FOLDER_PATH_STR);
 
         verify(nucleusAdapteripc, never()).updateRecipesAndArtifacts(any(), any());
         assertThat(exitCode, is(2));
     }
 
     @Test
-    void GIVEN_WHEN_recipe_dir_is_provided_THEN_request_contains_provided_recipe_dir()
-            throws CliIpcClientException, GenericCliIpcServerException {
-        int exitCode = runCommandLine("component", "update", "--recipeDir", RECIPE_FOLDER_PATH_STR);
+    void GIVEN_WHEN_recipe_dir_is_provided_THEN_request_contains_provided_recipe_dir() {
+        int exitCode = runCommandLine("deployment", "create", "--recipeDir", RECIPE_FOLDER_PATH_STR);
         verify(nucleusAdapteripc).updateRecipesAndArtifacts(RECIPE_FOLDER_PATH_STR, null);
         assertThat(exitCode, is(0));
     }
 
     @Test
-    void GIVEN_WHEN_recipe_dir_is_provided_with_short_name_THEN_request_contains_provided_recipe_dir()
-            throws CliIpcClientException, GenericCliIpcServerException {
-        int exitCode = runCommandLine("component", "update", "-r", RECIPE_FOLDER_PATH_STR);
+    void GIVEN_WHEN_recipe_dir_is_provided_with_short_name_THEN_request_contains_provided_recipe_dir() {
+        int exitCode = runCommandLine("deployment", "create", "-r", RECIPE_FOLDER_PATH_STR);
         verify(nucleusAdapteripc).updateRecipesAndArtifacts(RECIPE_FOLDER_PATH_STR, null);
         assertThat(exitCode, is(0));
     }
 
 
     @Test
-    void GIVEN_WHEN_recipe_dir_is_provided_more_than_once_THEN_invalid_request_is_returned()
-            throws CliIpcClientException, GenericCliIpcServerException {
+    void GIVEN_WHEN_recipe_dir_is_provided_more_than_once_THEN_invalid_request_is_returned() {
         int exitCode =
-                runCommandLine("component", "update", "-r", RECIPE_FOLDER_PATH_STR, "-r", RECIPE_FOLDER_PATH_STR);
+                runCommandLine("deployment", "create", "-r", RECIPE_FOLDER_PATH_STR, "-r", RECIPE_FOLDER_PATH_STR);
         verify(nucleusAdapteripc, never()).createLocalDeployment(any());
         assertThat(exitCode, is(2));
     }
 
     @Test
-    void GIVEN_a_running_component_WHEN_list_component_details_THEN_component_info_is_printed()
-            throws CliIpcClientException, GenericCliIpcServerException, JsonProcessingException {
+    void GIVEN_a_running_component_WHEN_list_component_details_THEN_component_info_is_printed() throws JsonProcessingException {
 
         // GIVEN
         ComponentDetails componentDetails = getTestComponentDetails();
@@ -163,7 +150,7 @@ class ComponentCommandTest {
 
     @Test
     void GIVEN_a_running_component_WHEN_check_component_details_THEN_component_info_is_printed()
-            throws CliIpcClientException, GenericCliIpcServerException, JsonProcessingException {
+            throws JsonProcessingException {
 
         // GIVEN
         ComponentDetails componentDetails = getTestComponentDetails();
@@ -197,67 +184,29 @@ class ComponentCommandTest {
         assertThat(output, StringContains.containsString("Component Name: " + componentDetails.getComponentName()));
         assertThat(output, StringContains.containsString("Version: " + componentDetails.getVersion()));
         assertThat(output, StringContains.containsString("State: " + componentDetails.getState()));
-        assertThat(output, StringContains.containsString(
-                "Configurations: " + new ObjectMapper().writeValueAsString(componentDetails.getNestedConfiguration())));
     }
 
     private static ComponentDetails getTestComponentDetails() {
-        Map<String, Object> config = ImmutableMap.of("key", "val1", "nested", ImmutableMap.of("leafkey", "value1"));
+        //TODO: add back this when nested config is added to new component details
+        //Map<String, Object> config = ImmutableMap.of("key", "val1", "nested", ImmutableMap.of("leafkey", "value1"));
 
-        return ComponentDetails.builder()
-                .componentName(NEW_COMPONENT_3)
-                .version("1.0.1")
-                .state(LifecycleState.FINISHED)
-                .nestedConfiguration(config)
-                .build();
+        ComponentDetails componentDetails = new ComponentDetails();
+        componentDetails.setComponentName(NEW_COMPONENT_3);
+        componentDetails.setVersion("1.0.1");
+        componentDetails.setState(LifecycleState.FINISHED);
+        return componentDetails;
     }
+
     @Test
-    void GIVEN_WHEN_params_are_provided_THEN_request_contain_all_params()
-            throws CliIpcClientException, GenericCliIpcServerException {
-        int exitCode = runCommandLine("component", "update", "--param", "newComponent1:K1=V1", "--param",
-                                      "newComponent1:nested.K2=V2", "--param", "newComponent2:K3=V3", "--param",
-                                      "aws.greengrass.componentname:nested.K2=V2");
-
-        Map<String, Map<String, Object>> componentNameToConfig = new HashMap<>();
-        componentNameToConfig.put(NEW_COMPONENT_1, new HashMap<>());
-        componentNameToConfig.get(NEW_COMPONENT_1).put("K1", "V1");
-        componentNameToConfig.get(NEW_COMPONENT_1).put("nested", new HashMap<>());
-        ((HashMap) componentNameToConfig.get(NEW_COMPONENT_1).get("nested")).put("K2", "V2");
-
-        componentNameToConfig.put(NEW_COMPONENT_2, new HashMap<>());
-        componentNameToConfig.get(NEW_COMPONENT_2).put("K3", "V3");
-        componentNameToConfig.put(NEW_COMPONENT_3, new HashMap<>());
-        componentNameToConfig.get(NEW_COMPONENT_3).put("nested", new HashMap<>());
-        ((HashMap) componentNameToConfig.get(NEW_COMPONENT_3).get("nested")).put("K2", "V2");
-
-        CreateLocalDeploymentRequest createLocalDeploymentRequest =
-                CreateLocalDeploymentRequest.builder().componentToConfiguration(componentNameToConfig).build();
-
-        verify(nucleusAdapteripc).createLocalDeployment(createLocalDeploymentRequest);
+    void GIVEN_WHEN_no_option_provided_THEN_request_is_empty() {
+        int exitCode = runCommandLine("deployment", "create");
+        CreateLocalDeploymentRequest request = new CreateLocalDeploymentRequest();
+        verify(nucleusAdapteripc).createLocalDeployment(request);
         assertThat(exitCode, is(0));
     }
 
     @Test
-    void GIVEN_WHEN_no_option_provided_THEN_request_is_empty()
-            throws CliIpcClientException, GenericCliIpcServerException {
-        int exitCode = runCommandLine("component", "update");
-        CreateLocalDeploymentRequest createLocalDeploymentRequest =
-                CreateLocalDeploymentRequest.builder().componentToConfiguration(Collections.emptyMap()).build();
-        verify(nucleusAdapteripc).createLocalDeployment(createLocalDeploymentRequest);
-        assertThat(exitCode, is(0));
-    }
-
-    @Test
-    void GIVEN_WHEN_invalid_params_are_provided_THEN_exit_1()
-            throws CliIpcClientException, GenericCliIpcServerException {
-        int exitCode = runCommandLine("component", "update", "--param", "newComponent1=V1");
-        verify(nucleusAdapteripc, never()).createLocalDeployment(any());
-        assertThat(exitCode, is(1));
-    }
-
-    @Test
-    void WHEN_list_command_request_THEN_print_info_and_exit_0()
-            throws CliIpcClientException, GenericCliIpcServerException {
+    void WHEN_list_command_request_THEN_print_info_and_exit_0() {
         int exitCode = runCommandLine("component", "list");
         verify(nucleusAdapteripc, only()).listComponents();
         assertThat(exitCode, is(0));

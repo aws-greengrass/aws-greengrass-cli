@@ -15,7 +15,7 @@
     </fileSets>
     <files>
         <file>
-            <source>${project.build.directory}/${project.artifactId}-${project.version}.jar</source>
+            <source>${project.build.directory}/${project.artifactId}-${project.version}-dependency.jar</source>
             <outputDirectory>lib</outputDirectory>
         </file>
         <!-- TODO: remove when sdk jar is consumed from a maven repo-->
@@ -32,12 +32,4 @@
             <outputDirectory>/</outputDirectory>
         </file>
     </files>
-    <dependencySets>
-        <dependencySet>
-            <outputDirectory>lib</outputDirectory>
-            <excludes>
-                <exclude>${project.groupId}:${project.artifactId}:jar:*</exclude>
-            </excludes>
-        </dependencySet>
-    </dependencySets>
 </assembly>

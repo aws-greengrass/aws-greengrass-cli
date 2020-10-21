@@ -23,6 +23,11 @@
             <source>${project.basedir}/src/main/resources/aws-greengrass-ipc-sdk.jar</source>
             <outputDirectory>lib</outputDirectory>
         </file>
+        <!-- TODO: remove when crt jar is available via maven repo-->
+        <file>
+            <source>${project.basedir}/src/main/resources/aws-crt-1.0.0-SNAPSHOT-macos.jar</source>
+            <outputDirectory>lib</outputDirectory>
+        </file>
         <file>
             <source>${project.build.directory}/cli_completion.sh</source>
             <outputDirectory>/</outputDirectory>

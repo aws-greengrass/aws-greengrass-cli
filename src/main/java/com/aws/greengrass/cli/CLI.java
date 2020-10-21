@@ -49,7 +49,6 @@ public class CLI implements Runnable {
                                     || e instanceof GenericCliIpcServerException) {
                                 System.out.println(commandLine.getColorScheme().errorText(e.getMessage()));
                                 commandLine.usage(System.out);
-                                e.printStackTrace(System.err);
                                 return 0;
                             } else {
                                 throw e;

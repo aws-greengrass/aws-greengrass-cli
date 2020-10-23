@@ -219,7 +219,7 @@ public class NucleusAdapterIpcClientImpl implements NucleusAdapterIpc {
 
     private static EventStreamRPCConnection connectToGGCOverEventStreamIPC(SocketOptions socketOptions, String authToken,
                                                                           String ipcServerSocketPath)  {
-        try (EventLoopGroup elGroup = new EventLoopGroup(1);
+        try (EventLoopGroup elGroup = new EventLoopGroup(2);
              ClientBootstrap clientBootstrap = new ClientBootstrap(elGroup, null)) {
 
             final EventStreamRPCConnectionConfig config = new EventStreamRPCConnectionConfig(clientBootstrap, elGroup,
@@ -246,8 +246,8 @@ public class NucleusAdapterIpcClientImpl implements NucleusAdapterIpc {
                 }
             });
             try {
-                connected.get();
-            } catch (InterruptedException | ExecutionException e) {
+                connected.get(DEFAULT_TIMEOUT_IN_SEC, TimeUnit.SECONDS);
+            } catch (InterruptedException | ExecutionException | TimeoutException e) {
                throw new RuntimeException(e);
             }
             return connection;

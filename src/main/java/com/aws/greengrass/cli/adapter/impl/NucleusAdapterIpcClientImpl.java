@@ -41,6 +41,8 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutionException;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.TimeoutException;
 
 public class NucleusAdapterIpcClientImpl implements NucleusAdapterIpc {
 
@@ -56,6 +58,7 @@ public class NucleusAdapterIpcClientImpl implements NucleusAdapterIpc {
     private static final String CLI_AUTH_TOKEN = "cli_auth_token";
     private static final String DOMAIN_SOCKET_PATH = "domain_socket_path";
     private static final String HOME_DIR_PREFIX = "~/";
+    private static final int DEFAULT_TIMEOUT_IN_SEC = 5;
 
     private String root;
     private GreengrassCoreIPCClient ipcClient;
@@ -72,9 +75,9 @@ public class NucleusAdapterIpcClientImpl implements NucleusAdapterIpc {
             GetComponentDetailsRequest request = new GetComponentDetailsRequest();
             request.setComponentName(componentName);
             ComponentDetails componentDetails = getIpcClient().getComponentDetails(request, Optional.empty())
-                    .getResponse().get().getComponentDetails();
+                    .getResponse().get(DEFAULT_TIMEOUT_IN_SEC, TimeUnit.SECONDS).getComponentDetails();
             return componentDetails;
-        } catch (ExecutionException | InterruptedException e) {
+        } catch (ExecutionException | TimeoutException | InterruptedException e) {
             //TODO: update when the sdk method signature includes exceptions
             throw new RuntimeException(e);
         }
@@ -86,8 +89,9 @@ public class NucleusAdapterIpcClientImpl implements NucleusAdapterIpc {
         try {
             RestartComponentRequest request = new RestartComponentRequest();
             request.setComponentName(componentName);
-            getIpcClient().restartComponent(request, Optional.empty()).getResponse().get();
-        } catch (ExecutionException | InterruptedException e) {
+            getIpcClient().restartComponent(request, Optional.empty()).getResponse()
+                    .get(DEFAULT_TIMEOUT_IN_SEC, TimeUnit.SECONDS);
+        } catch (ExecutionException | TimeoutException | InterruptedException e) {
             //TODO: update when the sdk method signature includes exceptions
             throw new RuntimeException(e);
         }
@@ -98,8 +102,9 @@ public class NucleusAdapterIpcClientImpl implements NucleusAdapterIpc {
         try {
             StopComponentRequest request = new StopComponentRequest();
             request.setComponentName(componentName);
-            getIpcClient().stopComponent(request, Optional.empty()).getResponse().get();
-        } catch (ExecutionException | InterruptedException e) {
+            getIpcClient().stopComponent(request, Optional.empty()).getResponse()
+                    .get(DEFAULT_TIMEOUT_IN_SEC, TimeUnit.SECONDS);
+        } catch (ExecutionException | TimeoutException | InterruptedException e) {
             //TODO: update when the sdk method signature includes exceptions
             throw new RuntimeException(e);
         }
@@ -112,8 +117,9 @@ public class NucleusAdapterIpcClientImpl implements NucleusAdapterIpc {
             UpdateRecipesAndArtifactsRequest request = new UpdateRecipesAndArtifactsRequest();
             request.setRecipeDirectoryPath(recipesDirectoryPath);
             request.setArtifactsDirectoryPath(artifactsDirectoryPath);
-            getIpcClient().updateRecipesAndArtifacts(request, Optional.empty()).getResponse().get();
-        } catch (ExecutionException | InterruptedException e) {
+            getIpcClient().updateRecipesAndArtifacts(request, Optional.empty()).getResponse()
+                    .get(DEFAULT_TIMEOUT_IN_SEC, TimeUnit.SECONDS);
+        } catch (ExecutionException | TimeoutException | InterruptedException e) {
             //TODO: update when the sdk method signature includes exceptions
             throw new RuntimeException(e);
         }
@@ -126,9 +132,10 @@ public class NucleusAdapterIpcClientImpl implements NucleusAdapterIpc {
             GetLocalDeploymentStatusRequest request = new GetLocalDeploymentStatusRequest();
             request.setDeploymentId(deploymentId);
             GetLocalDeploymentStatusResponseHandler localDeploymentStatus = getIpcClient().getLocalDeploymentStatus(request, Optional.empty());
-            LocalDeployment deployment = localDeploymentStatus.getResponse().get().getDeployment();
+            LocalDeployment deployment = localDeploymentStatus.getResponse()
+                    .get(DEFAULT_TIMEOUT_IN_SEC, TimeUnit.SECONDS).getDeployment();
             return deployment;
-        } catch (ExecutionException | InterruptedException e) {
+        } catch (ExecutionException | TimeoutException | InterruptedException e) {
             //TODO: update when the sdk method signature includes exceptions
             throw new RuntimeException(e);
         }
@@ -138,9 +145,11 @@ public class NucleusAdapterIpcClientImpl implements NucleusAdapterIpc {
     public List<LocalDeployment> listLocalDeployments() {
         try {
             ListLocalDeploymentsRequest request = new ListLocalDeploymentsRequest();
-            ListLocalDeploymentsResponse listLocalDeploymentsResponse = getIpcClient().listLocalDeployments(request, Optional.empty()).getResponse().get();
+            ListLocalDeploymentsResponse listLocalDeploymentsResponse = getIpcClient()
+                    .listLocalDeployments(request, Optional.empty()).getResponse()
+                    .get(DEFAULT_TIMEOUT_IN_SEC, TimeUnit.SECONDS);
             return listLocalDeploymentsResponse.getLocalDeployments();
-        } catch (ExecutionException | InterruptedException e) {
+        } catch (ExecutionException | TimeoutException | InterruptedException e) {
             //TODO: update when the sdk method signature includes exceptions
             throw new RuntimeException(e);
         }
@@ -151,9 +160,10 @@ public class NucleusAdapterIpcClientImpl implements NucleusAdapterIpc {
     public String createLocalDeployment(CreateLocalDeploymentRequest createLocalDeploymentRequest)  {
         try {
             CreateLocalDeploymentResponse createLocalDeploymentResponse =
-                    getIpcClient().createLocalDeployment(createLocalDeploymentRequest, Optional.empty()).getResponse().get();
+                    getIpcClient().createLocalDeployment(createLocalDeploymentRequest, Optional.empty()).getResponse()
+                            .get(DEFAULT_TIMEOUT_IN_SEC, TimeUnit.SECONDS);
             return createLocalDeploymentResponse.getDeploymentId();
-        } catch (ExecutionException | InterruptedException e) {
+        } catch (ExecutionException | TimeoutException | InterruptedException e) {
             //TODO: update when the sdk method signature includes exceptions
             throw new RuntimeException(e);
         }
@@ -164,9 +174,10 @@ public class NucleusAdapterIpcClientImpl implements NucleusAdapterIpc {
     public List<ComponentDetails> listComponents() {
         try {
             ListComponentsRequest request = new ListComponentsRequest();
-            ListComponentsResponse listComponentsResponse = getIpcClient().listComponents(request, Optional.empty()).getResponse().get();
+            ListComponentsResponse listComponentsResponse = getIpcClient().listComponents(request, Optional.empty()).getResponse()
+                    .get(DEFAULT_TIMEOUT_IN_SEC, TimeUnit.SECONDS);
             return listComponentsResponse.getComponents();
-        } catch (ExecutionException | InterruptedException e) {
+        } catch (ExecutionException | TimeoutException | InterruptedException e) {
             //TODO: update when the sdk method signature includes exceptions
             throw new RuntimeException(e);
         }
@@ -208,7 +219,6 @@ public class NucleusAdapterIpcClientImpl implements NucleusAdapterIpc {
 
     private static EventStreamRPCConnection connectToGGCOverEventStreamIPC(SocketOptions socketOptions, String authToken,
                                                                           String ipcServerSocketPath)  {
-
         try (EventLoopGroup elGroup = new EventLoopGroup(1);
              ClientBootstrap clientBootstrap = new ClientBootstrap(elGroup, null)) {
 

@@ -60,7 +60,7 @@ public class NucleusAdapterIpcClientImpl implements NucleusAdapterIpc {
     private static final String DOMAIN_SOCKET_PATH = "domain_socket_path";
     private static final String IPC_SERVER_SOCKET_SYMLINK = "./ipcCliServerSocketPath.socket";
     private static final String HOME_DIR_PREFIX = "~/";
-    private static final int DEFAULT_TIMEOUT_IN_SEC = 5;
+    private static final int DEFAULT_TIMEOUT_IN_SEC = 10;
 
     private String root;
     private GreengrassCoreIPCClient ipcClient;

@@ -33,6 +33,7 @@ import javax.inject.Named;
 import java.io.File;
 import java.io.IOException;
 import java.nio.file.Files;
+import java.nio.file.LinkOption;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.HashMap;
@@ -57,6 +58,7 @@ public class NucleusAdapterIpcClientImpl implements NucleusAdapterIpc {
     private static final String GROUP_CLIENT_ID_PREFIX = "group-";
     private static final String CLI_AUTH_TOKEN = "cli_auth_token";
     private static final String DOMAIN_SOCKET_PATH = "domain_socket_path";
+    private static final String IPC_SERVER_SOCKET_SYMLINK = "./ipcCliServerSocketPath.socket";
     private static final String HOME_DIR_PREFIX = "~/";
     private static final int DEFAULT_TIMEOUT_IN_SEC = 5;
 
@@ -200,6 +202,16 @@ public class NucleusAdapterIpcClientImpl implements NucleusAdapterIpc {
         try {
             Map<String, String> ipcInfoMap = OBJECT_MAPPER.readValue(loadCliIpcInfo(ggcRootPath), HashMap.class);
             String domainSocketPath = ipcInfoMap.get(DOMAIN_SOCKET_PATH);
+            if (Files.exists(Paths.get(IPC_SERVER_SOCKET_SYMLINK), LinkOption.NOFOLLOW_LINKS)) {
+                Files.delete(Paths.get(IPC_SERVER_SOCKET_SYMLINK));
+            }
+            boolean symlinkCreated = false;
+            try {
+                Files.createSymbolicLink(Paths.get(IPC_SERVER_SOCKET_SYMLINK), Paths.get(domainSocketPath));
+                symlinkCreated = true;
+            } catch (IOException e) {
+                //Symlink not created, ignoring and using absolute path
+            }
             String token = ipcInfoMap.get(CLI_AUTH_TOKEN);
 
             SocketOptions socketOptions = new SocketOptions();
@@ -207,7 +219,8 @@ public class NucleusAdapterIpcClientImpl implements NucleusAdapterIpc {
             socketOptions.domain = SocketOptions.SocketDomain.LOCAL;
             socketOptions.type = SocketOptions.SocketType.STREAM;
 
-            final EventStreamRPCConnection clientConnection = connectToGGCOverEventStreamIPC(socketOptions, token, domainSocketPath);
+            final EventStreamRPCConnection clientConnection = connectToGGCOverEventStreamIPC(socketOptions, token,
+                    symlinkCreated ? IPC_SERVER_SOCKET_SYMLINK : domainSocketPath);
 
             ipcClient = new GreengrassCoreIPCClient(clientConnection);
             return ipcClient;

@@ -34,6 +34,7 @@ public class DeploymentCommand extends BaseCommand {
      @CommandLine.Option(names = {"-g", "--groupId"}, paramLabel = "group Id") String groupId,
      @CommandLine.Option(names = {"-r", "--recipeDir"}, paramLabel = "Recipe Folder Path") String recipeDir,
      @CommandLine.Option(names = {"-a", "--artifactDir"}, paramLabel = "Artifacts Folder Path") String artifactDir,
+     @CommandLine.Option(names = {"-p", "--param"}, paramLabel = "Runtime parameters") Map<String, String> parameters,
      @CommandLine.Option(names = {"-c", "--update-config"}, paramLabel = "Update configuration") String configUpdate)
             throws JsonProcessingException {
         // TODO Validate folder exists and folder structure

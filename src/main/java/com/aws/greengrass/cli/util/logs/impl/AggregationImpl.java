@@ -1,5 +1,7 @@
-/* Copyright Amazon.com, Inc. or its affiliates. All Rights Reserved.
- * SPDX-License-Identifier: Apache-2.0 */
+/*
+ * Copyright Amazon.com, Inc. or its affiliates. All Rights Reserved.
+ * SPDX-License-Identifier: Apache-2.0
+ */
 
 package com.aws.greengrass.cli.util.logs.impl;
 
@@ -30,7 +32,7 @@ public class AggregationImpl implements Aggregation {
     // Log file name is assumed to be one of patterns {}.log_yyyy-MM-dd_HH_index or {}.log_yyyy-MM-dd_HH-mm_index.
     // Greengrass currently rotate log files every hour, but it likely will change to rotate by 15 minutes in future iteration.
     // We support both patterns now and we can remove one of the patterns in future.
-    // TODO: remove unused file name pattern
+    // GG_NEEDS_REVIEW: TODO: remove unused file name pattern
     private static final Pattern fileNamePatternByHour = Pattern.compile("(\\w+)\\.log(_([0-9]+-[0-9]+-[0-9]+_[0-9]+)_([0-9]+))?$");
     private static final Pattern fileNamePatternByMin = Pattern.compile("(\\w+)\\.log(_([0-9]+-[0-9]+-[0-9]+_[0-9]+-[0-9]+)_([0-9]+))?$");
 
@@ -95,7 +97,7 @@ public class AggregationImpl implements Aggregation {
             }
             readLogFutureList.add(executorService.submit(new FileReader(entry.getValue(), config)));
         }
-        //TODO: track log rotation
+        // GG_NEEDS_REVIEW: TODO: track log rotation
         return config.getQueue();
     }
 
@@ -149,7 +151,7 @@ public class AggregationImpl implements Aggregation {
 
     /*
      * Help function that checks if a file is a log file.
-     * TODO: further investigate log file criteria
+     * GG_NEEDS_REVIEW: TODO: further investigate log file criteria
      * https://github.com/aws/aws-greengrass-cli/pull/14#discussion_r456007545
      */
     private boolean isLogFile(File file) {

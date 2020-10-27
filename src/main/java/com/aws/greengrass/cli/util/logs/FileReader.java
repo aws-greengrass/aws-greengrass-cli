@@ -1,3 +1,8 @@
+/*
+ * Copyright Amazon.com, Inc. or its affiliates. All Rights Reserved.
+ * SPDX-License-Identifier: Apache-2.0
+ */
+
 package com.aws.greengrass.cli.util.logs;
 
 import com.aws.greengrass.cli.util.logs.impl.AggregationImplConfig;
@@ -26,7 +31,7 @@ public class FileReader implements Runnable {
     public FileReader(List<LogFile> fileToRead, AggregationImplConfig config) {
         this.filesToRead = fileToRead;
         this.config = config;
-        //TODO: investigate which data structure to use for logEntryList
+        // GG_NEEDS_REVIEW: TODO: investigate which data structure to use for logEntryList
         this.beforeContextList = new ArrayList<>();
     }
 
@@ -44,7 +49,7 @@ public class FileReader implements Runnable {
                 // if the current time is after time window given, we break the loop and stop the thread.
                 while ((line = reader.readLine()) != null || (isFollowing && config.getFilterInterface().reachedEndTime())) {
                     if (line == null) {
-                        //TODO: remove busy polling by adding a WatcherService to track and notify file changes.
+                        // GG_NEEDS_REVIEW: TODO: remove busy polling by adding a WatcherService to track and notify file changes.
                         try {
                             sleep(100);
                             continue;

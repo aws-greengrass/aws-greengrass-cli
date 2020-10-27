@@ -1,3 +1,8 @@
+/*
+ * Copyright Amazon.com, Inc. or its affiliates. All Rights Reserved.
+ * SPDX-License-Identifier: Apache-2.0
+ */
+
 package com.aws.greengrass.cli.commands;
 
 import com.aws.greengrass.cli.adapter.NucleusAdapterIpc;
@@ -16,16 +21,14 @@ import java.util.Map;
 public class DeploymentCommand extends BaseCommand {
 
     private final ObjectMapper mapper = new ObjectMapper();
-    private final NucleusAdapterIpc nucleusAdapterIpc;
+    private NucleusAdapterIpc nucleusAdapterIpc;
 
     @Inject
-    public DeploymentCommand(
-            NucleusAdapterIpc nucleusAdapterIpc
-    ) {
+    public DeploymentCommand(NucleusAdapterIpc nucleusAdapterIpc) {
         this.nucleusAdapterIpc = nucleusAdapterIpc;
     }
 
-    //TODO: input validation and better error handling https://sim.amazon.com/issues/P39478724
+    // GG_NEEDS_REVIEW: TODO: input validation and better error handling https://sim.amazon.com/issues/P39478724
     @CommandLine.Command(name = "create",
             description = "Create local deployment with provided recipes, artifacts, and runtime parameters")
     public int create
@@ -57,7 +60,7 @@ public class DeploymentCommand extends BaseCommand {
         return 0;
     }
 
-    //TODO: input validation and better error handling https://sim.amazon.com/issues/P39478724
+    // GG_NEEDS_REVIEW: TODO: input validation and better error handling https://sim.amazon.com/issues/P39478724
     @CommandLine.Command(name = "status",
             description = "Retrieve the status of a deployment")
     public int status(@CommandLine.Option(names = {"-i", "--deploymentId"}, paramLabel = "Deployment Id", required = true) String deploymentId) {
@@ -66,7 +69,7 @@ public class DeploymentCommand extends BaseCommand {
         return 0;
     }
 
-    //TODO: input validation and better error handling https://sim.amazon.com/issues/P39478724
+    // GG_NEEDS_REVIEW: TODO: input validation and better error handling https://sim.amazon.com/issues/P39478724
     @CommandLine.Command(name = "list", description = "Retrieve the status of local deployments")
     public int list() {
         List<LocalDeployment> localDeployments = nucleusAdapterIpc.listLocalDeployments();

@@ -1,3 +1,8 @@
+/*
+ * Copyright Amazon.com, Inc. or its affiliates. All Rights Reserved.
+ * SPDX-License-Identifier: Apache-2.0
+ */
+
 package com.aws.greengrass.cli.adapter.impl;
 
 import com.aws.greengrass.cli.adapter.NucleusAdapterIpc;
@@ -189,7 +194,7 @@ public class NucleusAdapterIpcClientImpl implements NucleusAdapterIpc {
         if (ipcClient != null) {
             return ipcClient;
         }
-        // TODO: When the greengrass-cli is installed in the Greengrass root path this will derived from the current
+        // GG_NEEDS_REVIEW: TODO: When the greengrass-cli is installed in the Greengrass root path this will derived from the current
         // working directory, instead of an env variable. Until then using env variable.
         // check if root path was passed as an argument to the command line, else fall back to env variable
         // if root path not found then throw exception

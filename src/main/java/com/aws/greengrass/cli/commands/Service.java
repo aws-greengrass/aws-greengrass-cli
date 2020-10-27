@@ -13,7 +13,7 @@ import picocli.CommandLine;
 
 import javax.inject.Inject;
 
-//TODO: Moved stop/restart as sub-commands of "component" name space space. Remove these methods after UAT's are updated
+// GG_NEEDS_REVIEW: TODO: Moved stop/restart as sub-commands of "component" name space space. Remove these methods after UAT's are updated
 @CommandLine.Command(name = "service", resourceBundle = "com.aws.greengrass.cli.CLI_messages", subcommands = CommandLine.HelpCommand.class)
 public class Service extends BaseCommand {
 
@@ -26,7 +26,7 @@ public class Service extends BaseCommand {
         this.nucleusAdapterIpc = nucleusAdapterIpc;
     }
 
-    //TODO : status provides a subset of information from getComponentDetails. Move UAT to use getComponentDetails and
+    // GG_NEEDS_REVIEW: TODO : status provides a subset of information from getComponentDetails. Move UAT to use getComponentDetails and
     // remove this command.
     @CommandLine.Command(name = "status")
     public int status(@CommandLine.Option(names = {"-n", "--names"}, paramLabel = "names", descriptionKey = "names", required = true) String names) throws CliIpcClientException, GenericCliIpcServerException {

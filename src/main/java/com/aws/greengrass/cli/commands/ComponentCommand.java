@@ -55,8 +55,8 @@ public class ComponentCommand extends BaseCommand {
     }
 
 
-    //TODO: deprecate this for "create" sub command under deployment command space. (pending UAT update)
-    //TODO: input validation and better error handling https://sim.amazon.com/issues/P39478724
+    // GG_NEEDS_REVIEW: TODO: deprecate this for "create" sub command under deployment command space. (pending UAT update)
+    // GG_NEEDS_REVIEW: TODO: input validation and better error handling https://sim.amazon.com/issues/P39478724
     @CommandLine.Command(name = "update",
             description = "Updates Greengrass applications with provided recipes, artifacts, and runtime parameters")
     public int deploy
@@ -68,7 +68,7 @@ public class ComponentCommand extends BaseCommand {
      @CommandLine.Option(names = {"-p", "--param"}, paramLabel = "Runtime parameters") Map<String, String> parameters,
      @CommandLine.Option(names = {"-c", "--update-config"}, paramLabel = "Update configuration") String configUpdate)
             throws CliIpcClientException, GenericCliIpcServerException, JsonProcessingException {
-        // TODO Validate folder exists and folder structure
+        // GG_NEEDS_REVIEW: TODO Validate folder exists and folder structure
         Map<String, Map<String, Object>> componentNameToConfig = convertParameters(parameters);
         Map<String, Map<String, Object>> configurationUpdate = null;
         if (configUpdate != null && !configUpdate.isEmpty()) {
@@ -89,7 +89,7 @@ public class ComponentCommand extends BaseCommand {
         return 0;
     }
 
-    //TODO: input validation and better error handling https://sim.amazon.com/issues/P39478724
+    // GG_NEEDS_REVIEW: TODO: input validation and better error handling https://sim.amazon.com/issues/P39478724
     @CommandLine.Command(name = "list",
             description = "Prints root level components names, component information and runtime parameters")
     public int list() throws CliIpcClientException, GenericCliIpcServerException, JsonProcessingException {
@@ -101,7 +101,7 @@ public class ComponentCommand extends BaseCommand {
         return 0;
     }
 
-    //TODO: input validation and better error handling https://sim.amazon.com/issues/P39478724
+    // GG_NEEDS_REVIEW: TODO: input validation and better error handling https://sim.amazon.com/issues/P39478724
     @CommandLine.Command(name = "details")
     public int details(@CommandLine.Option(names = {"-n", "--name"}, paramLabel = " component name", descriptionKey = "name", required = true) String componentName)
             throws CliIpcClientException, GenericCliIpcServerException, JsonProcessingException {

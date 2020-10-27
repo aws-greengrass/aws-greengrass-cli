@@ -61,7 +61,7 @@ public class Logs extends BaseCommand {
         LogQueue logQueue = aggregation.readLog(logFileArray, logDirArray);
         while (!logQueue.isEmpty() || aggregation.isAlive()) {
             try {
-                //TODO: remove busy polling.
+                // GG_NEEDS_REVIEW: TODO: remove busy polling.
                 LogEntry entry = logQueue.poll(10, TimeUnit.MILLISECONDS);
                 if (entry != null) {
                     visualization.visualize(entry, noColor, verbose);

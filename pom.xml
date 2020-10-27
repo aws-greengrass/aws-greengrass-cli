@@ -12,6 +12,7 @@
             <id>greengrass-ipc-java-sdk</id>
             <name>greengrass Ipc Java Sdk</name>
             <!-- cloud front url fronting the greengrass Ipc Java Sdk artifact in S3-->
+            <!-- GG_NEEDS_REVIEW: S3: How are we distributing this post re:Invent? -->
             <url>https://d10d248laylpoq.cloudfront.net/</url>
         </repository>
     </repositories>

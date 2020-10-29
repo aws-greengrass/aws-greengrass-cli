@@ -236,40 +236,41 @@ public class NucleusAdapterIpcClientImpl implements NucleusAdapterIpc {
     }
 
     private static EventStreamRPCConnection connectToGGCOverEventStreamIPC(SocketOptions socketOptions, String authToken,
-                                                                          String ipcServerSocketPath)  {
-        try (EventLoopGroup elGroup = new EventLoopGroup(2);
-             ClientBootstrap clientBootstrap = new ClientBootstrap(elGroup, null)) {
+                                                                          String ipcServerSocketPath) {
+        EventLoopGroup elGroup = new EventLoopGroup(2);
+        ClientBootstrap clientBootstrap = new ClientBootstrap(elGroup, null);
+        final EventStreamRPCConnectionConfig config = new EventStreamRPCConnectionConfig(clientBootstrap, elGroup,
+                socketOptions, null, ipcServerSocketPath, 8033,
+                GreengrassConnectMessageSupplier.connectMessageSupplier(authToken));
+        final CompletableFuture<Void> connected = new CompletableFuture<>();
+        final EventStreamRPCConnection connection = new EventStreamRPCConnection(config);
 
-            final EventStreamRPCConnectionConfig config = new EventStreamRPCConnectionConfig(clientBootstrap, elGroup,
-                    socketOptions, null, ipcServerSocketPath, 8033,
-                    GreengrassConnectMessageSupplier.connectMessageSupplier(authToken));
-            final CompletableFuture<Void> connected = new CompletableFuture<>();
-            final EventStreamRPCConnection connection = new EventStreamRPCConnection(config);
-            connection.connect(new EventStreamRPCConnection.LifecycleHandler() {
-                //only called on successful connection. That is full on Connect -> ConnectAck(ConnectionAccepted=true)
-                @Override
-                public void onConnect() {
-                    connected.complete(null);
-                }
-
-                @Override
-                public void onDisconnect(int errorCode) {
-                }
-
-                //This on error is for any errors that is connection level, including problems during connect()
-                @Override
-                public boolean onError(Throwable t) {
-                    connected.completeExceptionally(t);
-                    return true;    //hints at handler to disconnect due to this error
-                }
-            });
-            try {
-                connected.get(DEFAULT_TIMEOUT_IN_SEC, TimeUnit.SECONDS);
-            } catch (InterruptedException | ExecutionException | TimeoutException e) {
-               throw new RuntimeException(e);
+        connection.connect(new EventStreamRPCConnection.LifecycleHandler() {
+            //only called on successful connection. That is full on Connect -> ConnectAck(ConnectionAccepted=true)
+            @Override
+            public void onConnect() {
+                connected.complete(null);
             }
-            return connection;
+
+            @Override
+            public void onDisconnect(int errorCode) {
+            }
+
+            //This on error is for any errors that is connection level, including problems during connect()
+            @Override
+            public boolean onError(Throwable t) {
+                connected.completeExceptionally(t);
+                return true;    //hints at handler to disconnect due to this error
+            }
+        });
+
+        try {
+            connected.get(DEFAULT_TIMEOUT_IN_SEC, TimeUnit.SECONDS);
+        } catch (InterruptedException | ExecutionException | TimeoutException e) {
+            throw new RuntimeException(e);
         }
+        return connection;
+
     }
 
 

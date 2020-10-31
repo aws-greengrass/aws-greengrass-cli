@@ -25,10 +25,6 @@
             <outputDirectory>lib</outputDirectory>
         </file>
         <file>
-            <source>${project.build.directory}/cli_completion.sh</source>
-            <outputDirectory>/</outputDirectory>
-        </file>
-        <file>
             <source>${project.basedir}/install.sh</source>
             <outputDirectory>/</outputDirectory>
         </file>

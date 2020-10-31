@@ -113,37 +113,6 @@
                 <version>2.22.2</version>
             </plugin>
             <plugin>
-                <groupId>org.codehaus.mojo</groupId>
-                <artifactId>exec-maven-plugin</artifactId>
-                <version>1.6.0</version>
-                <executions>
-                    <execution>
-                        <id>generate-autocompletion-script</id>
-                        <phase>package</phase>
-                        <goals>
-                            <goal>exec</goal>
-                        </goals>
-                    </execution>
-                </executions>
-                <configuration>
-                    <executable>java</executable>
-                    <arguments>
-                        <argument>-Dpicocli.autocomplete.systemExitOnError</argument>
-                        <argument>-cp</argument>
-                        <classpath/>
-                        <argument>picocli.AutoComplete</argument>
-                        <argument>--force</argument><!-- overwrite if exists -->
-                        <argument>--completionScript</argument>
-                        <argument>${project.build.directory}/cli_completion.sh</argument>
-                        <argument>--factory</argument>
-                        <argument>com.aws.greengrass.cli.CommandFactory</argument>
-                        <argument>com.aws.greengrass.cli.CLI</argument>
-                        <argument>-n</argument>
-                        <argument>greengrass-cli</argument>
-                    </arguments>
-                </configuration>
-            </plugin>
-            <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-shade-plugin</artifactId>
                 <version>3.2.2</version>

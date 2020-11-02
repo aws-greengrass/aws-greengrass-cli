@@ -69,6 +69,10 @@ public class NucleusAdapterIpcClientImpl implements NucleusAdapterIpc {
 
     private String root;
     private GreengrassCoreIPCClient ipcClient;
+    private EventStreamRPCConnection clientConnection;
+    private SocketOptions socketOptions;
+    private ClientBootstrap clientBootstrap;
+    private EventLoopGroup elGroup;
 
     @Inject
     public NucleusAdapterIpcClientImpl(@Nullable @Named("ggcRootPath") String root) {
@@ -87,6 +91,8 @@ public class NucleusAdapterIpcClientImpl implements NucleusAdapterIpc {
         } catch (ExecutionException | TimeoutException | InterruptedException e) {
             //TODO: update when the sdk method signature includes exceptions
             throw new RuntimeException(e);
+        } finally {
+            close();
         }
 
     }
@@ -101,6 +107,8 @@ public class NucleusAdapterIpcClientImpl implements NucleusAdapterIpc {
         } catch (ExecutionException | TimeoutException | InterruptedException e) {
             //TODO: update when the sdk method signature includes exceptions
             throw new RuntimeException(e);
+        } finally {
+            close();
         }
     }
 
@@ -114,6 +122,8 @@ public class NucleusAdapterIpcClientImpl implements NucleusAdapterIpc {
         } catch (ExecutionException | TimeoutException | InterruptedException e) {
             //TODO: update when the sdk method signature includes exceptions
             throw new RuntimeException(e);
+        } finally {
+            close();
         }
     }
 
@@ -145,6 +155,8 @@ public class NucleusAdapterIpcClientImpl implements NucleusAdapterIpc {
         } catch (ExecutionException | TimeoutException | InterruptedException e) {
             //TODO: update when the sdk method signature includes exceptions
             throw new RuntimeException(e);
+        } finally {
+            close();
         }
     }
 
@@ -157,8 +169,11 @@ public class NucleusAdapterIpcClientImpl implements NucleusAdapterIpc {
                     .get(DEFAULT_TIMEOUT_IN_SEC, TimeUnit.SECONDS);
             return listLocalDeploymentsResponse.getLocalDeployments();
         } catch (ExecutionException | TimeoutException | InterruptedException e) {
+            clientConnection.disconnect();
             //TODO: update when the sdk method signature includes exceptions
             throw new RuntimeException(e);
+        } finally {
+            close();
         }
 
     }
@@ -173,6 +188,8 @@ public class NucleusAdapterIpcClientImpl implements NucleusAdapterIpc {
         } catch (ExecutionException | TimeoutException | InterruptedException e) {
             //TODO: update when the sdk method signature includes exceptions
             throw new RuntimeException(e);
+        } finally {
+            close();
         }
 
     }
@@ -187,6 +204,8 @@ public class NucleusAdapterIpcClientImpl implements NucleusAdapterIpc {
         } catch (ExecutionException | TimeoutException | InterruptedException e) {
             //TODO: update when the sdk method signature includes exceptions
             throw new RuntimeException(e);
+        } finally {
+            close();
         }
     }
 
@@ -219,12 +238,12 @@ public class NucleusAdapterIpcClientImpl implements NucleusAdapterIpc {
             }
             String token = ipcInfoMap.get(CLI_AUTH_TOKEN);
 
-            SocketOptions socketOptions = new SocketOptions();
+            socketOptions = new SocketOptions();
             socketOptions.connectTimeoutMs = 3000;
             socketOptions.domain = SocketOptions.SocketDomain.LOCAL;
             socketOptions.type = SocketOptions.SocketType.STREAM;
 
-            final EventStreamRPCConnection clientConnection = connectToGGCOverEventStreamIPC(socketOptions, token,
+            clientConnection = connectToGGCOverEventStreamIPC(socketOptions, token,
                     symlinkCreated ? IPC_SERVER_SOCKET_SYMLINK : domainSocketPath);
 
             ipcClient = new GreengrassCoreIPCClient(clientConnection);
@@ -235,10 +254,10 @@ public class NucleusAdapterIpcClientImpl implements NucleusAdapterIpc {
 
     }
 
-    private static EventStreamRPCConnection connectToGGCOverEventStreamIPC(SocketOptions socketOptions, String authToken,
+    private EventStreamRPCConnection connectToGGCOverEventStreamIPC(SocketOptions socketOptions, String authToken,
                                                                           String ipcServerSocketPath) {
-        EventLoopGroup elGroup = new EventLoopGroup(2);
-        ClientBootstrap clientBootstrap = new ClientBootstrap(elGroup, null);
+        elGroup = new EventLoopGroup(2);
+        clientBootstrap = new ClientBootstrap(elGroup, null);
         final EventStreamRPCConnectionConfig config = new EventStreamRPCConnectionConfig(clientBootstrap, elGroup,
                 socketOptions, null, ipcServerSocketPath, 8033,
                 GreengrassConnectMessageSupplier.connectMessageSupplier(authToken));
@@ -312,5 +331,23 @@ public class NucleusAdapterIpcClientImpl implements NucleusAdapterIpc {
             e.addSuppressed(new IOException("Unable to list files under: " + directory));
         }
         throw e;
+    }
+
+    private void close() {
+        try {
+            if (clientConnection != null) {
+                clientConnection.close();
+            }
+            if (socketOptions != null) {
+                socketOptions.close();
+            }
+            if (clientBootstrap != null) {
+                clientBootstrap.close();
+            }
+            if (elGroup != null) {
+                elGroup.close();
+            }
+        } catch (Exception e) {
+        }
     }
 }

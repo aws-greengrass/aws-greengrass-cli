@@ -34,7 +34,7 @@ import static org.mockito.Mockito.when;
 
 @DisplayName("CLI basic test")
 @ExtendWith(MockitoExtension.class)
-public class CLITest {
+class CLITest {
 
     private CLI cli;
 
@@ -72,39 +72,40 @@ public class CLITest {
     }
 
     @Test
-    public void helpCommand() {
+    void helpCommand() {
         int exitCode = runCommandLine("help");
         assertThat(exitCode, is(0));
     }
 
     @Test
-    public void serviceStatusCommand() throws CliIpcClientException, GenericCliIpcServerException {
+    void componentStatusCommand() throws CliIpcClientException, GenericCliIpcServerException {
         ComponentDetails componentDetails = ComponentDetails.builder().componentName("main")
                 .state(LifecycleState.RUNNING).build();
         when(nucleusAdapterIpc.getComponentDetails(any()))
                 .thenReturn(componentDetails);
-        int exitCode = runCommandLine("service", "status", "-n", "main");
+        int exitCode = runCommandLine("component", "details", "-n", "main");
         assertThat(exitCode, is(0));
 
-        assertEquals("main: state: RUNNING\n", outContent.toString());
+        assertEquals("Component Name: main\n" + "Version: null\n" + "State: RUNNING\n" + "Configuration: null\n"
+                + "Configurations: null\n", outContent.toString());
     }
 
     @Test
-    public void stopServiceCommand() throws CliIpcClientException, GenericCliIpcServerException {
-        int exitCode = runCommandLine("service", "stop", "-n", "main");
+    void stopComponentCommand() throws CliIpcClientException, GenericCliIpcServerException {
+        int exitCode = runCommandLine("component", "stop", "-n", "main");
         verify(nucleusAdapterIpc).stopComponent("main");
         assertThat(exitCode, is(0));
     }
 
     @Test
-    public void restartServiceCommand() throws CliIpcClientException, GenericCliIpcServerException {
-        int exitCode = runCommandLine("service", "restart", "-n", "main");
+    void restartComponentCommand() throws CliIpcClientException, GenericCliIpcServerException {
+        int exitCode = runCommandLine("component", "restart", "-n", "main");
         verify(nucleusAdapterIpc).restartComponent("main");
         assertThat(exitCode, is(0));
     }
 
     @Test
-    public void missingCommand() {
+    void missingCommand() {
         int exitCode = runCommandLine();
         assertThat(exitCode, is(2));
     }

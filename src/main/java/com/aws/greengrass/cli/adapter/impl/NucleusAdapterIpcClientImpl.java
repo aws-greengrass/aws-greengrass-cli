@@ -146,7 +146,7 @@ public class NucleusAdapterIpcClientImpl implements NucleusAdapterIpc {
         return cliClient;
     }
 
-    private String deTilde(String path) {
+    public static String deTilde(String path) {
         if (path.startsWith(HOME_DIR_PREFIX)) {
             return Paths.get(System.getProperty("user.home")).resolve(path.substring(HOME_DIR_PREFIX.length())).toString();
         }

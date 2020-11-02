@@ -20,6 +20,8 @@ import java.util.Set;
 import java.util.concurrent.TimeUnit;
 import javax.inject.Inject;
 
+import static com.aws.greengrass.cli.adapter.impl.NucleusAdapterIpcClientImpl.deTilde;
+
 @Command(name = "logs", resourceBundle = "com.aws.greengrass.cli.CLI_messages", subcommands = HelpCommand.class)
 public class Logs extends BaseCommand {
 
@@ -56,6 +58,8 @@ public class Logs extends BaseCommand {
         if (syslog && verbose) {
             LogsUtil.getErrorStream().println("Syslog does not support verbosity!");
         }
+        logFileArray = deTildeArray(logFileArray);
+        logDirArray = deTildeArray(logDirArray);
         filter.composeRule(timeWindow, filterExpressions);
         aggregation.configure(follow, filter, before, after, max);
         LogQueue logQueue = aggregation.readLog(logFileArray, logDirArray);
@@ -67,10 +71,21 @@ public class Logs extends BaseCommand {
                     visualization.visualize(entry, noColor, verbose);
                 }
             } catch (InterruptedException e) {
-                throw new RuntimeException("Log tool polling interrupted! " + e.getMessage());
+                break;
             }
         }
         return 0;
+    }
+
+    private String[] deTildeArray(String[] arr) {
+        if (arr == null) {
+            return arr;
+        }
+        for (int i = 0; i < arr.length; i++) {
+            String s = arr[i];
+            arr[i] = deTilde(s);
+        }
+        return arr;
     }
 
     @Command(name = "list-log-files")

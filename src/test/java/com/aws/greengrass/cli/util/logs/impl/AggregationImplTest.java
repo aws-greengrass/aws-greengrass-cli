@@ -31,7 +31,7 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
-public class AggregationImplTest {
+class AggregationImplTest {
     private static final String logEntry = "{\"thread\":\"idle-connection-reaper\",\"level\":\"DEBUG\","
             + "\"eventType\":\"null\",\"message\":\"Closing connections idle longer than 60000 MILLISECONDS\","
             + "\"timestamp\":1594836028088,\"cause\":null}";
@@ -107,7 +107,7 @@ public class AggregationImplTest {
             sleep(1);
         }
         assertThat(TestUtil.byteArrayOutputStreamToString(errOutputStream),
-                containsString("Failed to serialize: " + invalidLogEntry));
+                containsString("Failed to deserialize as JSON map: " + invalidLogEntry));
     }
 
     @Test
@@ -121,7 +121,7 @@ public class AggregationImplTest {
             sleep(1);
         }
         assertThat(TestUtil.byteArrayOutputStreamToString(errOutputStream),
-                containsString("Failed to serialize: "));
+                containsString("Failed to deserialize as JSON map: "));
     }
 
     @Test

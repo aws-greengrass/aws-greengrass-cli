@@ -22,7 +22,8 @@ import javax.inject.Inject;
 
 import static com.aws.greengrass.cli.adapter.impl.NucleusAdapterIpcClientImpl.deTilde;
 
-@Command(name = "logs", resourceBundle = "com.aws.greengrass.cli.CLI_messages", subcommands = HelpCommand.class)
+@Command(name = "logs", resourceBundle = "com.aws.greengrass.cli.CLI_messages", subcommands = HelpCommand.class,
+        mixinStandardHelpOptions = true)
 public class Logs extends BaseCommand {
 
     private final Aggregation aggregation;
@@ -40,7 +41,7 @@ public class Logs extends BaseCommand {
         this.visualization = visualization;
     }
 
-    @Command(name = "get")
+    @Command(name = "get", mixinStandardHelpOptions = true)
     public int get(@CommandLine.Option(names = {"-lf", "--log-file"}, paramLabel = "Log File Path") String[] logFileArray,
                    @CommandLine.Option(names = {"-ld", "--log-dir"}, paramLabel = "Log Directory Path") String[] logDirArray,
                    @CommandLine.Option(names = {"-t", "--time-window"}, paramLabel = "Time Window") String[] timeWindow,
@@ -88,8 +89,8 @@ public class Logs extends BaseCommand {
         return arr;
     }
 
-    @Command(name = "list-log-files")
-    public void list_log(@CommandLine.Option(names = {"-ld", "--log-dir"}, paramLabel = "Log Directory Path")
+    @Command(name = "list-log-files", mixinStandardHelpOptions = true)
+    public void listLogFiles(@CommandLine.Option(names = {"-ld", "--log-dir"}, paramLabel = "Log Directory Path")
                                  String[] logDir) {
         Set<File> logFileSet = aggregation.listLog(logDir);
         if (!logFileSet.isEmpty()) {
@@ -102,8 +103,8 @@ public class Logs extends BaseCommand {
         LogsUtil.getPrintStream().println("No log file found.");
     }
 
-    @Command(name = "list-keywords")
-    public void list_keywords(@CommandLine.Option(names = {"-s", "--syslog"}, paramLabel = "Syslog Flag") boolean syslog) {
+    @Command(name = "list-keywords", mixinStandardHelpOptions = true)
+    public void listKeywords(@CommandLine.Option(names = {"-s", "--syslog"}, paramLabel = "Syslog Flag") boolean syslog) {
         if (syslog) {
             LogsUtil.getPrintStream().println(new StringBuilder("Here is a list of suggested keywords for syslog: ")
                     .append(System.lineSeparator()).append("priority=$int").append(System.lineSeparator())

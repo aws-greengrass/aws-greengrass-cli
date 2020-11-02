@@ -20,7 +20,7 @@ import java.util.Map;
 import javax.inject.Inject;
 
 @CommandLine.Command(name = "component", resourceBundle = "com.aws.greengrass.cli.CLI_messages",
-        subcommands = CommandLine.HelpCommand.class)
+        subcommands = CommandLine.HelpCommand.class, mixinStandardHelpOptions = true)
 public class ComponentCommand extends BaseCommand {
 
     private final ObjectMapper mapper = new ObjectMapper();
@@ -33,7 +33,7 @@ public class ComponentCommand extends BaseCommand {
         this.nucleusAdapterIpc = nucleusAdapterIpc;
     }
 
-    @CommandLine.Command(name = "restart")
+    @CommandLine.Command(name = "restart", mixinStandardHelpOptions = true)
     public int restart(@CommandLine.Option(names = {"-n", "--names"}, paramLabel = "component names separated by comma", descriptionKey = "names", required = true) String names)
             throws CliIpcClientException, GenericCliIpcServerException {
         String[] componentNames = names.split(" *[&,]+ *");
@@ -43,7 +43,7 @@ public class ComponentCommand extends BaseCommand {
         return 0;
     }
 
-    @CommandLine.Command(name = "stop")
+    @CommandLine.Command(name = "stop", mixinStandardHelpOptions = true)
     public int stop(@CommandLine.Option(names = {"-n", "--names"}, paramLabel = "component names separated by comma", descriptionKey = "names", required = true) String names)
             throws CliIpcClientException, GenericCliIpcServerException {
         String[] componentNames = names.split(" *[&,]+ *");
@@ -54,7 +54,7 @@ public class ComponentCommand extends BaseCommand {
     }
 
     // GG_NEEDS_REVIEW: TODO: input validation and better error handling https://sim.amazon.com/issues/P39478724
-    @CommandLine.Command(name = "list",
+    @CommandLine.Command(name = "list", mixinStandardHelpOptions = true,
             description = "Prints root level components names, component information and runtime parameters")
     public int list() throws CliIpcClientException, GenericCliIpcServerException, JsonProcessingException {
         List<ComponentDetails> componentDetails = nucleusAdapterIpc.listComponents();
@@ -66,7 +66,7 @@ public class ComponentCommand extends BaseCommand {
     }
 
     // GG_NEEDS_REVIEW: TODO: input validation and better error handling https://sim.amazon.com/issues/P39478724
-    @CommandLine.Command(name = "details")
+    @CommandLine.Command(name = "details", mixinStandardHelpOptions = true)
     public int details(@CommandLine.Option(names = {"-n", "--name"}, paramLabel = " component name", descriptionKey = "name", required = true) String componentName)
             throws CliIpcClientException, GenericCliIpcServerException, JsonProcessingException {
         ComponentDetails componentDetails = nucleusAdapterIpc.getComponentDetails(componentName);

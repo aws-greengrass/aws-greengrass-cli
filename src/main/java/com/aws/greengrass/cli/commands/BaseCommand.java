@@ -6,6 +6,7 @@
 package com.aws.greengrass.cli.commands;
 
 import com.aws.greengrass.cli.CLI;
+import picocli.CommandLine;
 import picocli.CommandLine.Model.CommandSpec;
 import picocli.CommandLine.ParentCommand;
 import picocli.CommandLine.Spec;
@@ -20,9 +21,13 @@ public abstract class BaseCommand implements Runnable {
     @ParentCommand
     protected CLI parent;
 
+    protected CommandLine commandLine = new CommandLine(this);
+
     @Override
     public void run() {
-        // do nothing
+        System.out.println(commandLine.getColorScheme()
+                .errorText("No subcommand provided, please invoke a subcommand").toString());
+        commandLine.usage(System.out);
     }
 
 }

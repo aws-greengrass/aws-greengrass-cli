@@ -14,9 +14,9 @@ import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import picocli.CommandLine;
 
-import javax.inject.Inject;
 import java.util.List;
 import java.util.Map;
+import javax.inject.Inject;
 
 import static com.aws.greengrass.cli.commands.ComponentCommand.convertParameters;
 

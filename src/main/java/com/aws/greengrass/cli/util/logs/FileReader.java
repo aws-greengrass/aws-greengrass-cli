@@ -54,8 +54,7 @@ public class FileReader implements Runnable {
                             sleep(100);
                             continue;
                         } catch (InterruptedException e) {
-                            Thread.currentThread().interrupt();
-                            throw new RuntimeException(e);
+                            return;
                         }
                     }
                     try {

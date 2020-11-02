@@ -71,7 +71,7 @@ public class Logs extends BaseCommand {
                     visualization.visualize(entry, noColor, verbose);
                 }
             } catch (InterruptedException e) {
-                throw new RuntimeException("Log tool polling interrupted! " + e.getMessage());
+                break;
             }
         }
         return 0;

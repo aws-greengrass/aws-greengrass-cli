@@ -29,7 +29,6 @@
             <source>${project.basedir}/src/main/resources/aws-greengrass-ipc-sdk.jar</source>
             <outputDirectory>lib</outputDirectory>
         </file>
-        <!-- TODO: remove when crt jar is available via maven repo-->
         <file>
             <source>${project.basedir}/install.sh</source>
             <outputDirectory>/</outputDirectory>

@@ -56,8 +56,6 @@ public class NucleusAdapterIpcClientImpl implements NucleusAdapterIpc {
             new ObjectMapper().configure(DeserializationFeature.FAIL_ON_INVALID_SUBTYPE, false)
                     .configure(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, false);
 
-
-
     private static final String CLI_IPC_INFO_DIRECTORY = "cli_ipc_info";
     private static final String USER_CLIENT_ID_PREFIX = "user-";
     private static final String GROUP_CLIENT_ID_PREFIX = "group-";
@@ -132,8 +130,8 @@ public class NucleusAdapterIpcClientImpl implements NucleusAdapterIpc {
 
         try {
             UpdateRecipesAndArtifactsRequest request = new UpdateRecipesAndArtifactsRequest();
-            request.setRecipeDirectoryPath(recipesDirectoryPath);
-            request.setArtifactsDirectoryPath(artifactsDirectoryPath);
+            request.setRecipeDirectoryPath(deTilde(recipesDirectoryPath));
+            request.setArtifactsDirectoryPath(deTilde(artifactsDirectoryPath));
             getIpcClient().updateRecipesAndArtifacts(request, Optional.empty()).getResponse()
                     .get(DEFAULT_TIMEOUT_IN_SEC, TimeUnit.SECONDS);
         } catch (ExecutionException | TimeoutException | InterruptedException e) {
@@ -256,7 +254,7 @@ public class NucleusAdapterIpcClientImpl implements NucleusAdapterIpc {
 
     private EventStreamRPCConnection connectToGGCOverEventStreamIPC(SocketOptions socketOptions, String authToken,
                                                                           String ipcServerSocketPath) {
-        elGroup = new EventLoopGroup(2);
+        elGroup = new EventLoopGroup(1);
         clientBootstrap = new ClientBootstrap(elGroup, null);
         final EventStreamRPCConnectionConfig config = new EventStreamRPCConnectionConfig(clientBootstrap, elGroup,
                 socketOptions, null, ipcServerSocketPath, 8033,
@@ -345,6 +343,9 @@ public class NucleusAdapterIpcClientImpl implements NucleusAdapterIpc {
             }
             if (elGroup != null) {
                 elGroup.close();
+            }
+            if (Files.exists(Paths.get(IPC_SERVER_SOCKET_SYMLINK), LinkOption.NOFOLLOW_LINKS)) {
+                Files.delete(Paths.get(IPC_SERVER_SOCKET_SYMLINK));
             }
         } catch (Exception e) {
         }

@@ -21,7 +21,7 @@ import picocli.CommandLine;
 import software.amazon.awssdk.aws.greengrass.model.CreateLocalDeploymentRequest;
 
 import java.util.Arrays;
-import java.util.HashMap;
+
 import java.util.Map;
 
 import static org.hamcrest.MatcherAssert.assertThat;
@@ -31,17 +31,19 @@ import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 
 @ExtendWith(MockitoExtension.class)
-public class DeploymentCommandTest {
+class DeploymentCommandTest {
     private static final String RECIPE_FOLDER_PATH_STR = "recipeFolderPath";
     private static final String ARTIFACT_FOLDER_PATH_STR = "artifactFolderPath";
-    private static final String NEW_COMPONENT_1_WITH_VERSION = "newComponent1=1.0.0";
-    private static final String NEW_COMPONENT_2_WITH_VERSION = "newComponent2=2.0.0";
     private static final String NEW_COMPONENT_1 = "newComponent1";
     private static final String NEW_COMPONENT_2 = "newComponent2";
+    private static final String NEW_COMPONENT_3 = "aws.greengrass.componentname";
+    private static final String NEW_COMPONENT_1_WITH_VERSION = "newComponent1=1.0.0";
+    private static final String NEW_COMPONENT_2_WITH_VERSION = "newComponent2=2.0.0";
 
 
     private static final Map<String, String> ROOT_COMPONENTS =
             ImmutableMap.of(NEW_COMPONENT_1, "1.0.0", NEW_COMPONENT_2, "2.0.0");
+
     private final ObjectMapper mapper = new ObjectMapper();
 
     @Mock

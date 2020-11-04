@@ -16,22 +16,19 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import picocli.CommandLine;
-import software.amazon.awssdk.aws.greengrass.model.ComponentDetails;
 
 import java.io.ByteArrayOutputStream;
 import java.io.PrintStream;
 
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.core.Is.is;
-import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.verify;
-import static org.mockito.Mockito.when;
+
 
 
 @DisplayName("CLI basic test")
 @ExtendWith(MockitoExtension.class)
-public class CLITest {
+class CLITest {
 
     private CLI cli;
 
@@ -69,13 +66,27 @@ public class CLITest {
     }
 
     @Test
-    public void helpCommand() {
+    void helpCommand() {
         int exitCode = runCommandLine("help");
         assertThat(exitCode, is(0));
     }
 
     @Test
-    public void missingCommand() {
+    void stopComponentCommand() {
+        int exitCode = runCommandLine("component", "stop", "-n", "main");
+        verify(nucleusAdapterIpc).stopComponent("main");
+        assertThat(exitCode, is(0));
+    }
+
+    @Test
+    void restartComponentCommand() {
+        int exitCode = runCommandLine("component", "restart", "-n", "main");
+        verify(nucleusAdapterIpc).restartComponent("main");
+        assertThat(exitCode, is(0));
+    }
+
+    @Test
+    void missingCommand() {
         int exitCode = runCommandLine();
         assertThat(exitCode, is(2));
     }

@@ -20,7 +20,10 @@ import java.util.Set;
 import java.util.concurrent.TimeUnit;
 import javax.inject.Inject;
 
-@Command(name = "logs", resourceBundle = "com.aws.greengrass.cli.CLI_messages", subcommands = HelpCommand.class)
+import static com.aws.greengrass.cli.adapter.impl.NucleusAdapterIpcClientImpl.deTilde;
+
+@Command(name = "logs", resourceBundle = "com.aws.greengrass.cli.CLI_messages", subcommands = HelpCommand.class,
+        mixinStandardHelpOptions = true)
 public class Logs extends BaseCommand {
 
     private final Aggregation aggregation;
@@ -38,7 +41,7 @@ public class Logs extends BaseCommand {
         this.visualization = visualization;
     }
 
-    @Command(name = "get")
+    @Command(name = "get", mixinStandardHelpOptions = true)
     public int get(@CommandLine.Option(names = {"-lf", "--log-file"}, paramLabel = "Log File Path") String[] logFileArray,
                    @CommandLine.Option(names = {"-ld", "--log-dir"}, paramLabel = "Log Directory Path") String[] logDirArray,
                    @CommandLine.Option(names = {"-t", "--time-window"}, paramLabel = "Time Window") String[] timeWindow,
@@ -56,6 +59,8 @@ public class Logs extends BaseCommand {
         if (syslog && verbose) {
             LogsUtil.getErrorStream().println("Syslog does not support verbosity!");
         }
+        logFileArray = deTildeArray(logFileArray);
+        logDirArray = deTildeArray(logDirArray);
         filter.composeRule(timeWindow, filterExpressions);
         aggregation.configure(follow, filter, before, after, max);
         LogQueue logQueue = aggregation.readLog(logFileArray, logDirArray);
@@ -67,14 +72,25 @@ public class Logs extends BaseCommand {
                     visualization.visualize(entry, noColor, verbose);
                 }
             } catch (InterruptedException e) {
-                throw new RuntimeException("Log tool polling interrupted! " + e.getMessage());
+                break;
             }
         }
         return 0;
     }
 
-    @Command(name = "list-log-files")
-    public void list_log(@CommandLine.Option(names = {"-ld", "--log-dir"}, paramLabel = "Log Directory Path")
+    private String[] deTildeArray(String[] arr) {
+        if (arr == null) {
+            return arr;
+        }
+        for (int i = 0; i < arr.length; i++) {
+            String s = arr[i];
+            arr[i] = deTilde(s);
+        }
+        return arr;
+    }
+
+    @Command(name = "list-log-files", mixinStandardHelpOptions = true)
+    public void listLogFiles(@CommandLine.Option(names = {"-ld", "--log-dir"}, paramLabel = "Log Directory Path")
                                  String[] logDir) {
         Set<File> logFileSet = aggregation.listLog(logDir);
         if (!logFileSet.isEmpty()) {
@@ -87,8 +103,8 @@ public class Logs extends BaseCommand {
         LogsUtil.getPrintStream().println("No log file found.");
     }
 
-    @Command(name = "list-keywords")
-    public void list_keywords(@CommandLine.Option(names = {"-s", "--syslog"}, paramLabel = "Syslog Flag") boolean syslog) {
+    @Command(name = "list-keywords", mixinStandardHelpOptions = true)
+    public void listKeywords(@CommandLine.Option(names = {"-s", "--syslog"}, paramLabel = "Syslog Flag") boolean syslog) {
         if (syslog) {
             LogsUtil.getPrintStream().println(new StringBuilder("Here is a list of suggested keywords for syslog: ")
                     .append(System.lineSeparator()).append("priority=$int").append(System.lineSeparator())

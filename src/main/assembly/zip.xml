@@ -31,10 +31,6 @@
         </file>
         <!-- TODO: remove when crt jar is available via maven repo-->
         <file>
-            <source>${project.build.directory}/cli_completion.sh</source>
-            <outputDirectory>/</outputDirectory>
-        </file>
-        <file>
             <source>${project.basedir}/install.sh</source>
             <outputDirectory>/</outputDirectory>
         </file>

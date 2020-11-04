@@ -54,8 +54,7 @@ public class FileReader implements Runnable {
                             sleep(100);
                             continue;
                         } catch (InterruptedException e) {
-                            Thread.currentThread().interrupt();
-                            throw new RuntimeException(e);
+                            return;
                         }
                     }
                     try {
@@ -87,11 +86,11 @@ public class FileReader implements Runnable {
                             beforeContextList.remove(0);
                         }
                     } catch (InterruptedException e) {
-                        Thread.currentThread().interrupt();
-                        throw new RuntimeException(e);
+                        return;
                     } catch (JsonProcessingException e) {
-                        LogsUtil.getErrorStream().println("Failed to serialize: " + line);
-                        LogsUtil.getErrorStream().println(e.getMessage());
+                        LogsUtil.getErrorStream().println("Failed to deserialize as JSON map: " + line);
+                        LogsUtil.getErrorStream().println("Are you sure that the logs are JSON and not text?");
+                        return;
                     }
                 }
             } catch (FileNotFoundException e) {

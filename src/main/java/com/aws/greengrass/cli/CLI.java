@@ -29,7 +29,7 @@ import java.util.ResourceBundle;
         resourceBundle = "com.aws.greengrass.cli.CLI_messages")
 public class CLI implements Runnable {
 
-    @CommandLine.Option(names = "--ggcRootPath")
+    @CommandLine.Option(names = "--ggcRootPath", description = "The path to the root directory of Greengrass")
     String ggcRootPath;
 
     @Spec
@@ -41,18 +41,15 @@ public class CLI implements Runnable {
         try {
             populateCommand(cli, args);
             exitCode = new CommandLine(cli, new CommandFactory(cli.createCommandComponent()))
-                    .setExecutionExceptionHandler(new CommandLine.IExecutionExceptionHandler() {
-                        @Override
-                        public int handleExecutionException(Exception e, CommandLine commandLine, CommandLine.ParseResult parseResult) throws Exception {
-                            if (e instanceof CommandLine.UnmatchedArgumentException
-                                    || e instanceof CommandLine.MissingParameterException
-                                    || e instanceof GenericCliIpcServerException) {
-                                System.out.println(commandLine.getColorScheme().errorText(e.getMessage()));
-                                commandLine.usage(System.out);
-                                return 0;
-                            } else {
-                                throw e;
-                            }
+                    .setExecutionExceptionHandler((e, commandLine, parseResult) -> {
+                        if (e instanceof CommandLine.UnmatchedArgumentException
+                                || e instanceof CommandLine.MissingParameterException
+                                || e instanceof GenericCliIpcServerException) {
+                            System.out.println(commandLine.getColorScheme().errorText(e.getMessage()));
+                            commandLine.usage(System.out);
+                            return 0;
+                        } else {
+                            throw e;
                         }
                     })
                     .execute(args);

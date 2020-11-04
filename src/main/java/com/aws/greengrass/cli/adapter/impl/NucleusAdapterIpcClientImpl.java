@@ -237,6 +237,7 @@ public class NucleusAdapterIpcClientImpl implements NucleusAdapterIpc {
             String token = ipcInfoMap.get(CLI_AUTH_TOKEN);
 
             socketOptions = new SocketOptions();
+            //timeout for establishing the connection
             socketOptions.connectTimeoutMs = 3000;
             socketOptions.domain = SocketOptions.SocketDomain.LOCAL;
             socketOptions.type = SocketOptions.SocketType.STREAM;

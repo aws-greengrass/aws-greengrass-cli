@@ -131,37 +131,6 @@
                 <version>2.22.2</version>
             </plugin>
             <plugin>
-                <groupId>org.codehaus.mojo</groupId>
-                <artifactId>exec-maven-plugin</artifactId>
-                <version>3.0.0</version>
-                <executions>
-                    <execution>
-                        <id>generate-autocompletion-script</id>
-                        <phase>package</phase>
-                        <goals>
-                            <goal>java</goal>
-                        </goals>
-                    </execution>
-                </executions>
-                <configuration>
-                    <mainClass>picocli.AutoComplete</mainClass>
-                    <!-- TODO: remove the additional class path entry when sdk jar is consumed from a maven repo-->
-                    <additionalClasspathElements>
-                        <additionalClasspathElement>${project.basedir}/src/main/resources/aws-greengrass-ipc-sdk.jar</additionalClasspathElement>
-                    </additionalClasspathElements>
-                    <arguments>
-                        <argument>--force</argument><!-- overwrite if exists -->
-                        <argument>--completionScript</argument>
-                        <argument>${project.build.directory}/cli_completion.sh</argument>
-                        <argument>--factory</argument>
-                        <argument>com.aws.greengrass.cli.CommandFactory</argument>
-                        <argument>com.aws.greengrass.cli.CLI</argument>
-                        <argument>-n</argument>
-                        <argument>greengrass-cli</argument>
-                    </arguments>
-                </configuration>
-            </plugin>
-            <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-shade-plugin</artifactId>
                 <version>3.2.2</version>

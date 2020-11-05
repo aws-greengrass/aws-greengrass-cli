@@ -8,10 +8,6 @@ package com.aws.greengrass.cli;
 import com.aws.greengrass.cli.adapter.NucleusAdapterIpc;
 import com.aws.greengrass.cli.module.AdapterModule;
 import com.aws.greengrass.cli.module.DaggerCommandsComponent;
-import com.aws.greengrass.ipc.services.cli.exceptions.CliIpcClientException;
-import com.aws.greengrass.ipc.services.cli.exceptions.GenericCliIpcServerException;
-import com.aws.greengrass.ipc.services.cli.models.ComponentDetails;
-import com.aws.greengrass.ipc.services.cli.models.LifecycleState;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
@@ -26,10 +22,8 @@ import java.io.PrintStream;
 
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.core.Is.is;
-import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.verify;
-import static org.mockito.Mockito.when;
+
 
 
 @DisplayName("CLI basic test")
@@ -78,27 +72,14 @@ class CLITest {
     }
 
     @Test
-    void componentStatusCommand() throws CliIpcClientException, GenericCliIpcServerException {
-        ComponentDetails componentDetails = ComponentDetails.builder().componentName("main")
-                .state(LifecycleState.RUNNING).build();
-        when(nucleusAdapterIpc.getComponentDetails(any()))
-                .thenReturn(componentDetails);
-        int exitCode = runCommandLine("component", "details", "-n", "main");
-        assertThat(exitCode, is(0));
-
-        assertEquals("Component Name: main\n" + "Version: null\n" + "State: RUNNING\n" + "Configuration: null\n"
-                + "Configurations: null\n", outContent.toString());
-    }
-
-    @Test
-    void stopComponentCommand() throws CliIpcClientException, GenericCliIpcServerException {
+    void stopComponentCommand() {
         int exitCode = runCommandLine("component", "stop", "-n", "main");
         verify(nucleusAdapterIpc).stopComponent("main");
         assertThat(exitCode, is(0));
     }
 
     @Test
-    void restartComponentCommand() throws CliIpcClientException, GenericCliIpcServerException {
+    void restartComponentCommand() {
         int exitCode = runCommandLine("component", "restart", "-n", "main");
         verify(nucleusAdapterIpc).restartComponent("main");
         assertThat(exitCode, is(0));

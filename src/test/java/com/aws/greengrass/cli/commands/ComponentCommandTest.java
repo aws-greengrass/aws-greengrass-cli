@@ -15,24 +15,19 @@ import com.aws.greengrass.cli.CommandFactory;
 import com.aws.greengrass.cli.adapter.NucleusAdapterIpc;
 import com.aws.greengrass.cli.module.AdapterModule;
 import com.aws.greengrass.cli.module.DaggerCommandsComponent;
-import com.aws.greengrass.ipc.services.cli.exceptions.CliIpcClientException;
-import com.aws.greengrass.ipc.services.cli.exceptions.GenericCliIpcServerException;
-import com.aws.greengrass.ipc.services.cli.models.ComponentDetails;
-import com.aws.greengrass.ipc.services.cli.models.LifecycleState;
-import com.fasterxml.jackson.core.JsonProcessingException;
-import com.fasterxml.jackson.databind.ObjectMapper;
-import com.google.common.collect.ImmutableMap;
+
 import org.hamcrest.core.StringContains;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import picocli.CommandLine;
+import software.amazon.awssdk.aws.greengrass.model.ComponentDetails;
+import software.amazon.awssdk.aws.greengrass.model.LifecycleState;
 
 import java.io.ByteArrayOutputStream;
 import java.io.PrintStream;
 import java.util.Collections;
-import java.util.Map;
 
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.core.Is.is;
@@ -43,14 +38,14 @@ import static org.mockito.Mockito.when;
 
 @ExtendWith(MockitoExtension.class)
 class ComponentCommandTest {
-    private static final String NEW_COMPONENT = "aws.greengrass.componentname";
+
+    private static final String NEW_COMPONENT_3 = "aws.greengrass.componentname";
 
     @Mock
     private NucleusAdapterIpc nucleusAdapteripc;
 
     @Test
-    void GIVEN_a_running_component_WHEN_list_component_details_THEN_component_info_is_printed()
-            throws CliIpcClientException, GenericCliIpcServerException, JsonProcessingException {
+    void GIVEN_a_running_component_WHEN_list_component_details_THEN_component_info_is_printed() {
 
         // GIVEN
         ComponentDetails componentDetails = getTestComponentDetails();
@@ -81,8 +76,7 @@ class ComponentCommandTest {
     }
 
     @Test
-    void GIVEN_a_running_component_WHEN_check_component_details_THEN_component_info_is_printed()
-            throws CliIpcClientException, GenericCliIpcServerException, JsonProcessingException {
+    void GIVEN_a_running_component_WHEN_check_component_details_THEN_component_info_is_printed() {
 
         // GIVEN
         ComponentDetails componentDetails = getTestComponentDetails();
@@ -98,7 +92,7 @@ class ComponentCommandTest {
         System.setOut(new PrintStream(outputCaptor));
 
         // Call. System.out.println now goes to outputCaptor
-        int exitCode = runCommandLine("component", "details", "-n", NEW_COMPONENT);
+        int exitCode = runCommandLine("component", "details", "-n", NEW_COMPONENT_3);
 
         // Put things back
         System.out.flush();
@@ -111,29 +105,22 @@ class ComponentCommandTest {
         verifyComponentDetails(componentDetails, output);
     }
 
-    private void verifyComponentDetails(ComponentDetails componentDetails, String output)
-            throws JsonProcessingException {
+    private void verifyComponentDetails(ComponentDetails componentDetails, String output) {
         assertThat(output, StringContains.containsString("Component Name: " + componentDetails.getComponentName()));
         assertThat(output, StringContains.containsString("Version: " + componentDetails.getVersion()));
         assertThat(output, StringContains.containsString("State: " + componentDetails.getState()));
-        assertThat(output, StringContains.containsString(
-                "Configurations: " + new ObjectMapper().writeValueAsString(componentDetails.getNestedConfiguration())));
     }
 
     private static ComponentDetails getTestComponentDetails() {
-        Map<String, Object> config = ImmutableMap.of("key", "val1", "nested", ImmutableMap.of("leafkey", "value1"));
-
-        return ComponentDetails.builder()
-                .componentName(NEW_COMPONENT)
-                .version("1.0.1")
-                .state(LifecycleState.FINISHED)
-                .nestedConfiguration(config)
-                .build();
+        ComponentDetails componentDetails = new ComponentDetails();
+        componentDetails.setComponentName(NEW_COMPONENT_3);
+        componentDetails.setVersion("1.0.1");
+        componentDetails.setState(LifecycleState.FINISHED);
+        return componentDetails;
     }
 
     @Test
-    void WHEN_list_command_request_THEN_print_info_and_exit_0()
-            throws CliIpcClientException, GenericCliIpcServerException {
+    void WHEN_list_command_request_THEN_print_info_and_exit_0() {
         int exitCode = runCommandLine("component", "list");
         verify(nucleusAdapteripc, only()).listComponents();
         assertThat(exitCode, is(0));

@@ -5,16 +5,23 @@ ComponentDescription: This component provides CLI access to the Nucleus via IPC.
 ComponentPublisher: AWS
 ComponentVersion: '0.0.0'
 ComponentType: aws.greengrass.plugin
-ComponentConfiguration:
-  DefaultConfiguration:
-    AuthorizedPosixGroups: ""
 Manifests:
   - Platform:
       os: linux
     Lifecycle:
       install:
-        script: source "{{artifacts:decompressedPath}}/aws.greengrass.cli.client/install.sh"
+        RequiresPrivilege: true
+        script: sh "{artifacts:decompressedPath}/aws.greengrass.cli.client/install.sh"
     Artifacts:
       - URI: s3://gg-dev-artifacts-$stage/$componentName/$platform.os/$version/aws.greengrass.Cli.jar
       - URI: s3://gg-dev-artifacts-$stage/$componentName/$platform.os/$version/aws.greengrass.cli.client.zip
 
+  - Platform:
+      os: darwin
+    Lifecycle:
+      install:
+        RequiresPrivilege: true
+        script: sh "{artifacts:decompressedPath}/aws.greengrass.cli.client/install.sh"
+    Artifacts:
+      - URI: s3://gg-dev-artifacts-$stage/$componentName/$platform.os/$version/aws.greengrass.Cli.jar
+      - URI: s3://gg-dev-artifacts-$stage/$componentName/$platform.os/$version/aws.greengrass.cli.client.zip

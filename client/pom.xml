@@ -67,16 +67,6 @@
             <scope>test</scope>
         </dependency>
         <dependency>
-            <groupId>org.apache.httpcomponents</groupId>
-            <artifactId>httpclient</artifactId>
-            <version>4.5.10</version>
-        </dependency>
-        <dependency>
-            <groupId>com.fasterxml.jackson.core</groupId>
-            <artifactId>jackson-databind</artifactId>
-            <version>2.10.0</version>
-        </dependency>
-        <dependency>
             <groupId>org.mockito</groupId>
             <artifactId>mockito-core</artifactId>
             <version>3.2.0</version>
@@ -107,23 +97,7 @@
             <systemPath>${project.basedir}/lib/aws-greengrass-ipc-sdk.jar</systemPath>
         </dependency>
     </dependencies>
-    <pluginRepositories>
-        <pluginRepository>
-            <id>yle-public</id>
-            <name>Yle public repository</name>
-            <url>https://d2x444wtt5plvm.cloudfront.net/release</url>
-            <layout>default</layout>
-        </pluginRepository>
-    </pluginRepositories>
-
     <build>
-        <extensions>
-            <extension>
-                <groupId>fi.yle.tools</groupId>
-                <artifactId>aws-maven</artifactId>
-                <version>1.4.2</version>
-            </extension>
-        </extensions>
         <plugins>
             <plugin>
                 <artifactId>maven-surefire-plugin</artifactId>
@@ -187,39 +161,6 @@
                                 <descriptor>src/main/assembly/zip.xml</descriptor>
                             </descriptors>
                         </configuration>
-                    </execution>
-                </executions>
-            </plugin>
-            <plugin>
-                <groupId>com.mycila</groupId>
-                <artifactId>license-maven-plugin</artifactId>
-                <version>4.0.rc2</version>
-                <configuration>
-                    <licenseSets>
-                        <licenseSet>
-                            <header>.license/header.txt</header>
-                            <headerDefinitions>
-                                <headerDefinition>.license/style.xml</headerDefinition>
-                            </headerDefinitions>
-                            <useDefaultExcludes>true</useDefaultExcludes>
-                            <excludes>
-                                <exclude>*</exclude>
-                                <exclude>codestyle/**</exclude>
-                                <exclude>src/test/greengrass-nucleus-benchmark/**</exclude>
-                                <exclude>src/*/resources/**</exclude>
-                            </excludes>
-                        </licenseSet>
-                    </licenseSets>
-                    <mapping>
-                        <java>JAVA_STYLE</java>
-                    </mapping>
-                </configuration>
-                <executions>
-                    <execution>
-                        <phase>validate</phase>
-                        <goals>
-                            <goal>check</goal>
-                        </goals>
                     </execution>
                 </executions>
             </plugin>

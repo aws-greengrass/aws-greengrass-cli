@@ -101,7 +101,7 @@
             <artifactId>aws-grenngrass-ask</artifactId>
             <version>1.0</version>
             <scope>system</scope>
-            <systemPath>${project.basedir}/src/main/resources/aws-greengrass-ipc-sdk.jar</systemPath>
+            <systemPath>${project.basedir}/lib/aws-greengrass-ipc-sdk.jar</systemPath>
         </dependency>
     </dependencies>
     <pluginRepositories>

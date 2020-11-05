@@ -26,7 +26,7 @@
         </file>
         <!-- TODO: remove when sdk jar is consumed from a maven repo-->
         <file>
-            <source>${project.basedir}/src/main/resources/aws-greengrass-ipc-sdk.jar</source>
+            <source>${project.basedir}/lib/aws-greengrass-ipc-sdk.jar</source>
             <outputDirectory>lib</outputDirectory>
         </file>
         <file>

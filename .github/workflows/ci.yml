@@ -16,14 +16,17 @@ jobs:
       - name: Build with Maven
         run: mvn -ntp clean verify
       - name: Convert Jacoco to Cobertura
-        run:  python3 ./.github/scripts/cover2cover.py target/jacoco-report/jacoco.xml src/main/java > target/jacoco-report/cobertura.xml
-      - name: cobertura-report
-        uses: 5monkeys/cobertura-action@v5
+        run: |
+          python3 ./.github/scripts/cover2cover.py client/target/jacoco-report/jacoco.xml src/main/java > client/target/jacoco-report/cobertura.xml
+          python3 ./.github/scripts/cover2cover.py server/target/jacoco-report/jacoco.xml src/main/java > server/target/jacoco-report/cobertura.xml
+      - name: cobertura-report-client
+        uses: shaguptashaikh/cobertura-action@master
+        continue-on-error: true
         with:
           # The GITHUB_TOKEN for this repo
           repo_token: ${{ github.token }}
           # Path to the cobertura file.
-          path: target/jacoco-report/cobertura.xml
+          path: client/target/jacoco-report/cobertura.xml
           # If files with 100% should be skipped from report.
           skip_covered: false
           # Minimum allowed coverage percentage as an integer.
@@ -34,11 +37,38 @@ jobs:
           show_branch: true
           # Use class names instead of the filename
           show_class_names: true
-      - name: Upload Coverage
+          # Use a unique name for the report and comment
+          report_name: Client Coverage Report
+      - name: cobertura-report-server
+        uses: shaguptashaikh/cobertura-action@master
+        continue-on-error: true
+        with:
+          # The GITHUB_TOKEN for this repo
+          repo_token: ${{ github.token }}
+          # Path to the cobertura file.
+          path: server/target/jacoco-report/cobertura.xml
+          # If files with 100% should be skipped from report.
+          skip_covered: false
+          # Minimum allowed coverage percentage as an integer.
+          minimum_coverage: 60
+          # Show line rate as specific column.
+          show_line: true
+          # Show branch rate as specific column.
+          show_branch: true
+          # Use class names instead of the filename
+          show_class_names: true
+          # Use a unique name for the report and comment
+          report_name: Server Coverage Report
+      - name: Upload Client Coverage
         uses: actions/upload-artifact@v1.0.0
         with:
-          name: Coverage Report
-          path: target/jacoco-report
+          name: Client Coverage Report
+          path: client/target/jacoco-report
+      - name: Upload Server Coverage
+        uses: actions/upload-artifact@v1.0.0
+        with:
+          name: Server Coverage Report
+          path: server/target/jacoco-report
   publish:
     needs: build
     runs-on: [self-hosted, Linux, Greengrass]
@@ -53,4 +83,17 @@ jobs:
         run: mvn -ntp clean package -DskipTests
       - run: sudo apt-get install -y awscli
       - name: Upload to S3
-        run: aws s3 cp target/cli-1.0-SNAPSHOT.zip s3://gg-evergreen-releases/${{github.repository}}/${{github.ref}}/evergreen-cli-${{github.sha}}.zip
+        run: |
+          aws s3 cp client/target/cliclient-1.0-SNAPSHOT.zip s3://gg-evergreen-releases/${{github.repository}}/${{github.ref}}/evergreen-cli-${{github.sha}}.zip
+          aws s3 cp server/target/CliServer.jar s3://gg-evergreen-releases/${{github.repository}}-server/${{github.ref}}/evergreen-cli-${{github.sha}}.jar
+      - run: mkdir -p target/artifacts && cp client/target/cliclient-1.0-SNAPSHOT.zip target/artifacts/aws.greengrass.cli.client.zip && cp server/target/CliServer.jar target/artifacts/aws.greengrass.Cli.jar
+      - uses: ./.github/actions/aws-greengrass-component-upload-action
+        name: Upload to GCS Gamma
+        env:
+          AWS_REGION: us-east-1
+        with:
+          recipePath: aws.greengrass.Cli.yaml
+          artifactDirectoryPath: target/artifacts
+          endpoint: https://evergreen-gamma.us-east-1.amazonaws.com
+          autoBumpVersion: true
+          publishAsPublic: true

@@ -13,8 +13,8 @@ Manifests:
         RequiresPrivilege: true
         script: sh "{artifacts:decompressedPath}/aws.greengrass.cli.client/install.sh"
     Artifacts:
-      - URI: s3://gg-dev-artifacts-$stage/$componentName/$platform.os/$version/aws.greengrass.Cli.jar
-      - URI: s3://gg-dev-artifacts-$stage/$componentName/$platform.os/$version/aws.greengrass.cli.client.zip
+      - URI: s3://gg-dev-artifacts-$stage/$componentName/$version/aws.greengrass.Cli.jar
+      - URI: s3://gg-dev-artifacts-$stage/$componentName/$version/aws.greengrass.cli.client.zip
 
   - Platform:
       os: darwin
@@ -23,5 +23,5 @@ Manifests:
         RequiresPrivilege: true
         script: sh "{artifacts:decompressedPath}/aws.greengrass.cli.client/install.sh"
     Artifacts:
-      - URI: s3://gg-dev-artifacts-$stage/$componentName/$platform.os/$version/aws.greengrass.Cli.jar
-      - URI: s3://gg-dev-artifacts-$stage/$componentName/$platform.os/$version/aws.greengrass.cli.client.zip
+      - URI: s3://gg-dev-artifacts-$stage/$componentName/$version/aws.greengrass.Cli.jar
+      - URI: s3://gg-dev-artifacts-$stage/$componentName/$version/aws.greengrass.cli.client.zip

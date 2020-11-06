@@ -6,7 +6,6 @@
 package com.aws.greengrass.cli.adapter.impl;
 
 import com.aws.greengrass.cli.adapter.NucleusAdapterIpc;
-
 import com.aws.greengrass.cli.util.PlatformUtils;
 import com.fasterxml.jackson.databind.DeserializationFeature;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -32,9 +31,6 @@ import software.amazon.awssdk.eventstreamrpc.EventStreamRPCConnection;
 import software.amazon.awssdk.eventstreamrpc.EventStreamRPCConnectionConfig;
 import software.amazon.awssdk.eventstreamrpc.GreengrassConnectMessageSupplier;
 
-import javax.annotation.Nullable;
-import javax.inject.Inject;
-import javax.inject.Named;
 import java.io.File;
 import java.io.IOException;
 import java.nio.file.Files;
@@ -49,6 +45,9 @@ import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
+import javax.annotation.Nullable;
+import javax.inject.Inject;
+import javax.inject.Named;
 
 public class NucleusAdapterIpcClientImpl implements NucleusAdapterIpc {
 
@@ -292,10 +291,17 @@ public class NucleusAdapterIpcClientImpl implements NucleusAdapterIpc {
     }
 
     public static String deTilde(String path) {
-        if (path.startsWith(HOME_DIR_PREFIX)) {
-            return Paths.get(System.getProperty("user.home")).resolve(path.substring(HOME_DIR_PREFIX.length())).toString();
+        if (path == null) {
+            return path;
         }
-        return path;
+        if (path.isEmpty()) {
+            return path;
+        }
+        if (path.startsWith(HOME_DIR_PREFIX)) {
+            return Paths.get(System.getProperty("user.home")).resolve(path.substring(HOME_DIR_PREFIX.length()))
+                    .toAbsolutePath().toString();
+        }
+        return Paths.get(path).toAbsolutePath().toString();
     }
 
     private byte[] loadCliIpcInfo(String ggcRootPath) throws IOException {

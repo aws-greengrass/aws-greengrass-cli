@@ -1,0 +1,24 @@
+RecipeFormatVersion: '2020-01-25'
+ComponentName: Component1
+ComponentDescription: Test Component
+ComponentPublisher: Me
+ComponentVersion: '1.0.0'
+ComponentConfiguration:
+  DefaultConfiguration:
+    Message: 'World'
+
+Manifests:
+  - Platform:
+      os: windows
+    Lifecycle:
+      run: |-
+        powershell -command echo {configuration:/Message}; sleep -m 100
+    Artifacts:
+      - URI: greengrass:run.sh
+  - Platform:
+      os: all
+    Lifecycle:
+      run: |-
+        sh {artifacts:path}/run.sh; echo {configuration:/Message}; sleep 100
+    Artifacts:
+      - URI: greengrass:run.sh

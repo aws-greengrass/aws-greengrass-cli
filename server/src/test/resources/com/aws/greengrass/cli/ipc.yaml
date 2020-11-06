@@ -1,0 +1,48 @@
+---
+services:
+  aws.greengrass.Nucleus:
+    parameters:
+      runWithDefault:
+        posixUser: nobody
+
+  main:
+    dependencies:
+      - mqtt
+      - aws.greengrass.StreamManager
+      - ServiceName
+      - ServiceToBeRestarted
+      - ServiceToBeStopped
+  mqtt:
+    lifecycle:
+    version: 1.0.0
+  aws.greengrass.StreamManager:
+    lifecycle: {}
+    version: 1.0.0
+  ServiceName:
+    lifecycle:
+      run:
+        windows:
+          powershell -command sleep 100
+        posix:
+          sleep 100
+  ServiceToBeRestarted:
+    lifecycle:
+      run:
+        windows:
+          powershell -command sleep 100
+        posix:
+          sleep 100
+  ServiceToBeStopped:
+    lifecycle:
+      run:
+        windows:
+          powershell -command sleep 100
+        posix:
+          sleep 100
+  StartupService:
+    lifecycle:
+      startup:
+        windows:
+          powershell -command "& { sleep 2; exit 1 }"
+        posix:
+          sleep 2 && exit 1

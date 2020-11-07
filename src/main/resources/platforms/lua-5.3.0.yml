@@ -1,0 +1,18 @@
+## Template recipe for Lua platform install
+---
+RecipeFormatVersion: 2020-01-25
+ComponentName: lua
+ComponentVersion: 5.3.0
+ComponentDescription: The lua platform
+ComponentPublisher: Amazon
+
+Manifests:
+  - Platform:
+      os: all
+    Lifecycle:
+      Install:
+        Skipif: onpath lua 
+        Script:
+            debian: sudo apt install -y lua5.3 
+            redhat: sudo yum install epel-release && yum install lua	#RHEL/CentOS systems
+            macos: brew install lua

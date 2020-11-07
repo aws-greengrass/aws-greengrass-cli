@@ -1,0 +1,14 @@
+## Template recipe for Python projects
+---
+RecipeFormatVersion: 2020-01-25
+ComponentName: $name
+ComponentVersion: $version
+ComponentDescription: $description
+ComponentPublisher: $publisher
+
+Manifests:
+  - Platform:
+      os: linux
+    Lifecycle:
+      Run: |
+        python3 {artifacts:path}/$file

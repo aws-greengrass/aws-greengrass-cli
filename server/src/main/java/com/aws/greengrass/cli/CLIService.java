@@ -23,7 +23,6 @@ import com.aws.greengrass.util.platforms.Platform;
 import com.aws.greengrass.util.platforms.UserPlatform;
 import com.fasterxml.jackson.databind.DeserializationFeature;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.fasterxml.jackson.dataformat.cbor.databind.CBORMapper;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import lombok.Data;
 import software.amazon.awssdk.aws.greengrass.GreengrassCoreIPCService;
@@ -41,7 +40,6 @@ import javax.inject.Inject;
 import static com.aws.greengrass.componentmanager.KernelConfigResolver.PARAMETERS_CONFIG_KEY;
 import static com.aws.greengrass.ipc.AuthenticationHandler.SERVICE_UNIQUE_ID_KEY;
 import static com.aws.greengrass.ipc.IPCEventStreamService.NUCLEUS_DOMAIN_SOCKET_FILEPATH;
-import static com.aws.greengrass.ipc.IPCService.KERNEL_URI_ENV_VARIABLE_NAME;
 
 @ImplementsService(name = CLIService.CLI_SERVICE, autostart = true)
 public class CLIService extends GreengrassService {
@@ -49,7 +47,6 @@ public class CLIService extends GreengrassService {
     public static final String GREENGRASS_CLI_CLIENT_ID_FMT = "greengrass-cli-%s";
     public static final String CLI_SERVICE = "aws.greengrass.Cli";
     public static final String CLI_AUTH_TOKEN = "cli_auth_token";
-    public static final String SOCKET_URL = "socket_url";
     public static final String posixGroups = "AuthorizedPosixGroups";
 
     static final String USER_CLIENT_ID_PREFIX = "user-";
@@ -58,12 +55,12 @@ public class CLIService extends GreengrassService {
             true, true, false, false, false, false, false, false, false);
     public static final String DOMAIN_SOCKET_PATH = "domain_socket_path";
 
-    private static final ObjectMapper CBOR_MAPPER = new CBORMapper();
     protected static final ObjectMapper OBJECT_MAPPER =
             new ObjectMapper().configure(DeserializationFeature.FAIL_ON_INVALID_SUBTYPE, false)
                     .configure(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, false);
 
     private final Map<String, String> clientIdToAuthToken = new HashMap<>();
+
 
     @Inject
     private DeploymentStatusKeeper deploymentStatusKeeper;
@@ -94,7 +91,8 @@ public class CLIService extends GreengrassService {
      * @param kernel {@link Kernel}
      * @param greengrassCoreIPCService {@link GreengrassCoreIPCService}
      */
-    public CLIService(Topics topics, Topics privateConfig, CLIEventStreamAgent cliEventStreamAgent,
+    public CLIService(Topics topics, Topics privateConfig,
+                      CLIEventStreamAgent cliEventStreamAgent,
                       DeploymentStatusKeeper deploymentStatusKeeper, AuthenticationHandler authenticationHandler,
                       Kernel kernel, GreengrassCoreIPCService greengrassCoreIPCService) {
         super(topics, privateConfig);
@@ -110,8 +108,11 @@ public class CLIService extends GreengrassService {
         super.postInject();
         // Does not happen for built-in/plugin services so doing explicitly
         AuthenticationHandler.registerAuthenticationToken(this);
+
         deploymentStatusKeeper.registerDeploymentStatusConsumer(Deployment.DeploymentType.LOCAL,
-                    this::deploymentStatusChanged, CLIService.class.getName());
+                this::deploymentStatusChanged, CLIService.class.getName());
+
+
         config.lookup(PARAMETERS_CONFIG_KEY, posixGroups).subscribe((why, newv) -> {
             requestRestart();
         });
@@ -165,7 +166,7 @@ public class CLIService extends GreengrassService {
 
     private synchronized void generateCliIpcInfo() throws UnauthenticatedException, IOException, InterruptedException {
         // GG_NEEDS_REVIEW: TODO: replace with the new IPC domain socket path
-        if (config.getRoot().find(SETENV_CONFIG_NAMESPACE, KERNEL_URI_ENV_VARIABLE_NAME) == null) {
+        if (config.getRoot().find(SETENV_CONFIG_NAMESPACE, NUCLEUS_DOMAIN_SOCKET_FILEPATH) == null) {
             logger.atWarn().log("Did not find IPC socket URL in the config. Not creating the cli ipc info file");
             return;
         }
@@ -173,8 +174,8 @@ public class CLIService extends GreengrassService {
         Path authTokenDir = kernel.getNucleusPaths().cliIpcInfoPath();
         revokeOutdatedAuthTokens(authTokenDir);
 
+        // [P41372857]: Support Windows group permissions
         if (Exec.isWindows) {
-            // GG_NEEDS_REVIEW: TODO support windows group permissions
             generateCliIpcInfoForEffectiveUser(authTokenDir);
             return;
         }
@@ -248,9 +249,6 @@ public class CLIService extends GreengrassService {
 
         Map<String, String> ipcInfo = new HashMap<>();
         ipcInfo.put(CLI_AUTH_TOKEN, cliAuthToken);
-        // GG_NEEDS_REVIEW: TODO: Remove when UAT move to the new IPC
-        ipcInfo.put(SOCKET_URL, Coerce.toString(
-                config.getRoot().find(SETENV_CONFIG_NAMESPACE, KERNEL_URI_ENV_VARIABLE_NAME)));
         ipcInfo.put(DOMAIN_SOCKET_PATH, Coerce.toString(
                 config.getRoot().find(SETENV_CONFIG_NAMESPACE, NUCLEUS_DOMAIN_SOCKET_FILEPATH)));
 

@@ -3,6 +3,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
+
 package com.aws.greengrass.cli.commands;
 
 import java.io.*;
@@ -19,6 +20,7 @@ import org.apache.velocity.Template;
 import org.apache.velocity.VelocityContext;
 import org.apache.velocity.app.VelocityEngine;
 import org.apache.velocity.runtime.resource.loader.ClasspathResourceLoader;
+import org.apache.velocity.runtime.RuntimeConstants;
 
 public class TemplateProcessor {
 
@@ -36,6 +38,7 @@ public class TemplateProcessor {
     private String hashbang;
     private String javaVersion = "11";
     private Map<String, byte[]> auxRecipies = new LinkedHashMap<>();
+    private boolean isOK = true;
 
     public TemplateProcessor(String[] files) {
         this.files = files;
@@ -47,7 +50,8 @@ public class TemplateProcessor {
                     break;
                 case "jar":
                     if (serviceName == null) {
-                        harvestJar(pn);
+                        if(!harvestJar(pn))
+                            isOK = false;
                     }
                     addArtifact(fn, false);
                     break;
@@ -87,6 +91,7 @@ public class TemplateProcessor {
                 }
             } catch (MalformedURLException ex) {
                 Logger.getLogger(TemplateProcessor.class.getName()).log(Level.SEVERE, null, ex);
+                isOK = false;
             }
         }
         artifacts.add(fn);
@@ -126,12 +131,20 @@ public class TemplateProcessor {
                 }
                 return sb.toString();
             } catch (IOException ioe) {
+                isOK = false;
             }
         }
         return null;
     }
+    static {
+//            org.apache.logging.log4j.core.config.Configurator.setLevel(System.getProperty("log4j.logger"), Level.ALL);
 
-    public void build() {
+        System.setProperty("org.slf4j.simpleLogger.defaultLogLevel", "all");
+                Logger.getLogger(TemplateProcessor.class.getName()).setLevel(Level.ALL);
+    }
+
+    @SuppressWarnings("UseSpecificCatch")
+    public boolean build() {
         if (genTemplateDir == null) {
             genTemplateDir = Paths.get(System.getProperty("user.home", "/tmp"), "gg2Templates");
         }
@@ -159,16 +172,18 @@ public class TemplateProcessor {
         }
         StringWriter tls = new StringWriter();
         if (generateRecipe) {
+            URL u = getClass().getClassLoader().getResource("templates/py.yml");
+            System.out.println(u);
             final VelocityEngine ve = new VelocityEngine();
             final VelocityContext context = new VelocityContext();
-            ve.setProperty("resource.loader", "file,classpath");
-            ve.setProperty("resource.loader.classpath.class", ClasspathResourceLoader.class.getName());
-            ve.setProperty("resource.loader.file.path", localTemplateDir.toString());
+            ve.setProperty(RuntimeConstants.RESOURCE_LOADER, "file,classpath");
+            ve.setProperty("classpath.resource.loader.class", ClasspathResourceLoader.class.getName());
+            ve.setProperty(RuntimeConstants.FILE_RESOURCE_LOADER_PATH, localTemplateDir.toString());
 
             ve.init();
             String templateName;
             Path keyPath = Paths.get(keyFile);
-            if (isHashBang(keyFile)) {
+            if (hashbang!=null) {
                 templateName = "hashbang.yml";
             } else if (Files.isExecutable(keyPath)) {
                 templateName = "executable.yml";
@@ -199,8 +214,13 @@ public class TemplateProcessor {
             if (javaVersion != null) {
                 context.put("javaVersion", javaVersion);
             }
-            Template t = ve.getTemplate("templates/" + templateName, "UTF-8");
-            t.merge(context, tls);
+            try {
+                Template t = ve.getTemplate("templates/" + templateName, "UTF-8");
+                t.merge(context, tls);
+            } catch(Throwable t) {
+                System.err.println("Cannot find template for "+keyFile+"\n\t"+t);
+                return false;
+            }
         } else {
             System.out.println("[ using provided recipe file ]"); //            ComponentRecipe r = getParsedRecipe();
         }
@@ -217,7 +237,7 @@ public class TemplateProcessor {
             }
         } catch (IOException ex) {
             System.err.println("ERROR: " + ex);
-            System.exit(-1);
+            return false;
         }
         artifacts.forEach(fn -> {
             Path src = Paths.get(fn);
@@ -226,16 +246,19 @@ public class TemplateProcessor {
                 Files.copy(src, dest, StandardCopyOption.REPLACE_EXISTING);
             } catch (IOException ex) {
                 System.err.println("Could not copy artifact " + fn + "\n\t" + ex);
+                isOK = false;
             }
         });
         auxRecipies.forEach((name, body) -> {
             try (OutputStream out = Files.newOutputStream(rd.resolve(chopExtension(name) + ".yaml"), StandardOpenOption.CREATE)) {
                 out.write(body);
             } catch (IOException ex) {
-                Logger.getLogger(TemplateProcessor.class.getName()).log(Level.SEVERE, null, ex);
+                System.err.println("ERROR: " + ex);
+                isOK = false;
             }
         });
         addMerge(serviceName, serviceVersion);
+        return isOK;
     }
 
     private void addMerge(String name, String version) {
@@ -245,19 +268,7 @@ public class TemplateProcessor {
         whatToMerge.put(name, version);
     }
 
-    private boolean isHashBang(String keyFile) {
-        try (BufferedReader in = Files.newBufferedReader(Paths.get(keyFile))) {
-            if (in.read() != '#' || in.read() != '!') {
-                return false;
-            }
-            hashbang = in.readLine().trim();
-            return true;
-        } catch (IOException ex) {
-            return false;
-        }
-    }
-
-    private void harvestJar(Path pn) {
+    private boolean harvestJar(Path pn) {
         try {
             JarFile jar = new JarFile(pn.toFile());
             Manifest m = jar.getManifest();
@@ -283,12 +294,13 @@ public class TemplateProcessor {
                     addRecipe(e.getName(), capture(jar.getInputStream(e)));
                 } catch (IOException ioe) {
                     System.err.println("Can't read .jar component " + e.getName());
-                    System.exit(-1);
                 }
             });
         } catch (IOException ex) {
             System.err.println("Error reading " + pn + "\n\t" + ex);
+            return false;
         }
+        return true;
     }
 
     private void addRecipe(String name, byte[] body) {

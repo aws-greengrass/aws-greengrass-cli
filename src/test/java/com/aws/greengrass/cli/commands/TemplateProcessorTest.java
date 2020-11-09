@@ -67,17 +67,22 @@ public class TemplateProcessorTest {
 
     @Test
     public void test_single_file_lua() {
-        test_single_file("hello-lua.lua", "print 'Hello from LUA!'");
+        test_single_file("hello.lua", "-- ComponentVersion: 1.1.0\n" +
+"           -- ComponentName: OlaLua\n"
+                + "print '¡Olá lua!'");
     }
 
     @Test
     public void test_single_file_python() {
-        test_single_file("hello-python.py", "print(\"Hello from Python!\")");
+        test_single_file("hello.py", "print(\"Hello from Python!\")");
     }
 
     @Test
     public void test_single_file_hashbang() {
-        test_single_file("hashbang", "#! /bin/sh\necho hello from sh");
+        test_single_file("hashbang", "#! /bin/sh\n" +
+                                     "# ComponentVersion: 1.2.3\n" +
+                                     "# ComponentName: ShellTest\n" +
+                                     "echo hello from sh");
     }
 
     @Test
@@ -85,6 +90,11 @@ public class TemplateProcessorTest {
         test_single_file("helloPerl", "#!/usr/bin/perl\n"
                 + "use warnings;\n"
                 + "print(\"Hello, World!\\n\");");
+    }
+    
+    @Test
+    public void test_single_file_jar() {
+        test_single_file("/Users/jag/NetBeansProjects/HelloWorldForever/target/HelloWorldForever-1.0-SNAPSHOT.jar");
     }
 
     public void test_single_file(String name, String body) {
@@ -94,10 +104,15 @@ public class TemplateProcessorTest {
             try (Writer out = Files.newBufferedWriter(t, StandardOpenOption.CREATE, StandardOpenOption.TRUNCATE_EXISTING)) {
                 out.append(body).append('\n');
             }
-            run("--ggcRootPath", System.getProperty("user.home")+"/.greengrass", "deployment", "create", t.toString());
+            test_single_file(t.toString());
         } catch (IOException ex) {
             fail(ex.toString());
         }
+    }
+    
+    public void test_single_file(String name) {
+        assertTrue(run("--ggcRootPath", System.getProperty("user.home")
+                + "/.greengrass", "deployment", "create", name) == 0);
     }
 
     public int run(String... args) {

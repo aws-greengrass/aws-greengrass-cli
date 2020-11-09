@@ -45,9 +45,8 @@ import static com.aws.greengrass.ipc.IPCEventStreamService.NUCLEUS_DOMAIN_SOCKET
 public class CLIService extends GreengrassService {
 
     public static final String GREENGRASS_CLI_CLIENT_ID_FMT = "greengrass-cli-%s";
-    public static final String CLI_SERVICE = "aws.greengrass.ipc.cli";
+    public static final String CLI_SERVICE = "aws.greengrass.Cli";
     public static final String CLI_AUTH_TOKEN = "cli_auth_token";
-    public static final String SOCKET_URL = "socket_url";
     public static final String posixGroups = "AuthorizedPosixGroups";
 
     static final String USER_CLIENT_ID_PREFIX = "user-";

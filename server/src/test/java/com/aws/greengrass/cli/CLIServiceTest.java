@@ -40,11 +40,9 @@ import static com.aws.greengrass.cli.CLIService.CLI_AUTH_TOKEN;
 import static com.aws.greengrass.cli.CLIService.CLI_SERVICE;
 import static com.aws.greengrass.cli.CLIService.DOMAIN_SOCKET_PATH;
 import static com.aws.greengrass.cli.CLIService.OBJECT_MAPPER;
-import static com.aws.greengrass.cli.CLIService.SOCKET_URL;
 import static com.aws.greengrass.cli.CLIService.posixGroups;
 import static com.aws.greengrass.componentmanager.KernelConfigResolver.PARAMETERS_CONFIG_KEY;
 import static com.aws.greengrass.ipc.IPCEventStreamService.NUCLEUS_DOMAIN_SOCKET_FILEPATH;
-import static com.aws.greengrass.ipc.IPCEventStreamService.NUCLEUS_DOMAIN_SOCKET_FILEPATH_FOR_COMPONENT;
 import static com.aws.greengrass.lifecyclemanager.GreengrassService.PRIVATE_STORE_NAMESPACE_TOPIC;
 import static com.aws.greengrass.lifecyclemanager.GreengrassService.SERVICES_NAMESPACE_TOPIC;
 import static com.aws.greengrass.lifecyclemanager.GreengrassService.SETENV_CONFIG_NAMESPACE;
@@ -121,7 +119,7 @@ class CLIServiceTest extends GGServiceTestUtil {
         Topic mockSocketUrlTopic = mock(Topic.class);
         when(mockSocketUrlTopic.getOnce()).thenReturn(MOCK_SOCKET_URL);
         Topics mockRootTopics = mock(Topics.class);
-        when(mockRootTopics.find(SETENV_CONFIG_NAMESPACE, NUCLEUS_DOMAIN_SOCKET_FILEPATH_FOR_COMPONENT))
+        when(mockRootTopics.find(SETENV_CONFIG_NAMESPACE, NUCLEUS_DOMAIN_SOCKET_FILEPATH))
                 .thenReturn(mockSocketUrlTopic);
         when(cliConfigSpy.getRoot()).thenReturn(mockRootTopics);
         cliService.startup();
@@ -164,7 +162,7 @@ class CLIServiceTest extends GGServiceTestUtil {
         Topic mockSocketUrlTopic = mock(Topic.class);
         when(mockSocketUrlTopic.getOnce()).thenReturn(MOCK_SOCKET_URL);
         Topics mockRootTopics = mock(Topics.class);
-        when(mockRootTopics.find(SETENV_CONFIG_NAMESPACE, NUCLEUS_DOMAIN_SOCKET_FILEPATH_FOR_COMPONENT))
+        when(mockRootTopics.find(SETENV_CONFIG_NAMESPACE, NUCLEUS_DOMAIN_SOCKET_FILEPATH))
                 .thenReturn(mockSocketUrlTopic);
         when(cliConfigSpy.getRoot()).thenReturn(mockRootTopics);
 

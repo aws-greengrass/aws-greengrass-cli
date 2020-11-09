@@ -1,7 +1,7 @@
 ## AWS Greengrass CLI
-![CI with Maven](https://github.com/aws/aws-greengrass-cli/workflows/CI%20with%20Maven/badge.svg?branch=master)
+![CI with Maven](https://github.com/aws/aws-greengrass-cli/workflows/CI%20with%20Maven/badge.svg?branch=main)
 
-This module is the stand-alone CLI associated with aws-greengrass-kernel
+This module is the stand-alone CLI associated with aws-greengrass-nucleus
 
 ## Installation
 

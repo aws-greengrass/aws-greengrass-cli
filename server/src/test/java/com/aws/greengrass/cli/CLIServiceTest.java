@@ -40,11 +40,9 @@ import static com.aws.greengrass.cli.CLIService.CLI_AUTH_TOKEN;
 import static com.aws.greengrass.cli.CLIService.CLI_SERVICE;
 import static com.aws.greengrass.cli.CLIService.DOMAIN_SOCKET_PATH;
 import static com.aws.greengrass.cli.CLIService.OBJECT_MAPPER;
-import static com.aws.greengrass.cli.CLIService.SOCKET_URL;
 import static com.aws.greengrass.cli.CLIService.posixGroups;
 import static com.aws.greengrass.componentmanager.KernelConfigResolver.PARAMETERS_CONFIG_KEY;
 import static com.aws.greengrass.ipc.IPCEventStreamService.NUCLEUS_DOMAIN_SOCKET_FILEPATH;
-import static com.aws.greengrass.ipc.IPCService.KERNEL_URI_ENV_VARIABLE_NAME;
 import static com.aws.greengrass.lifecyclemanager.GreengrassService.PRIVATE_STORE_NAMESPACE_TOPIC;
 import static com.aws.greengrass.lifecyclemanager.GreengrassService.SERVICES_NAMESPACE_TOPIC;
 import static com.aws.greengrass.lifecyclemanager.GreengrassService.SETENV_CONFIG_NAMESPACE;
@@ -121,8 +119,6 @@ class CLIServiceTest extends GGServiceTestUtil {
         Topic mockSocketUrlTopic = mock(Topic.class);
         when(mockSocketUrlTopic.getOnce()).thenReturn(MOCK_SOCKET_URL);
         Topics mockRootTopics = mock(Topics.class);
-        when(mockRootTopics.find(SETENV_CONFIG_NAMESPACE, KERNEL_URI_ENV_VARIABLE_NAME))
-                .thenReturn(mockSocketUrlTopic);
         when(mockRootTopics.find(SETENV_CONFIG_NAMESPACE, NUCLEUS_DOMAIN_SOCKET_FILEPATH))
                 .thenReturn(mockSocketUrlTopic);
         when(cliConfigSpy.getRoot()).thenReturn(mockRootTopics);
@@ -137,7 +133,7 @@ class CLIServiceTest extends GGServiceTestUtil {
         assertEquals(1, files.length);
 
         Map<String, String> ipcInfo = OBJECT_MAPPER.readValue(Files.readAllBytes(files[0].toPath()), Map.class);
-        assertEquals(MOCK_SOCKET_URL, ipcInfo.get(SOCKET_URL));
+        assertEquals(MOCK_SOCKET_URL, ipcInfo.get(DOMAIN_SOCKET_PATH));
         assertEquals(MOCK_AUTH_TOKEN, ipcInfo.get(CLI_AUTH_TOKEN));
     }
 
@@ -166,8 +162,6 @@ class CLIServiceTest extends GGServiceTestUtil {
         Topic mockSocketUrlTopic = mock(Topic.class);
         when(mockSocketUrlTopic.getOnce()).thenReturn(MOCK_SOCKET_URL);
         Topics mockRootTopics = mock(Topics.class);
-        when(mockRootTopics.find(SETENV_CONFIG_NAMESPACE, KERNEL_URI_ENV_VARIABLE_NAME))
-                .thenReturn(mockSocketUrlTopic);
         when(mockRootTopics.find(SETENV_CONFIG_NAMESPACE, NUCLEUS_DOMAIN_SOCKET_FILEPATH))
                 .thenReturn(mockSocketUrlTopic);
         when(cliConfigSpy.getRoot()).thenReturn(mockRootTopics);
@@ -208,11 +202,10 @@ class CLIServiceTest extends GGServiceTestUtil {
 
         Map<String, String> ipcInfo =
                 OBJECT_MAPPER.readValue(Files.readAllBytes(authDir.resolve("group-123")), Map.class);
-        assertEquals(MOCK_SOCKET_URL, ipcInfo.get(SOCKET_URL));
+        assertEquals(MOCK_SOCKET_URL, ipcInfo.get(DOMAIN_SOCKET_PATH));
         assertEquals(MOCK_AUTH_TOKEN, ipcInfo.get(CLI_AUTH_TOKEN));
 
         ipcInfo = OBJECT_MAPPER.readValue(Files.readAllBytes(authDir.resolve("group-456")), Map.class);
-        assertEquals(MOCK_SOCKET_URL, ipcInfo.get(SOCKET_URL));
         assertEquals(MOCK_AUTH_TOKEN_2, ipcInfo.get(CLI_AUTH_TOKEN));
         assertEquals(MOCK_SOCKET_URL, ipcInfo.get(DOMAIN_SOCKET_PATH));
     }

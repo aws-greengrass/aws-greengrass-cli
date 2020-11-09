@@ -5,7 +5,6 @@
 
 package com.aws.greengrass.cli;
 
-import com.aws.greengrass.builtin.services.cli.CLIEventStreamAgent;
 import com.aws.greengrass.config.Topic;
 import com.aws.greengrass.config.Topics;
 import com.aws.greengrass.dependency.ImplementsService;

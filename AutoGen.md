@@ -3,11 +3,11 @@
 Normally, to deploy something to a device, you have to construct recipe and artifact directories and populate them.  This has some powerful uses, but it can be cumbersome for simple projects. Fortunately, they can be automatically generated for you from program code.  For example:
 ```
 echo 'print("Hello from Python!")'>hello.py
-greengrass-cli component update hello.py
+greengrass-cli deployment create hello.py
 ```
 Will generate recipe and artifact directories and deploy them to the device.  If you want to inspect (and possibly reuse) the generated files, they will be in `~/gg2Templates/hello`.
 
-For a very simple case like this, the components name will be derived from the filename, in this case `hello`, and the version number will default to 0.0.0.  If the filename contains a version number, it will be taken from there.  For example, `hello-1.2.0` will have a version number of 1.2.0.
+For a very simple case like this, the components name will be derived from the filename, in this case `hello`, and the version number will default to 0.0.0.  If the filename contains a version number, it will be taken from there.  For example, `hello-1.2.0.py` will have a version number of 1.2.0.
 
 You can also embed component name and version information as comments in the source file itself.  For example, if `hello.lua` looked like this:
 ```
@@ -55,3 +55,10 @@ print("Hello, World!\n");
 ```
 
 `.jar` files are handled similarly, except that component name and version are searched for in the manifest, and the manifest must have a main class specification.  Also, if there is a RECIPIES folder in the jar, the contents will be copied to the recipe directory.
+
+###ToDo
+1. Generate/read zip files so developer laptop can bridge to embedded device
+2. Extract more information besides name and version.  eg. dependencies, periodicity and launch parameters.
+3. Read templates from the web, not just built into the cli app.
+99. and so much more...
+

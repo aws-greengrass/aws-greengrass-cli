@@ -112,7 +112,7 @@ public class TemplateProcessorTest {
     
     public void test_single_file(String name) {
         assertTrue(run("--ggcRootPath", System.getProperty("user.home")
-                + "/.greengrass", "deployment", "create", name) == 0);
+                + "/.greengrass", "deployment", "create", "--dryrun", name) == 0);
     }
 
     public int run(String... args) {

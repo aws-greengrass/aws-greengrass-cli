@@ -67,6 +67,9 @@ import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 
+import static com.aws.greengrass.cli.CLIService.CLI_AUTH_TOKEN;
+import static com.aws.greengrass.cli.CLIService.CLI_SERVICE;
+import static com.aws.greengrass.cli.CLIService.posixGroups;
 import static com.aws.greengrass.componentmanager.KernelConfigResolver.PARAMETERS_CONFIG_KEY;
 import static com.aws.greengrass.integrationtests.ipc.IPCTestUtils.TEST_SERVICE_NAME;
 import static com.aws.greengrass.integrationtests.ipc.IPCTestUtils.getEventStreamRpcConnection;
@@ -74,9 +77,6 @@ import static com.aws.greengrass.integrationtests.ipc.IPCTestUtils.getListenerFo
 import static com.aws.greengrass.integrationtests.ipc.IPCTestUtils.prepareKernelFromConfigFile;
 import static com.aws.greengrass.integrationtests.ipc.IPCTestUtils.waitForDeploymentToBeSuccessful;
 import static com.aws.greengrass.integrationtests.ipc.IPCTestUtils.waitForServiceToComeInState;
-import static com.aws.greengrass.ipc.modules.CLIService.CLI_AUTH_TOKEN;
-import static com.aws.greengrass.ipc.modules.CLIService.CLI_SERVICE;
-import static com.aws.greengrass.ipc.modules.CLIService.posixGroups;
 import static com.aws.greengrass.testcommons.testutilities.ExceptionLogProtector.ignoreExceptionOfType;
 import static com.aws.greengrass.testcommons.testutilities.ExceptionLogProtector.ignoreExceptionUltimateCauseOfType;
 import static com.aws.greengrass.testcommons.testutilities.ExceptionLogProtector.ignoreExceptionUltimateCauseWithMessage;

@@ -89,7 +89,7 @@ import static com.aws.greengrass.deployment.DeploymentConfigMerger.DEPLOYMENT_ID
 import static com.aws.greengrass.deployment.DeploymentStatusKeeper.DEPLOYMENT_ID_KEY_NAME;
 import static com.aws.greengrass.deployment.DeploymentStatusKeeper.DEPLOYMENT_STATUS_KEY_NAME;
 import static com.aws.greengrass.deployment.DeploymentStatusKeeper.DEPLOYMENT_TYPE_KEY_NAME;
-import static com.aws.greengrass.deployment.converter.DeploymentDocumentConverter.DEFAULT_GROUP_NAME;
+import static com.aws.greengrass.deployment.converter.DeploymentDocumentConverter.LOCAL_DEPLOYMENT_GROUP_NAME;
 import static com.aws.greengrass.ipc.common.IPCErrorStrings.DEPLOYMENTS_QUEUE_FULL;
 import static com.aws.greengrass.ipc.common.IPCErrorStrings.DEPLOYMENTS_QUEUE_NOT_INITIALIZED;
 
@@ -471,7 +471,8 @@ public class CLIEventStreamAgent {
                         .componentsToMerge(request.getRootComponentVersionsToAdd())
                         .componentsToRemove(request.getRootComponentsToRemove())
                         .requestTimestamp(System.currentTimeMillis()).groupName(
-                                request.getGroupName() == null || request.getGroupName().isEmpty() ? DEFAULT_GROUP_NAME
+                                request.getGroupName() == null || request.getGroupName().isEmpty()
+                                        ? LOCAL_DEPLOYMENT_GROUP_NAME
                                         : request.getGroupName()).configurationUpdate(configUpdate).build();
                 String deploymentDocument;
                 try {

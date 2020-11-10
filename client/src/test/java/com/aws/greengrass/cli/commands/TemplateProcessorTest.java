@@ -68,8 +68,8 @@ public class TemplateProcessorTest {
     @Test
     public void test_single_file_lua() {
         test_single_file("hello.lua", "-- ComponentVersion: 1.1.0\n" +
-"           -- ComponentName: OlaLua\n"
-                + "print '¡Olá lua!'");
+                                      "-- ComponentName: OlaLua\n" +
+                                      "print '¡Olá lua!'");
     }
 
     @Test

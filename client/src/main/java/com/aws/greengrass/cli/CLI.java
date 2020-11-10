@@ -36,11 +36,14 @@ public class CLI implements Runnable {
     CommandSpec spec;
 
     public static void main(String... args) {
-        CLI cli = new CLI();
+        System.exit(new CLI().runCommand(args));
+    }
+    public int runCommand(String... args) {
+        /* break out as seperate function for use in unit tests */
         int exitCode = 0;
         try {
-            populateCommand(cli, args);
-            exitCode = new CommandLine(cli, new CommandFactory(cli.createCommandComponent()))
+            populateCommand(args);
+            exitCode = new CommandLine(this, new CommandFactory(createCommandComponent()))
                     .setExecutionExceptionHandler((e, commandLine, parseResult) -> {
                         if (e instanceof CommandLine.UnmatchedArgumentException
                                 || e instanceof CommandLine.MissingParameterException
@@ -57,11 +60,11 @@ public class CLI implements Runnable {
         } catch (ParameterException e) {
             CommandLine.defaultExceptionHandler().handleParseException(e, args);
         }
-        System.exit(exitCode);
+        return exitCode;
     }
 
-    private static void populateCommand(CLI cli, String[] args) {
-        CommandLine parser = new CommandLine(cli, new CommandFactory(DaggerCommandsComponent.builder()
+    private void populateCommand(String[] args) {
+        CommandLine parser = new CommandLine(this, new CommandFactory(DaggerCommandsComponent.builder()
                 .adapterModule(new AdapterModule(null))
                 .build()));
         parser.parseArgs(args);

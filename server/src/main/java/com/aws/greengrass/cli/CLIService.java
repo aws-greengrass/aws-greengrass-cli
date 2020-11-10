@@ -222,10 +222,11 @@ public class CLIService extends GreengrassService {
             return;
         }
 
-
-        FileSystemPermission filePermission = FileSystemPermission.builder()
-                .ownerGroup(group.getPrincipalName()).ownerRead(true).ownerWrite(true).groupRead(true).build();
+        FileSystemPermission filePermission = null;
         try {
+            filePermission = FileSystemPermission.builder().ownerUser(
+                    Platform.getInstance().lookupCurrentUser().getPrincipalIdentifier())
+                    .ownerGroup(group.getPrincipalName()).ownerRead(true).ownerWrite(true).groupRead(true).build();
             Platform.getInstance().setPermissions(filePermission, ipcInfoFile);
         } catch (IOException e) {
             logger.atError().kv("file", ipcInfoFile).kv("permission", filePermission)

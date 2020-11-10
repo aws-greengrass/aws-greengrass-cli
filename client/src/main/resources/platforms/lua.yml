@@ -1,0 +1,21 @@
+## Template recipe for Lua platform install
+---
+RecipeFormatVersion: 2020-01-25
+ComponentName: lua
+ComponentVersion: 5.4.1
+ComponentDescription: The lua platform
+ComponentPublisher: Amazon
+
+
+Manifests:
+  - Platform:
+      os: linux
+    Lifecycle:
+      Install:
+        Skipif: onpath lua 
+        Script: | # bug: doesn't do versions right
+            if [ -x /usr/bin/apt ]; then sudo apt install lua  #Debian/Ubuntu systems 
+            elif [ -x /usr/bin/yum ]; then  yum install epel-release && yum install lua	#RHEL/CentOS systems
+            elif [ -x /usr/bin/dnf ]; then dnf install lua
+            else echo Can\' install lua 1>&2
+            fi

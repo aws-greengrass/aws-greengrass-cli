@@ -96,6 +96,11 @@
             <scope>system</scope>
             <systemPath>${project.basedir}/lib/aws-greengrass-ipc-sdk.jar</systemPath>
         </dependency>
+        <dependency>
+            <groupId>org.apache.velocity</groupId>
+            <artifactId>velocity</artifactId>
+            <version>1.7</version>
+        </dependency>
     </dependencies>
     <build>
         <plugins>

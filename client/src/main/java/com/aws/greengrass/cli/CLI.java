@@ -7,6 +7,7 @@ package com.aws.greengrass.cli;
 
 import com.aws.greengrass.cli.commands.ComponentCommand;
 import com.aws.greengrass.cli.commands.DeploymentCommand;
+import com.aws.greengrass.cli.commands.TemplateCommand;
 import com.aws.greengrass.cli.commands.Logs;
 import com.aws.greengrass.cli.commands.PasswordCommand;
 import com.aws.greengrass.cli.module.AdapterModule;
@@ -25,6 +26,8 @@ import java.util.ResourceBundle;
  * Main entry point into the command line.
  */
 @Command(name = "cli",
+        subcommands = {HelpCommand.class, ComponentCommand.class,
+            TemplateCommand.class, DeploymentCommand.class, Logs.class},
         subcommands = {HelpCommand.class, ComponentCommand.class, DeploymentCommand.class, Logs.class,
                 PasswordCommand.class},
         resourceBundle = "com.aws.greengrass.cli.CLI_messages")

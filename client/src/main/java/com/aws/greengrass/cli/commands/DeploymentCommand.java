@@ -6,7 +6,6 @@
 package com.aws.greengrass.cli.commands;
 
 import com.aws.greengrass.cli.adapter.NucleusAdapterIpc;
-import com.aws.greengrass.cli.adapter.impl.*;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import picocli.CommandLine;
@@ -52,19 +51,6 @@ public class DeploymentCommand extends BaseCommand {
      @CommandLine.Option(names = {"--runWith"}, paramLabel = "Component Run With Info") Map<String, String> runWithOptions,
      @CommandLine.Option(names = {"-c", "--update-config"}, paramLabel = "Update configuration") String configUpdate)
             throws IOException {
-        if(files!=null) {
-            TemplateProcessor tp = new TemplateProcessor(files);
-            tp.setGenTemplateDir(NucleusAdapterIpcClientImpl.deTilde(generatedTemplateDirectory));
-            tp.setArtifactDir(artifactDir);
-            tp.setRecipeDir(recipeDir);
-            tp.setWhatToMerge(componentsToMerge);
-            if(!tp.build()) {
-                return 1;
-            }
-            artifactDir = tp.getArtifactDir();
-            recipeDir = tp.getRecipeDir();
-            componentsToMerge = tp.getWhatToMerge();
-        }
         // GG_NEEDS_REVIEW: TODO Validate folder exists and folder structure
 
         Map<String, Map<String, Object>> configurationUpdate = null;
@@ -90,11 +76,6 @@ public class DeploymentCommand extends BaseCommand {
                 return 1;
             }
         }
-        if(dryrun) {
-            System.out.println("This was just a dry run, deployment abandoned.");
-            return 0;
-        }
-        try {
             if (recipeDir != null || artifactDir != null) {
                 nucleusAdapterIpc.updateRecipesAndArtifacts(recipeDir, artifactDir);
             }

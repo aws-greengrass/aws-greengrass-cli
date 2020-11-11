@@ -6,6 +6,7 @@
 package com.aws.greengrass.cli;
 
 import com.aws.greengrass.componentmanager.ComponentStore;
+import com.aws.greengrass.componentmanager.exceptions.ComponentVersionNegotiationException;
 import com.aws.greengrass.componentmanager.exceptions.PackageDownloadException;
 import com.aws.greengrass.dependency.State;
 import com.aws.greengrass.deployment.DeviceConfiguration;
@@ -299,6 +300,8 @@ class IPCCliTest {
             throws Exception {
 
         ignoreExceptionOfType(context, PackageDownloadException.class);
+        ignoreExceptionOfType(context, ComponentVersionNegotiationException.class);
+
         // updated recipes
         Path recipesPath = Paths.get(this.getClass().getResource("recipes").toURI());
         Path artifactsPath = Paths.get(this.getClass().getResource("artifacts").toURI());

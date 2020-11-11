@@ -6,7 +6,6 @@
 package com.aws.greengrass.cli.commands;
 
 import com.aws.greengrass.cli.adapter.NucleusAdapterIpc;
-import com.aws.greengrass.cli.adapter.impl.*;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import picocli.CommandLine;
@@ -47,24 +46,8 @@ public class DeploymentCommand extends BaseCommand {
      @CommandLine.Option(names = {"-r", "--recipeDir"}, paramLabel = "Recipe Folder Path") String recipeDir,
      @CommandLine.Option(names = {"-a", "--artifactDir"}, paramLabel = "Artifacts Folder Path") String artifactDir,
      @CommandLine.Option(names = {"-p", "--param"}, paramLabel = "Runtime parameters") Map<String, String> parameters,
-     @CommandLine.Option(names = {"-c", "--update-config"}, paramLabel = "Update configuration") String configUpdate,
-     @CommandLine.Option(names = {"-dr", "--dryrun"}, paramLabel = "Dry run: don't do any actual work") boolean dryrun,
-     @CommandLine.Option(names = "-gtd", paramLabel = "Generated Template Directory", defaultValue = "~/gg2Templates") String generatedTemplateDirectory,
-     @CommandLine.Parameters(paramLabel = "Files for template generation") String[] files)
+     @CommandLine.Option(names = {"-c", "--update-config"}, paramLabel = "Update configuration") String configUpdate)
             throws IOException {
-        if(files!=null) {
-            TemplateProcessor tp = new TemplateProcessor(files);
-            tp.setGenTemplateDir(NucleusAdapterIpcClientImpl.deTilde(generatedTemplateDirectory));
-            tp.setArtifactDir(artifactDir);
-            tp.setRecipeDir(recipeDir);
-            tp.setWhatToMerge(componentsToMerge);
-            if(!tp.build()) {
-                return 1;
-            }
-            artifactDir = tp.getArtifactDir();
-            recipeDir = tp.getRecipeDir();
-            componentsToMerge = tp.getWhatToMerge();
-        }
         // GG_NEEDS_REVIEW: TODO Validate folder exists and folder structure
         Map<String, Map<String, Object>> configurationUpdate = null;
         if (configUpdate != null && !configUpdate.isEmpty()) {
@@ -89,11 +72,6 @@ public class DeploymentCommand extends BaseCommand {
                 return 1;
             }
         }
-        if(dryrun) {
-            System.out.println("This was just a dry run, deployment abandoned.");
-            return 0;
-        }
-        try {
             if (recipeDir != null || artifactDir != null) {
                 nucleusAdapterIpc.updateRecipesAndArtifacts(recipeDir, artifactDir);
             }
@@ -106,10 +84,6 @@ public class DeploymentCommand extends BaseCommand {
 
             String deploymentId = nucleusAdapterIpc.createLocalDeployment(createLocalDeploymentRequest);
             System.out.println("Local deployment has been submitted! Deployment Id: " + deploymentId);
-        } catch(Throwable ex) {
-            System.err.println("Deployment failed: "+ex);
-            return 1;
-        }
         return 0;
     }
 

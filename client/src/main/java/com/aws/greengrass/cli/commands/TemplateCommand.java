@@ -2,11 +2,20 @@
  * Copyright Amazon.com, Inc. or its affiliates. All Rights Reserved.
  * SPDX-License-Identifier: Apache-2.0
  */
-
-
 package com.aws.greengrass.cli.commands;
 
-import java.io.*;
+import com.aws.greengrass.cli.adapter.impl.NucleusAdapterIpcClientImpl;
+import java.io.Reader;
+import java.io.OutputStream;
+import java.io.InputStream;
+import java.io.InputStreamReader;
+import java.io.BufferedInputStream;
+import java.io.IOException;
+import java.io.StringWriter;
+import java.io.BufferedWriter;
+import java.io.Closeable;
+import java.io.ByteArrayOutputStream;
+import java.io.File;
 import java.net.MalformedURLException;
 import java.net.URL;
 import java.nio.file.*;
@@ -21,53 +30,128 @@ import org.apache.velocity.VelocityContext;
 import org.apache.velocity.app.VelocityEngine;
 import org.apache.velocity.runtime.resource.loader.ClasspathResourceLoader;
 import org.apache.velocity.runtime.RuntimeConstants;
+import picocli.*;
 
-public class TemplateProcessor {
+@CommandLine.Command(name = "quick", resourceBundle = "com.aws.greengrass.cli.CLI_messages")
+public class TemplateCommand extends BaseCommand {
+
+    @CommandLine.Option(names = {"-dr", "--dryrun"},
+            paramLabel = "Dry run: don't do any actual work")
+    private boolean dryrun;
+
+    @CommandLine.Option(names = "-gtd",
+            paramLabel = "Generated Template Directory",
+            defaultValue = "~/gg2Templates")
+    private String generatedTemplateDirectory;
+
+    @CommandLine.Option(names = {"-g", "--groupId"},
+            paramLabel = "Group ID")
+    private String group = null;
+
+    @CommandLine.Parameters(paramLabel = "Files for template generation")
+    private String[] files;
 
     private String recipeDir;
     private String artifactDir;
     private Path genTemplateDir;
-    private Map<String, String> whatToMerge;
+    private final ArrayList<String> params = new ArrayList<>();
     private Path localTemplateDir;
     private String keyFile = null;
     private String serviceName = null;
     private String serviceVersion = null;
     private boolean generateRecipe = true;
     private final List<String> artifacts = new ArrayList<>();
-    private final String[] files;
     private String hashbang;
     private String javaVersion = "11";
-    private Map<String, byte[]> auxRecipies = new LinkedHashMap<>();
+    private final Map<String, byte[]> auxRecipies = new LinkedHashMap<>();
     private boolean isOK = true;
 
-    public TemplateProcessor(String[] files) {
-        this.files = files;
-        for (String fn : files) {
-            Path pn = Paths.get(fn);
-            switch (extension(fn)) {
-                default:
-                    addArtifact(fn, true);
-                    break;
-                case "jar":
-                    if (serviceName == null) {
-                        if(!harvestJar(pn))
-                            isOK = false;
-                    }
-                    addArtifact(fn, false);
-                    break;
-                case "yaml":
-                case "yml":
-                case "gg2r": {
-                    byte[] body = capture(pn);
-                    addRecipe(fn, body);
-                    if (serviceName == null) {
-                        extractInfo(new String(body));
-                    }
-                    generateRecipe = false;
-                }
-                break;
+    @Override
+    public void run() {
+        // This is nuts, but apparently necessary.
+        if (template() != 0) {
+            throw new CommandLine.ParameterException(spec.commandLine(), "Template generation failed");
+        }
+    }
+
+    int template() {
+        genTemplateDir = Paths.get(NucleusAdapterIpcClientImpl.deTilde(generatedTemplateDirectory));
+        if (files == null || files.length == 0) {
+            err("cli.tpl.files");
+        }
+        if (files != null) {
+            scanFiles();
+            if (!build()) {
+                return 1;
             }
         }
+        if (!isOK) {
+            return 1;
+        }
+        if (dryrun) {
+            return 0;
+        }
+        ArrayList<String> args = new ArrayList<>();
+        args.add("--ggcRootPath");
+        args.add(parent.getGgcRootPath());
+        args.add("deployment");
+        args.add("create");
+        args.add("-r");
+        args.add(recipeDir);
+        args.add("-a");
+        args.add(artifactDir);
+        args.add("-m");
+        args.add(serviceName + "=" + serviceVersion);
+        if (!isEmpty(group)) {
+            args.add("-g");
+            args.add(group);
+        }
+        params.forEach(s -> {
+            args.add("-p");
+            args.add(s);
+        });
+//        args.add("-c");  ??
+        System.out.print("Executing: greengrass-cli");
+        args.forEach(s->System.out.print(' '+s));
+        System.out.println();
+        return parent.runCommand(args.toArray(n -> new String[n]));
+    }
+
+    private int scanFiles() {
+        for (String fn : files) {
+            int eq = fn.indexOf('=');
+            if (eq > 0) {
+                // Assume that any argument with an = sign is a parameter.
+                params.add(fn);
+            } else {
+                Path pn = Paths.get(fn);
+                switch (extension(fn)) {
+                    default:
+                        addArtifact(fn, true);
+                        break;
+                    case "jar":
+                        if (serviceName == null) {
+                            if (!harvestJar(pn)) {
+                                isOK = false;
+                            }
+                        }
+                        addArtifact(fn, false);
+                        break;
+                    case "yaml":
+                    case "yml":
+                    case "gg2r": {
+                        byte[] body = capture(pn);
+                        addRecipe(fn, body);
+                        if (serviceName == null) {
+                            extractInfo(new String(body));
+                        }
+                        generateRecipe = false;
+                    }
+                    break;
+                }
+            }
+        }
+        return 0;
     }
 
     private static boolean isEmpty(String s) {
@@ -90,7 +174,7 @@ public class TemplateProcessor {
                     extractInfo(Paths.get(fn).toUri().toURL());
                 }
             } catch (MalformedURLException ex) {
-                Logger.getLogger(TemplateProcessor.class.getName()).log(Level.SEVERE, null, ex);
+                Logger.getLogger(TemplateCommand.class.getName()).log(Level.SEVERE, null, ex);
                 isOK = false;
             }
         }
@@ -109,38 +193,37 @@ public class TemplateProcessor {
             if (m.lookingAt()) {
                 hashbang = m.group(1);
             }
-            m = Pattern.compile("ComponentName: *([^;,\n\"]*)", Pattern.CASE_INSENSITIVE).matcher(body);
+            m = Pattern.compile("ComponentName: *([^;,\n\"]+)", Pattern.CASE_INSENSITIVE).matcher(body);
             if (m.find()) {
                 serviceName = m.group(1);
             }
-            m = Pattern.compile("ComponentVersion: *([^;,\n\"]*)", Pattern.CASE_INSENSITIVE).matcher(body);
+            m = Pattern.compile("ComponentVersion: *([^;,\n\"]+)", Pattern.CASE_INSENSITIVE).matcher(body);
             if (m.find()) {
                 serviceVersion = m.group(1);
+            }
+            if (group != null) {
+                m = Pattern.compile("ComponentGroup: *([^;,\n\"]+)", Pattern.CASE_INSENSITIVE).matcher(body);
+                if (m.find()) {
+                    group = m.group(1);
+                }
             }
         }
     }
 
     private String readAll(URL u) {
-        if (u != null) {
+        if (u != null)
             try (Reader in = new InputStreamReader(new BufferedInputStream(u.openStream()))) {
-                StringBuilder sb = new StringBuilder();
-                int c;
-                int limit = 4000;
-                while ((c = in.read()) >= 0 && --limit >= 0) {
-                    sb.append((char) c);
-                }
-                return sb.toString();
-            } catch (IOException ioe) {
-                isOK = false;
+            StringBuilder sb = new StringBuilder();
+            int c;
+            int limit = 4000;
+            while ((c = in.read()) >= 0 && --limit >= 0) {
+                sb.append((char) c);
             }
+            return sb.toString();
+        } catch (IOException ioe) {
+            isOK = false;
         }
         return null;
-    }
-    static {
-//            org.apache.logging.log4j.core.config.Configurator.setLevel(System.getProperty("log4j.logger"), Level.ALL);
-
-        System.setProperty("org.slf4j.simpleLogger.defaultLogLevel", "all");
-                Logger.getLogger(TemplateProcessor.class.getName()).setLevel(Level.ALL);
     }
 
     @SuppressWarnings("UseSpecificCatch")
@@ -172,18 +255,15 @@ public class TemplateProcessor {
         }
         StringWriter tls = new StringWriter();
         if (generateRecipe) {
-            URL u = getClass().getClassLoader().getResource("templates/py.yml");
-            System.out.println(u);
             final VelocityEngine ve = new VelocityEngine();
             final VelocityContext context = new VelocityContext();
             ve.setProperty(RuntimeConstants.RESOURCE_LOADER, "file,classpath");
             ve.setProperty("classpath.resource.loader.class", ClasspathResourceLoader.class.getName());
             ve.setProperty(RuntimeConstants.FILE_RESOURCE_LOADER_PATH, localTemplateDir.toString());
-
             ve.init();
             String templateName;
             Path keyPath = Paths.get(keyFile);
-            if (hashbang!=null) {
+            if (hashbang != null) {
                 templateName = "hashbang.yml";
             } else if (Files.isExecutable(keyPath)) {
                 templateName = "executable.yml";
@@ -204,6 +284,12 @@ public class TemplateProcessor {
             }
             context.put("description", description.toString());
             context.put("file", keyPath.getFileName().toString());
+            params.forEach(s -> { // copy params to velocity context
+                String[] kv = s.split("=", 1);
+                if (kv.length == 2) {
+                    context.put(kv[0], kv[1]);
+                }
+            });
             ArrayList<String> fileArtifactNames = new ArrayList<>();
             artifacts.forEach(fn -> fileArtifactNames.add(new File(fn).getName()));
             context.put("files", artifacts.toArray(new String[fileArtifactNames.size()]));
@@ -217,8 +303,8 @@ public class TemplateProcessor {
             try {
                 Template t = ve.getTemplate("templates/" + templateName, "UTF-8");
                 t.merge(context, tls);
-            } catch(Throwable t) {
-                System.err.println("Cannot find template for "+keyFile+"\n\t"+t);
+            } catch (Throwable t) {
+                err("cli.tpl.nft", keyFile);
                 return false;
             }
         } else {
@@ -236,7 +322,7 @@ public class TemplateProcessor {
                 out.write(tls.toString());
             }
         } catch (IOException ex) {
-            System.err.println("ERROR: " + ex);
+            err("cli.tpl.err", ex);
             return false;
         }
         artifacts.forEach(fn -> {
@@ -245,7 +331,7 @@ public class TemplateProcessor {
             try {
                 Files.copy(src, dest, StandardCopyOption.REPLACE_EXISTING);
             } catch (IOException ex) {
-                System.err.println("Could not copy artifact " + fn + "\n\t" + ex);
+                err("cli.tpl.cnc", fn);
                 isOK = false;
             }
         });
@@ -253,19 +339,11 @@ public class TemplateProcessor {
             try (OutputStream out = Files.newOutputStream(rd.resolve(chopExtension(name) + ".yaml"), StandardOpenOption.CREATE)) {
                 out.write(body);
             } catch (IOException ex) {
-                System.err.println("ERROR: " + ex);
+                err("cli.tpl.err", ex);
                 isOK = false;
             }
         });
-        addMerge(serviceName, serviceVersion);
         return isOK;
-    }
-
-    private void addMerge(String name, String version) {
-        if (whatToMerge == null) {
-            whatToMerge = new HashMap<>();
-        }
-        whatToMerge.put(name, version);
     }
 
     private boolean harvestJar(Path pn) {
@@ -293,14 +371,27 @@ public class TemplateProcessor {
                 if (e.getName().startsWith("RECIPES/")) try {
                     addRecipe(e.getName(), capture(jar.getInputStream(e)));
                 } catch (IOException ioe) {
-                    System.err.println("Can't read .jar component " + e.getName());
+                    err("cli.tpl.crj", e.getName());
                 }
             });
         } catch (IOException ex) {
-            System.err.println("Error reading " + pn + "\n\t" + ex);
+            err("cli.tpl.erd", pn);
             return false;
         }
         return true;
+    }
+
+    private void err(String tag) {
+        err(tag, null);
+    }
+
+    private void err(String tag, Object aux) {
+        String msg = ResourceBundle.getBundle("com.aws.greengrass.cli.CLI_messages")
+                .getString(tag);
+        if (aux != null) {
+            msg = msg + ": " + aux;
+        }
+        throw new CommandLine.ParameterException(spec.commandLine(), msg);
     }
 
     private void addRecipe(String name, byte[] body) {
@@ -313,16 +404,16 @@ public class TemplateProcessor {
         }
     }
 
-    private static byte[] capture(Path in) {
+    private byte[] capture(Path in) {
         try (InputStream is = Files.newInputStream(in)) {
             return capture(is);
         } catch (IOException ex) {
-            System.err.println("Can't open " + in + ", ignoring\n\t" + ex);
+            err("cli.tpl.erd", ex);
             return null;
         }
     }
 
-    private static byte[] capture(InputStream in) {
+    private byte[] capture(InputStream in) {
         if (in != null) {
             if (!(in instanceof BufferedInputStream)) {
                 in = new BufferedInputStream(in);
@@ -334,7 +425,7 @@ public class TemplateProcessor {
                     out.write(c);
                 }
             } catch (IOException ex) {
-                System.err.println("Can't read file, ignoring\n\t" + ex);
+                err("cli.tpl.erd", ex);
             }
             close(in);
             return out.toByteArray();
@@ -364,14 +455,12 @@ public class TemplateProcessor {
                 }
                 addRecipe(recipe, capture(in));
             } catch (IOException ex) {
-                System.err.println("Could not copy platform file " + recipe + "\n\t" + ex);
-                return " [Error: " + ex.toString() + "] ";
+                err("cli.tpl.erd", ex);
             }
             return "";
         }
     }
 
-//<editor-fold defaultstate="collapsed" desc="boilerplate">
     public static String extension(String f) {
         if (f == null) {
             return "";
@@ -398,54 +487,4 @@ public class TemplateProcessor {
         return f.substring(0, dot);
     }
 
-    /**
-     * @return the recipeDir
-     */
-    public String getRecipeDir() {
-        return recipeDir;
-    }
-
-    /**
-     * @param recipeDir the recipeDir to set
-     */
-    public void setRecipeDir(String recipeDir) {
-        this.recipeDir = recipeDir;
-    }
-
-    /**
-     * @return the artifactDir
-     */
-    public String getArtifactDir() {
-        return artifactDir;
-    }
-
-    /**
-     * @param artifactDir the artifactDir to set
-     */
-    public void setArtifactDir(String artifactDir) {
-        this.artifactDir = artifactDir;
-    }
-
-    /**
-     * @return the genTemplateDir
-     */
-    public String getGenTemplateDir() {
-        return genTemplateDir.toString();
-    }
-
-    /**
-     * @param genTemplateDir the genTemplateDir to set
-     */
-    public void setGenTemplateDir(String genTemplateDir) {
-        this.genTemplateDir = Paths.get(genTemplateDir);
-    }
-
-    public Map<String, String> getWhatToMerge() {
-        return whatToMerge;
-    }
-
-    public void setWhatToMerge(Map<String, String> w) {
-        whatToMerge = w;
-    }
-//</editor-fold>
 }

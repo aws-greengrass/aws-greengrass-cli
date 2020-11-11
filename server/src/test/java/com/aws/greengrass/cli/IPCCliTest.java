@@ -8,6 +8,8 @@ package com.aws.greengrass.cli;
 import com.aws.greengrass.componentmanager.ComponentStore;
 import com.aws.greengrass.componentmanager.exceptions.ComponentVersionNegotiationException;
 import com.aws.greengrass.componentmanager.exceptions.PackageDownloadException;
+import com.aws.greengrass.config.Topic;
+import com.aws.greengrass.config.Topics;
 import com.aws.greengrass.dependency.State;
 import com.aws.greengrass.deployment.DeviceConfiguration;
 import com.aws.greengrass.integrationtests.BaseITCase;
@@ -48,6 +50,7 @@ import software.amazon.awssdk.aws.greengrass.model.ListLocalDeploymentsRequest;
 import software.amazon.awssdk.aws.greengrass.model.ListLocalDeploymentsResponse;
 import software.amazon.awssdk.aws.greengrass.model.ResourceNotFoundError;
 import software.amazon.awssdk.aws.greengrass.model.RestartComponentRequest;
+import software.amazon.awssdk.aws.greengrass.model.RunWithInfo;
 import software.amazon.awssdk.aws.greengrass.model.UpdateRecipesAndArtifactsRequest;
 import software.amazon.awssdk.eventstreamrpc.EventStreamRPCConnection;
 import software.amazon.awssdk.eventstreamrpc.model.AccessDeniedException;
@@ -60,6 +63,7 @@ import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.Arrays;
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -78,6 +82,8 @@ import static com.aws.greengrass.integrationtests.ipc.IPCTestUtils.getListenerFo
 import static com.aws.greengrass.integrationtests.ipc.IPCTestUtils.prepareKernelFromConfigFile;
 import static com.aws.greengrass.integrationtests.ipc.IPCTestUtils.waitForDeploymentToBeSuccessful;
 import static com.aws.greengrass.integrationtests.ipc.IPCTestUtils.waitForServiceToComeInState;
+import static com.aws.greengrass.lifecyclemanager.GreengrassService.RUN_WITH_NAMESPACE_TOPIC;
+import static com.aws.greengrass.lifecyclemanager.GreengrassService.SERVICES_NAMESPACE_TOPIC;
 import static com.aws.greengrass.testcommons.testutilities.ExceptionLogProtector.ignoreExceptionOfType;
 import static com.aws.greengrass.testcommons.testutilities.ExceptionLogProtector.ignoreExceptionUltimateCauseOfType;
 import static com.aws.greengrass.testcommons.testutilities.ExceptionLogProtector.ignoreExceptionUltimateCauseWithMessage;
@@ -318,10 +324,16 @@ class IPCCliTest {
         String update = "{\"Component1\":{\"MERGE\":{\"Message\":\"NewWorld\"}}}";
         componentToConfiguration = OBJECT_MAPPER.readValue(update, Map.class);
 
+        Map<String, RunWithInfo> componentToRunWithInfo = new HashMap<>();
+        RunWithInfo runWithInfo = new RunWithInfo();
+        runWithInfo.setPosixUser("nobody");
+        componentToRunWithInfo.put("Component1", runWithInfo);
+
         CreateLocalDeploymentRequest createLocalDeploymentRequest = new CreateLocalDeploymentRequest();
         createLocalDeploymentRequest.setGroupName("NewGroup");
         createLocalDeploymentRequest.setRootComponentVersionsToAdd(Collections.singletonMap("Component1", "1.0.0"));
         createLocalDeploymentRequest.setComponentToConfiguration(componentToConfiguration);
+        createLocalDeploymentRequest.setComponentToRunWithInfo(componentToRunWithInfo);
 
         CountDownLatch waitForComponent1ToRun = waitForServiceToComeInState("Component1", State.RUNNING, kernel);
         CreateLocalDeploymentResponse addComponentDeploymentResponse =
@@ -338,6 +350,8 @@ class IPCCliTest {
         ComponentDetails componentDetails = clientConnection.getComponentDetails(getComponentDetailsRequest, Optional.empty())
                 .getResponse().get(DEFAULT_TIMEOUT_IN_SEC, TimeUnit.SECONDS).getComponentDetails();
         assertEquals("NewWorld", componentDetails.getConfiguration().get("Message"));
+        Topic posixUser = kernel.getConfig().find(SERVICES_NAMESPACE_TOPIC, "Component1", RUN_WITH_NAMESPACE_TOPIC, "posixUser");
+        assertEquals("nobody", posixUser.getOnce());
     }
 
     @Test

@@ -470,6 +470,7 @@ public class CLIEventStreamAgent {
                 LocalOverrideRequest localOverrideRequest = LocalOverrideRequest.builder().requestId(deploymentId)
                         .componentsToMerge(request.getRootComponentVersionsToAdd())
                         .componentsToRemove(request.getRootComponentsToRemove())
+                        .componentToRunWithInfo(request.getComponentToRunWithInfo())
                         .requestTimestamp(System.currentTimeMillis()).groupName(
                                 request.getGroupName() == null || request.getGroupName().isEmpty()
                                         ? LOCAL_DEPLOYMENT_GROUP_NAME

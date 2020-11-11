@@ -11,12 +11,14 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import picocli.CommandLine;
 import software.amazon.awssdk.aws.greengrass.model.CreateLocalDeploymentRequest;
 import software.amazon.awssdk.aws.greengrass.model.LocalDeployment;
+import software.amazon.awssdk.aws.greengrass.model.RunWithInfo;
 
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.InvalidPathException;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import javax.inject.Inject;
@@ -27,6 +29,7 @@ import static com.aws.greengrass.cli.adapter.impl.NucleusAdapterIpcClientImpl.de
         subcommands = CommandLine.HelpCommand.class, mixinStandardHelpOptions = true)
 public class DeploymentCommand extends BaseCommand {
 
+    private final String RUN_WITH_OPTION_POSIX_USER = "posixUser";
     private final ObjectMapper mapper = new ObjectMapper();
     private NucleusAdapterIpc nucleusAdapterIpc;
 
@@ -45,10 +48,11 @@ public class DeploymentCommand extends BaseCommand {
      @CommandLine.Option(names = {"-g", "--groupId"}, paramLabel = "group Id") String groupId,
      @CommandLine.Option(names = {"-r", "--recipeDir"}, paramLabel = "Recipe Folder Path") String recipeDir,
      @CommandLine.Option(names = {"-a", "--artifactDir"}, paramLabel = "Artifacts Folder Path") String artifactDir,
-     @CommandLine.Option(names = {"-p", "--param"}, paramLabel = "Runtime parameters") Map<String, String> parameters,
+     @CommandLine.Option(names = {"--runWith"}, paramLabel = "Component Run With Info") Map<String, String> runWithOptions,
      @CommandLine.Option(names = {"-c", "--update-config"}, paramLabel = "Update configuration") String configUpdate)
             throws IOException {
         // GG_NEEDS_REVIEW: TODO Validate folder exists and folder structure
+
         Map<String, Map<String, Object>> configurationUpdate = null;
         if (configUpdate != null && !configUpdate.isEmpty()) {
             try {
@@ -81,7 +85,7 @@ public class DeploymentCommand extends BaseCommand {
         createLocalDeploymentRequest.setComponentToConfiguration(configurationUpdate);
         createLocalDeploymentRequest.setRootComponentVersionsToAdd(componentsToMerge);
         createLocalDeploymentRequest.setRootComponentsToRemove(componentsToRemove);
-
+        createLocalDeploymentRequest.setComponentToRunWithInfo(getComponentToRunWithInfo(runWithOptions));
         String deploymentId = nucleusAdapterIpc.createLocalDeployment(createLocalDeploymentRequest);
         System.out.println("Local deployment has been submitted! Deployment Id: " + deploymentId);
         return 0;
@@ -105,4 +109,32 @@ public class DeploymentCommand extends BaseCommand {
         localDeployments.forEach((status) -> System.out.println(status.getDeploymentId() + ": " + status.getStatus()));
         return 0;
     }
+
+    private Map<String, RunWithInfo> getComponentToRunWithInfo(Map<String, String> runWithOptions) {
+        if (runWithOptions == null || runWithOptions.size() == 0) {
+            return null;
+        }
+        Map<String, RunWithInfo> componentToRunWithInfo = new HashMap<>();
+        for (Map.Entry<String, String> entry : runWithOptions.entrySet()) {
+
+            String componentNameAndRunWithOption = entry.getKey();
+            String[] parts = componentNameAndRunWithOption.split(":");
+            if (parts.length != 2) {
+                throw new IllegalArgumentException("--runWith is not in the format <ComponentName>:<RunWithOption>=<value> ");
+            }
+            String componentName = parts[0];
+            String runWithOption = parts[1];
+            RunWithInfo runWithInfo = new RunWithInfo();
+            switch (runWithOption) {
+                case RUN_WITH_OPTION_POSIX_USER:
+                    runWithInfo.setPosixUser(entry.getValue());
+                    break;
+                default:
+                    throw new IllegalArgumentException("Invalid run with option: " + runWithOption);
+            }
+            componentToRunWithInfo.put(componentName, runWithInfo);
+        }
+        return componentToRunWithInfo;
+    }
+
 }

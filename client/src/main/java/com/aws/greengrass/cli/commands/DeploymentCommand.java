@@ -72,18 +72,18 @@ public class DeploymentCommand extends BaseCommand {
                 return 1;
             }
         }
-            if (recipeDir != null || artifactDir != null) {
-                nucleusAdapterIpc.updateRecipesAndArtifacts(recipeDir, artifactDir);
-            }
+        if (recipeDir != null || artifactDir != null) {
+            nucleusAdapterIpc.updateRecipesAndArtifacts(recipeDir, artifactDir);
+        }
 
-            CreateLocalDeploymentRequest createLocalDeploymentRequest = new CreateLocalDeploymentRequest();
-            createLocalDeploymentRequest.setGroupName(groupId);
-            createLocalDeploymentRequest.setComponentToConfiguration(configurationUpdate);
-            createLocalDeploymentRequest.setRootComponentVersionsToAdd(componentsToMerge);
-            createLocalDeploymentRequest.setRootComponentsToRemove(componentsToRemove);
+        CreateLocalDeploymentRequest createLocalDeploymentRequest = new CreateLocalDeploymentRequest();
+        createLocalDeploymentRequest.setGroupName(groupId);
+        createLocalDeploymentRequest.setComponentToConfiguration(configurationUpdate);
+        createLocalDeploymentRequest.setRootComponentVersionsToAdd(componentsToMerge);
+        createLocalDeploymentRequest.setRootComponentsToRemove(componentsToRemove);
 
-            String deploymentId = nucleusAdapterIpc.createLocalDeployment(createLocalDeploymentRequest);
-            System.out.println("Local deployment has been submitted! Deployment Id: " + deploymentId);
+        String deploymentId = nucleusAdapterIpc.createLocalDeployment(createLocalDeploymentRequest);
+        System.out.println("Local deployment has been submitted! Deployment Id: " + deploymentId);
         return 0;
     }
 

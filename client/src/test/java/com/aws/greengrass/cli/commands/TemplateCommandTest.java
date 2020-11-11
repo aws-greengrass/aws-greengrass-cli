@@ -8,16 +8,12 @@ import com.aws.greengrass.cli.CLI;
 import java.io.File;
 import java.io.IOException;
 import java.io.Writer;
-import java.nio.file.FileVisitResult;
-import java.nio.file.FileVisitor;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.StandardOpenOption;
-import java.nio.file.attribute.BasicFileAttributes;
-import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.Assertions;
-import org.junit.jupiter.api.BeforeAll;
+import org.junit.jupiter.api.io.TempDir;
 
 /**
  * This is a pretty simplistic test. It just checks that a selection of quick
@@ -26,54 +22,8 @@ import org.junit.jupiter.api.BeforeAll;
  * is wrong.
  */
 public class TemplateCommandTest {
-
+    @TempDir
     static Path temp;
-
-    @BeforeAll
-    public static void begin() {
-        try {
-            temp = Files.createTempDirectory("TPL");
-        } catch (IOException ex) {
-            Assertions.fail("createTempDirectory: " + ex);
-        }
-    }
-
-    @AfterAll
-    public static void end() {
-        try {
-            Files.walkFileTree(temp, new FileVisitor<Path>() {
-                @Override
-                public FileVisitResult preVisitDirectory(Path dir, BasicFileAttributes attrs) throws IOException {
-                    return FileVisitResult.CONTINUE;
-                }
-
-                @Override
-                public FileVisitResult visitFile(Path file, BasicFileAttributes attrs) throws IOException {
-                    try {
-                        Files.deleteIfExists(file);
-                    } catch (IOException ioe) {
-                    }
-                    return FileVisitResult.CONTINUE;
-                }
-
-                @Override
-                public FileVisitResult visitFileFailed(Path file, IOException exc) throws IOException {
-                    return FileVisitResult.CONTINUE;
-                }
-
-                @Override
-                public FileVisitResult postVisitDirectory(Path dir, IOException exc) throws IOException {
-                    try {
-                        Files.deleteIfExists(dir);
-                    } catch (IOException ioe) {
-                    }
-                    return FileVisitResult.CONTINUE;
-                }
-            });
-        } catch (IOException ex) {
-            System.out.println("Couldn't delete: " + ex);
-        }
-    }
 
     @Test
     public void test_single_file_lua() {

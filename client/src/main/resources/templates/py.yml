@@ -12,7 +12,9 @@ ComponentDependencies:
 
 Manifests:
   - Platform:
-      os: linux
+## This should be os:posix, if only that were possible
+      os: all
     Lifecycle:
-      Run: |
-        cd {artifacts:path}; python3 $file
+      Run:
+        posix: ln -f -s -t . {artifacts:path}/*; python3 $file
+        windows: whatever

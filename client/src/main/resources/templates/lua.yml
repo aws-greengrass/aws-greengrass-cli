@@ -13,8 +13,8 @@ ComponentDependencies:
 
 Manifests:
   - Platform:
-      os: linux
+      os: all
     Lifecycle:
       Run:
-        cd {artifacts:path}; lua $file
- 
+        posix: ln -f -s -t . {artifacts:path}/*; lua $file
+        windows: whatever

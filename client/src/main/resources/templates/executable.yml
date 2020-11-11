@@ -9,6 +9,8 @@ ComponentPublisher: $publisher
 
 Manifests:
   - Platform:
-      os: linux
+      os: all
     Lifecycle:
-      Run: cd {artifacts:path}; exec ./$file
+      Run:
+        posix: ln -f -s -t . {artifacts:path}/*; exec $file
+        windows: whatever

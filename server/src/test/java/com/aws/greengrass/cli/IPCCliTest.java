@@ -366,7 +366,7 @@ class IPCCliTest {
 
         try(EventStreamRPCConnection eventStreamRPCConnection = IPCTestUtils.connectToGGCOverEventStreamIPC(TestUtils.getSocketOptionsForIPC(),
                 getAuthTokenFromInfoFile(), kernel)){
-            assertFalse(eventStreamRPCConnection.getConnection().isClosed());
+            assertTrue(eventStreamRPCConnection.getConnection().isOpen());
         }
     }
 

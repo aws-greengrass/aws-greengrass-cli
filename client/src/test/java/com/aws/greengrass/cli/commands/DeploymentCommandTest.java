@@ -138,7 +138,7 @@ class DeploymentCommandTest {
     @Test
     void GIVEN_WHEN_components_runwith_provided_THEN_request_contains_the_info() {
         int exitCode = runCommandLine("deployment", "create", "--runWith" , "Component1:posixUser=foo:bar",
-                "--runWith" , "Component2:posixUser=xxx");
+                "--runWith" , "Component2:posixUser=1234");
 
         Map<String, RunWithInfo> componentToRunWithInfo = new HashMap<>();
         RunWithInfo runWithInfo = new RunWithInfo();
@@ -146,7 +146,7 @@ class DeploymentCommandTest {
         componentToRunWithInfo.put("Component1", runWithInfo);
 
         runWithInfo = new RunWithInfo();
-        runWithInfo.setPosixUser("xxx");
+        runWithInfo.setPosixUser("1234");
         componentToRunWithInfo.put("Component2", runWithInfo);
 
         CreateLocalDeploymentRequest request = new CreateLocalDeploymentRequest();

@@ -27,8 +27,7 @@ import java.util.ResourceBundle;
  */
 @Command(name = "cli",
         subcommands = {HelpCommand.class, ComponentCommand.class,
-            TemplateCommand.class, DeploymentCommand.class, Logs.class},
-        subcommands = {HelpCommand.class, ComponentCommand.class, DeploymentCommand.class, Logs.class,
+                TemplateCommand.class, DeploymentCommand.class, Logs.class,
                 PasswordCommand.class},
         resourceBundle = "com.aws.greengrass.cli.CLI_messages")
 public class CLI implements Runnable {

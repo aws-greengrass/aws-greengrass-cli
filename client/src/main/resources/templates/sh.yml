@@ -10,4 +10,6 @@ Manifests:
   - Platform:
       os: all
     Lifecycle:
-      Run: cd {artifacts:path}; $file
+      Run:
+        posix: ln -f -s -t . {artifacts:path}/*; sh $file
+        windows: whatever

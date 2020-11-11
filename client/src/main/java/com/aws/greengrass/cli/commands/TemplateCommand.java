@@ -5,6 +5,7 @@
 package com.aws.greengrass.cli.commands;
 
 import com.aws.greengrass.cli.adapter.impl.NucleusAdapterIpcClientImpl;
+import picocli.CommandLine;
 import java.io.Reader;
 import java.io.OutputStream;
 import java.io.InputStream;
@@ -18,19 +19,30 @@ import java.io.ByteArrayOutputStream;
 import java.io.File;
 import java.net.MalformedURLException;
 import java.net.URL;
-import java.nio.file.*;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
+import java.nio.file.StandardCopyOption;
+import java.nio.file.StandardOpenOption;
 import java.time.Instant;
 import java.time.format.DateTimeFormatter;
-import java.util.*;
-import java.util.jar.*;
-import java.util.logging.*;
-import java.util.regex.*;
+import java.util.ArrayList;
+import java.util.LinkedHashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.ResourceBundle;
+import java.util.jar.Attributes;
+import java.util.jar.JarFile;
+import java.util.jar.Manifest;
+import java.util.logging.Level;
+import java.util.logging.Logger;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 import org.apache.velocity.Template;
 import org.apache.velocity.VelocityContext;
 import org.apache.velocity.app.VelocityEngine;
 import org.apache.velocity.runtime.resource.loader.ClasspathResourceLoader;
 import org.apache.velocity.runtime.RuntimeConstants;
-import picocli.*;
 
 @CommandLine.Command(name = "quick", resourceBundle = "com.aws.greengrass.cli.CLI_messages")
 public class TemplateCommand extends BaseCommand {
@@ -112,9 +124,9 @@ public class TemplateCommand extends BaseCommand {
         });
 //        args.add("-c");  ??
         System.out.print("Executing: greengrass-cli");
-        args.forEach(s->System.out.print(' '+s));
+        args.forEach(s -> System.out.print(' ' + s));
         System.out.println();
-        return parent.runCommand(args.toArray(n -> new String[n]));
+        return parent.runCommand(args.toArray(new String[args.size()]));
     }
 
     private int scanFiles() {
@@ -137,6 +149,7 @@ public class TemplateCommand extends BaseCommand {
                         }
                         addArtifact(fn, false);
                         break;
+//                    case "json": TODO
                     case "yaml":
                     case "yml":
                     case "gg2r": {
@@ -347,8 +360,7 @@ public class TemplateCommand extends BaseCommand {
     }
 
     private boolean harvestJar(Path pn) {
-        try {
-            JarFile jar = new JarFile(pn.toFile());
+        try (JarFile jar = new JarFile(pn.toFile())) {
             Manifest m = jar.getManifest();
             if (m != null) {
                 Attributes a = m.getMainAttributes();

@@ -49,10 +49,11 @@ ComponentDependencies:
 
 Manifests:
   - Platform:
-      os: linux
+      os: all
     Lifecycle:
       Run:
-        cd {artifacts:path}; lua hello.lua
+        posix: ln -f -s -t . {artifacts:path}/*; lua hello.lua
+        windows: whatever
 ```
 
 If the first two characters of the file are "`#!`", then it will be treated as an executable script:
@@ -64,7 +65,7 @@ print("Hello, World!\n");
 
 `.jar` files are handled similarly, except that component name and version are searched for in the manifest, and the manifest must have a main class specification.  Also, if there is a RECIPIES folder in the jar, the contents will be copied to the recipe directory.
 
-###ToDo
+### ToDo
 1. Generate/read zip files so developer laptop can bridge to embedded device
 2. Extract more information besides name and version.  eg. dependencies, periodicity and launch parameters.
 3. Read templates from the web, not just built into the cli app.

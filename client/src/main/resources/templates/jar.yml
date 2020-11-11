@@ -13,8 +13,8 @@ ComponentDependencies:
 
 Manifests:
   - Platform:
-      os: linux
+      os: all
     Lifecycle:
       Run:
-        cd {artifacts:path}; java -cp . -jar $file
- 
+        posix: ln -f -s -t . {artifacts:path}/*; java -cp . -jar $file
+        windows: whatever

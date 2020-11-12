@@ -70,7 +70,7 @@ import java.util.stream.Collectors;
 
 import static com.aws.greengrass.cli.CLIService.CLI_AUTH_TOKEN;
 import static com.aws.greengrass.cli.CLIService.CLI_SERVICE;
-import static com.aws.greengrass.cli.CLIService.posixGroups;
+import static com.aws.greengrass.cli.CLIService.AUTHORIZED_POSIX_GROUPS;
 import static com.aws.greengrass.componentmanager.KernelConfigResolver.PARAMETERS_CONFIG_KEY;
 import static com.aws.greengrass.integrationtests.ipc.IPCTestUtils.TEST_SERVICE_NAME;
 import static com.aws.greengrass.integrationtests.ipc.IPCTestUtils.getEventStreamRpcConnection;
@@ -298,8 +298,8 @@ class IPCCliTest {
     @Order(8)
     void GIVEN_kernel_running_WHEN_change_configuration_and_deployment_THEN_kernel_copies_artifacts_correctly(ExtensionContext context)
             throws Exception {
-        ignoreExceptionOfType(context, ComponentVersionNegotiationException.class);
         ignoreExceptionOfType(context, PackageDownloadException.class);
+        ignoreExceptionOfType(context, ComponentVersionNegotiationException.class);
         // updated recipes
         Path recipesPath = Paths.get(this.getClass().getResource("recipes").toURI());
         Path artifactsPath = Paths.get(this.getClass().getResource("artifacts").toURI());
@@ -357,7 +357,7 @@ class IPCCliTest {
             validGid = selectAValidGid();
         }
         assertNotNull(validGid, "Failed to find a single valid GID on this test instance");
-        kernel.locate(CLI_SERVICE).getConfig().lookup(PARAMETERS_CONFIG_KEY, posixGroups).withValue(validGid);
+        kernel.locate(CLI_SERVICE).getConfig().lookup(PARAMETERS_CONFIG_KEY, AUTHORIZED_POSIX_GROUPS).withValue(validGid);
         assertTrue(awaitIpcServiceLatch.await(10, TimeUnit.SECONDS));
         kernel.getContext().removeGlobalStateChangeListener(listener);
         ExecutionException executionException = assertThrows(ExecutionException.class, () ->

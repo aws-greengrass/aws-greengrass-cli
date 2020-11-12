@@ -303,7 +303,7 @@ class IPCCliTest {
     @Order(8)
     void GIVEN_kernel_running_WHEN_change_configuration_and_deployment_THEN_kernel_copies_artifacts_correctly(ExtensionContext context)
             throws Exception {
-
+        ignoreExceptionOfType(context, ComponentVersionNegotiationException.class);
         ignoreExceptionOfType(context, PackageDownloadException.class);
         ignoreExceptionOfType(context, ComponentVersionNegotiationException.class);
 

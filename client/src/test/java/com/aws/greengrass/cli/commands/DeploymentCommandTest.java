@@ -19,9 +19,11 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import picocli.CommandLine;
 import software.amazon.awssdk.aws.greengrass.model.CreateLocalDeploymentRequest;
+import software.amazon.awssdk.aws.greengrass.model.RunWithInfo;
 
 import java.util.Arrays;
 
+import java.util.HashMap;
 import java.util.Map;
 
 import static org.hamcrest.MatcherAssert.assertThat;
@@ -127,6 +129,28 @@ class DeploymentCommandTest {
         CreateLocalDeploymentRequest request = new CreateLocalDeploymentRequest();
         request.setRootComponentVersionsToAdd(ROOT_COMPONENTS);
         request.setRootComponentsToRemove(Arrays.asList(NEW_COMPONENT_1, NEW_COMPONENT_2));
+
+        verify(nucleusAdapteripc).createLocalDeployment(request);
+        assertThat(exitCode, is(0));
+    }
+
+
+    @Test
+    void GIVEN_WHEN_components_runwith_provided_THEN_request_contains_the_info() {
+        int exitCode = runCommandLine("deployment", "create", "--runWith" , "Component1:posixUser=foo:bar",
+                "--runWith" , "Component2:posixUser=1234");
+
+        Map<String, RunWithInfo> componentToRunWithInfo = new HashMap<>();
+        RunWithInfo runWithInfo = new RunWithInfo();
+        runWithInfo.setPosixUser("foo:bar");
+        componentToRunWithInfo.put("Component1", runWithInfo);
+
+        runWithInfo = new RunWithInfo();
+        runWithInfo.setPosixUser("1234");
+        componentToRunWithInfo.put("Component2", runWithInfo);
+
+        CreateLocalDeploymentRequest request = new CreateLocalDeploymentRequest();
+        request.setComponentToRunWithInfo(componentToRunWithInfo);
 
         verify(nucleusAdapteripc).createLocalDeployment(request);
         assertThat(exitCode, is(0));

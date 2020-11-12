@@ -6,6 +6,7 @@
 package com.aws.greengrass.cli;
 
 import com.aws.greengrass.componentmanager.ComponentStore;
+import com.aws.greengrass.componentmanager.exceptions.ComponentVersionNegotiationException;
 import com.aws.greengrass.componentmanager.exceptions.PackageDownloadException;
 import com.aws.greengrass.dependency.State;
 import com.aws.greengrass.deployment.DeviceConfiguration;
@@ -297,7 +298,7 @@ class IPCCliTest {
     @Order(8)
     void GIVEN_kernel_running_WHEN_change_configuration_and_deployment_THEN_kernel_copies_artifacts_correctly(ExtensionContext context)
             throws Exception {
-
+        ignoreExceptionOfType(context, ComponentVersionNegotiationException.class);
         ignoreExceptionOfType(context, PackageDownloadException.class);
         // updated recipes
         Path recipesPath = Paths.get(this.getClass().getResource("recipes").toURI());

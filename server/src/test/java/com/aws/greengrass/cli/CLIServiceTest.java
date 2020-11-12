@@ -40,7 +40,7 @@ import static com.aws.greengrass.cli.CLIService.CLI_AUTH_TOKEN;
 import static com.aws.greengrass.cli.CLIService.CLI_SERVICE;
 import static com.aws.greengrass.cli.CLIService.DOMAIN_SOCKET_PATH;
 import static com.aws.greengrass.cli.CLIService.OBJECT_MAPPER;
-import static com.aws.greengrass.cli.CLIService.posixGroups;
+import static com.aws.greengrass.cli.CLIService.AUTHORIZED_POSIX_GROUPS;
 import static com.aws.greengrass.componentmanager.KernelConfigResolver.PARAMETERS_CONFIG_KEY;
 import static com.aws.greengrass.ipc.IPCEventStreamService.NUCLEUS_DOMAIN_SOCKET_FILEPATH;
 import static com.aws.greengrass.lifecyclemanager.GreengrassService.PRIVATE_STORE_NAMESPACE_TOPIC;
@@ -108,7 +108,7 @@ class CLIServiceTest extends GGServiceTestUtil {
     void testPostInject_calls_made() {
         verify(deploymentStatusKeeper).registerDeploymentStatusConsumer(eq(Deployment.DeploymentType.LOCAL), any(),
                 eq(CLIService.class.getName()));
-        verify(cliConfigSpy).lookup(PARAMETERS_CONFIG_KEY, posixGroups);
+        verify(cliConfigSpy).lookup(PARAMETERS_CONFIG_KEY, AUTHORIZED_POSIX_GROUPS);
     }
 
     @Test
@@ -168,7 +168,7 @@ class CLIServiceTest extends GGServiceTestUtil {
 
         Topic mockPosixGroupsTopic = mock(Topic.class);
         when(mockPosixGroupsTopic.getOnce()).thenReturn("ubuntu,123,someone");
-        when(cliConfigSpy.find(PARAMETERS_CONFIG_KEY, posixGroups)).thenReturn(mockPosixGroupsTopic);
+        when(cliConfigSpy.find(PARAMETERS_CONFIG_KEY, AUTHORIZED_POSIX_GROUPS)).thenReturn(mockPosixGroupsTopic);
 
         CLIService cliServiceSpy = spy(cliService);
         UnixGroupAttributes groupUbuntu = UnixGroupAttributes.builder()

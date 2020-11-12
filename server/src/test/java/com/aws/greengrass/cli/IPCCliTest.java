@@ -74,7 +74,7 @@ import java.util.stream.Collectors;
 
 import static com.aws.greengrass.cli.CLIService.CLI_AUTH_TOKEN;
 import static com.aws.greengrass.cli.CLIService.CLI_SERVICE;
-import static com.aws.greengrass.cli.CLIService.posixGroups;
+import static com.aws.greengrass.cli.CLIService.AUTHORIZED_POSIX_GROUPS;
 import static com.aws.greengrass.componentmanager.KernelConfigResolver.PARAMETERS_CONFIG_KEY;
 import static com.aws.greengrass.integrationtests.ipc.IPCTestUtils.TEST_SERVICE_NAME;
 import static com.aws.greengrass.integrationtests.ipc.IPCTestUtils.getEventStreamRpcConnection;
@@ -373,7 +373,7 @@ class IPCCliTest {
             validGid = selectAValidGid();
         }
         assertNotNull(validGid, "Failed to find a single valid GID on this test instance");
-        kernel.locate(CLI_SERVICE).getConfig().lookup(PARAMETERS_CONFIG_KEY, posixGroups).withValue(validGid);
+        kernel.locate(CLI_SERVICE).getConfig().lookup(PARAMETERS_CONFIG_KEY, AUTHORIZED_POSIX_GROUPS).withValue(validGid);
         assertTrue(awaitIpcServiceLatch.await(10, TimeUnit.SECONDS));
         kernel.getContext().removeGlobalStateChangeListener(listener);
         ExecutionException executionException = assertThrows(ExecutionException.class, () ->

@@ -14,8 +14,8 @@ import com.aws.greengrass.deployment.model.Deployment;
 import com.aws.greengrass.ipc.AuthenticationHandler;
 import com.aws.greengrass.ipc.exceptions.UnauthenticatedException;
 import com.aws.greengrass.ipc.services.cli.models.DeploymentStatus;
-import com.aws.greengrass.lifecyclemanager.GreengrassService;
 import com.aws.greengrass.lifecyclemanager.Kernel;
+import com.aws.greengrass.lifecyclemanager.PluginService;
 import com.aws.greengrass.util.Coerce;
 import com.aws.greengrass.util.Exec;
 import com.aws.greengrass.util.FileSystemPermission;
@@ -42,12 +42,12 @@ import static com.aws.greengrass.ipc.AuthenticationHandler.SERVICE_UNIQUE_ID_KEY
 import static com.aws.greengrass.ipc.IPCEventStreamService.NUCLEUS_DOMAIN_SOCKET_FILEPATH;
 
 @ImplementsService(name = CLIService.CLI_SERVICE, autostart = true)
-public class CLIService extends GreengrassService {
+public class CLIService extends PluginService {
 
     public static final String GREENGRASS_CLI_CLIENT_ID_FMT = "greengrass-cli-%s";
     public static final String CLI_SERVICE = "aws.greengrass.Cli";
     public static final String CLI_AUTH_TOKEN = "cli_auth_token";
-    public static final String posixGroups = "AuthorizedPosixGroups";
+    public static final String AUTHORIZED_POSIX_GROUPS = "AuthorizedPosixGroups";
 
     static final String USER_CLIENT_ID_PREFIX = "user-";
     static final String GROUP_CLIENT_ID_PREFIX = "group-";
@@ -113,7 +113,7 @@ public class CLIService extends GreengrassService {
                 this::deploymentStatusChanged, CLIService.class.getName());
 
 
-        config.lookup(PARAMETERS_CONFIG_KEY, posixGroups).subscribe((why, newv) -> {
+        config.lookup(PARAMETERS_CONFIG_KEY, AUTHORIZED_POSIX_GROUPS).subscribe((why, newv) -> {
             requestRestart();
         });
     }
@@ -180,7 +180,7 @@ public class CLIService extends GreengrassService {
             return;
         }
 
-        Topic authorizedPosixGroups = config.find(PARAMETERS_CONFIG_KEY, posixGroups);
+        Topic authorizedPosixGroups = config.find(PARAMETERS_CONFIG_KEY, AUTHORIZED_POSIX_GROUPS);
         if (authorizedPosixGroups == null) {
             generateCliIpcInfoForEffectiveUser(authTokenDir);
             return;

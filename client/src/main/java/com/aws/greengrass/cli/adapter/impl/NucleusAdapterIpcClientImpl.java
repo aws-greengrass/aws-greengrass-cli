@@ -206,12 +206,7 @@ public class NucleusAdapterIpcClientImpl implements NucleusAdapterIpc {
         }
     }
 
-    private GreengrassCoreIPCClient getIpcClient() {
-        if (ipcClient != null) {
-            return ipcClient;
-        }
-        // GG_NEEDS_REVIEW: TODO: When the greengrass-cli is installed in the Greengrass root path this will derived from the current
-        // working directory, instead of an env variable. Until then using env variable.
+    private String getGgcRoot() {
         // check if root path was passed as an argument to the command line, else fall back to env variable
         // if root path not found then throw exception
         String ggcRootPath = root != null ? root : System.getenv("GGC_ROOT_PATH");
@@ -220,6 +215,15 @@ public class NucleusAdapterIpcClientImpl implements NucleusAdapterIpc {
                     + "--ggcRootPath {PATH} {rest of the arguments} " +
                     "or set the environment variable GGC_ROOT_PATH");
         }
+
+        return ggcRootPath;
+    }
+
+    private GreengrassCoreIPCClient getIpcClient() {
+        if (ipcClient != null) {
+            return ipcClient;
+        }
+        String ggcRootPath = getGgcRoot();
         try {
             Map<String, String> ipcInfoMap = OBJECT_MAPPER.readValue(loadCliIpcInfo(ggcRootPath), HashMap.class);
             String domainSocketPath = ipcInfoMap.get(DOMAIN_SOCKET_PATH);
@@ -305,7 +309,7 @@ public class NucleusAdapterIpcClientImpl implements NucleusAdapterIpc {
     }
 
     private byte[] loadCliIpcInfo(String ggcRootPath) throws IOException {
-        Path directory = Paths.get(deTilde(ggcRootPath)).resolve(CLI_IPC_INFO_DIRECTORY);
+        Path directory = Paths.get(deTilde(ggcRootPath)).resolve(CLI_IPC_INFO_DIRECTORY).normalize();
 
         IOException e = new IOException("Not able to find auth information in directory: " + directory +
                 ". Please run CLI as authorized user or group.");

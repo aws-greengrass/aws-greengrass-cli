@@ -104,7 +104,7 @@ jobs:
           artifactDirectoryPath: target/artifacts
           endpoint: https://evergreen-gamma.us-east-1.amazonaws.com
           autoBumpVersion: true
-          publishAsPublic: false
+          publishAsPublic: true
           additionalReplacements: '{"stage": "gamma"}'
       - uses: ./.github/actions/aws-greengrass-component-upload-action
         name: Upload to GCS Prod

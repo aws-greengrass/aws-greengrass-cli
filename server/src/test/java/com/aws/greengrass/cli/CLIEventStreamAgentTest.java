@@ -49,11 +49,11 @@ import software.amazon.awssdk.aws.greengrass.model.ResourceNotFoundError;
 import software.amazon.awssdk.aws.greengrass.model.RestartComponentRequest;
 import software.amazon.awssdk.aws.greengrass.model.ServiceError;
 import software.amazon.awssdk.aws.greengrass.model.StopComponentRequest;
+import software.amazon.awssdk.aws.greengrass.model.UnauthorizedError;
 import software.amazon.awssdk.aws.greengrass.model.UpdateRecipesAndArtifactsRequest;
 import software.amazon.awssdk.crt.eventstream.ServerConnectionContinuation;
 import software.amazon.awssdk.eventstreamrpc.OperationContinuationHandlerContext;
 import software.amazon.awssdk.utils.ImmutableMap;
-
 
 import java.io.IOException;
 import java.nio.file.Files;
@@ -65,6 +65,7 @@ import java.util.Map;
 import java.util.UUID;
 
 import static com.aws.greengrass.cli.CLIEventStreamAgent.PERSISTENT_LOCAL_DEPLOYMENTS;
+import static com.aws.greengrass.cli.CLIService.GREENGRASS_CLI_CLIENT_ID_FMT;
 import static com.aws.greengrass.componentmanager.KernelConfigResolver.PARAMETERS_CONFIG_KEY;
 import static com.aws.greengrass.componentmanager.KernelConfigResolver.VERSION_CONFIG_KEY;
 import static com.aws.greengrass.deployment.DeploymentStatusKeeper.DEPLOYMENT_STATUS_KEY_NAME;
@@ -107,8 +108,18 @@ class CLIEventStreamAgentTest {
     @BeforeEach
     void setup() {
         when(mockContext.getContinuation()).thenReturn(mock(ServerConnectionContinuation.class));
+        when(mockContext.getAuthenticationData()).thenReturn(() -> String.format(GREENGRASS_CLI_CLIENT_ID_FMT, "abc"));
         cliEventStreamAgent = new CLIEventStreamAgent();
         cliEventStreamAgent.setKernel(kernel);
+    }
+
+    @Test
+    void test_GetComponentDetails_with_bad_auth_token_rejects() {
+        // Pretend that TEST_SERVICE has connected and wants to call the CLI APIs
+        when(mockContext.getAuthenticationData()).thenReturn(() -> TEST_SERVICE);
+        GetComponentDetailsRequest request = new GetComponentDetailsRequest();
+        assertThrows(UnauthorizedError.class, () ->
+                cliEventStreamAgent.getGetComponentDetailsHandler(mockContext).handleRequest(request));
     }
 
     @Test

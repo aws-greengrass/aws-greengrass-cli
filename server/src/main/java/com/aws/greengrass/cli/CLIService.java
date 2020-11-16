@@ -43,8 +43,8 @@ import static com.aws.greengrass.ipc.IPCEventStreamService.NUCLEUS_DOMAIN_SOCKET
 
 @ImplementsService(name = CLIService.CLI_SERVICE, autostart = true)
 public class CLIService extends PluginService {
-
-    public static final String GREENGRASS_CLI_CLIENT_ID_FMT = "greengrass-cli-%s";
+    public static final String GREENGRASS_CLI_CLIENT_ID_PREFIX = "greengrass-cli-";
+    public static final String GREENGRASS_CLI_CLIENT_ID_FMT = GREENGRASS_CLI_CLIENT_ID_PREFIX + "%s";
     public static final String CLI_SERVICE = "aws.greengrass.Cli";
     public static final String CLI_AUTH_TOKEN = "cli_auth_token";
     public static final String AUTHORIZED_POSIX_GROUPS = "AuthorizedPosixGroups";

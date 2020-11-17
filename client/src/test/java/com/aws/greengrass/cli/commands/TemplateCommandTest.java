@@ -87,9 +87,15 @@ public class TemplateCommandTest {
     }
 
     public void test_single_file(String name) {
+        try {
+        System.out.println("Testing "+name);
         Assertions.assertTrue(run("--ggcRootPath",
                 System.getProperty("user.home") + "/.greengrass",
                 "quick", "--dryrun", name) == 0);
+        } catch(Throwable t) {
+            t.printStackTrace(System.out);
+            Assertions.fail(t.toString());
+        }
     }
 
     public int run(String... args) {

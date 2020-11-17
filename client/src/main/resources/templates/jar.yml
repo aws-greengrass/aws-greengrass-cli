@@ -1,6 +1,6 @@
 ## Template recipe for Java projects
 
-# $ctx.platform("java-$javaVersion.0.0.yml")
+# $ctx.platform("java.yml")
 ---
 RecipeFormatVersion: 2020-01-25
 ComponentName: $name

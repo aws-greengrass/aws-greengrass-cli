@@ -18,6 +18,10 @@ else
   JAVACMD="$JAVA_HOME/bin/java"
 fi
 
+if [ -z "$GGC_ROOT_PATH" ] ; then
+  export GGC_ROOT_PATH="$CLI_HOME/../../../../../.."
+fi
+
 CLI_JAR="${CLI_HOME}/lib/*"
 CLI_LAUNCHER=com.aws.greengrass.cli.CLI
 

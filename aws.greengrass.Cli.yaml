@@ -8,10 +8,6 @@ ComponentType: aws.greengrass.plugin
 Manifests:
   - Platform:
       os: linux
-    Lifecycle:
-      install:
-        RequiresPrivilege: true
-        script: sh "{artifacts:decompressedPath}/aws.greengrass.cli.client/install.sh"
     Artifacts:
       - URI: s3://gg-dev-artifacts-$stage/$componentName/$version/aws.greengrass.Cli.jar
       - URI: s3://gg-dev-artifacts-$stage/$componentName/$version/aws.greengrass.cli.client.zip
@@ -19,10 +15,6 @@ Manifests:
 
   - Platform:
       os: darwin
-    Lifecycle:
-      install:
-        RequiresPrivilege: true
-        script: sh "{artifacts:decompressedPath}/aws.greengrass.cli.client/install.sh"
     Artifacts:
       - URI: s3://gg-dev-artifacts-$stage/$componentName/$version/aws.greengrass.Cli.jar
       - URI: s3://gg-dev-artifacts-$stage/$componentName/$version/aws.greengrass.cli.client.zip

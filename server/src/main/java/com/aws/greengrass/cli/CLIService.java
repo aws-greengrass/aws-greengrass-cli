@@ -5,6 +5,7 @@
 
 package com.aws.greengrass.cli;
 
+import com.aws.greengrass.componentmanager.models.ComponentIdentifier;
 import com.aws.greengrass.config.Topic;
 import com.aws.greengrass.config.Topics;
 import com.aws.greengrass.dependency.ImplementsService;
@@ -23,6 +24,8 @@ import com.aws.greengrass.util.platforms.Platform;
 import com.aws.greengrass.util.platforms.UserPlatform;
 import com.fasterxml.jackson.databind.DeserializationFeature;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.vdurmont.semver4j.Semver;
+import com.vdurmont.semver4j.SemverException;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import lombok.Data;
 import software.amazon.awssdk.aws.greengrass.GreengrassCoreIPCService;
@@ -38,6 +41,7 @@ import java.util.Map;
 import javax.inject.Inject;
 
 import static com.aws.greengrass.componentmanager.KernelConfigResolver.PARAMETERS_CONFIG_KEY;
+import static com.aws.greengrass.componentmanager.KernelConfigResolver.VERSION_CONFIG_KEY;
 import static com.aws.greengrass.ipc.AuthenticationHandler.SERVICE_UNIQUE_ID_KEY;
 import static com.aws.greengrass.ipc.IPCEventStreamService.NUCLEUS_DOMAIN_SOCKET_FILEPATH;
 
@@ -46,6 +50,11 @@ public class CLIService extends PluginService {
     public static final String GREENGRASS_CLI_CLIENT_ID_PREFIX = "greengrass-cli-";
     public static final String GREENGRASS_CLI_CLIENT_ID_FMT = GREENGRASS_CLI_CLIENT_ID_PREFIX + "%s";
     public static final String CLI_SERVICE = "aws.greengrass.Cli";
+    public static final String CLI_CLIENT_ARTIFACT = "aws.greengrass.cli.client";
+    public static final String CLI_CLIENT_BINARY = "greengrass-cli";
+    public static final String CLI_CLIENT_DIRECTORY = "cliclient-1.0-SNAPSHOT";
+    public static final String CLI_CLIENT_BIN = "bin";
+    public static final String CLI_CLIENT_LIB = "lib";
     public static final String CLI_AUTH_TOKEN = "cli_auth_token";
     public static final String AUTHORIZED_POSIX_GROUPS = "AuthorizedPosixGroups";
 
@@ -114,7 +123,7 @@ public class CLIService extends PluginService {
 
 
         config.lookup(PARAMETERS_CONFIG_KEY, AUTHORIZED_POSIX_GROUPS).subscribe((why, newv) -> {
-            requestRestart();
+            requestReinstall();
         });
     }
 
@@ -135,6 +144,44 @@ public class CLIService extends PluginService {
                 -> cliEventStreamAgent.getGetLocalDeploymentStatusHandler(context, config));
         greengrassCoreIPCService.setListLocalDeploymentsHandler((context)
                 -> cliEventStreamAgent.getListLocalDeploymentsHandler(context, config));
+    }
+
+    @Override
+    protected void install() {
+        try {
+            Path clientArtifact = kernel.getNucleusPaths().unarchiveArtifactPath(new ComponentIdentifier(CLI_SERVICE,
+                    new Semver(Coerce.toString(getConfig().find(VERSION_CONFIG_KEY)))), CLI_CLIENT_ARTIFACT);
+            if (!Files.exists(clientArtifact)) {
+                logger.atWarn().kv("path", clientArtifact)
+                        .log("Unable to locate CLI binary. Make sure CLI component is properly deployed");
+                return;
+            }
+            Path unpackDir = clientArtifact.resolve(CLI_CLIENT_DIRECTORY);
+            setCliClientPermission(unpackDir);
+
+            Path binary = unpackDir.resolve(CLI_CLIENT_BIN).resolve(CLI_CLIENT_BINARY);
+            Path link = kernel.getNucleusPaths().binPath().resolve(CLI_CLIENT_BINARY);
+            Files.deleteIfExists(link);
+            Files.createSymbolicLink(link, binary);
+            logger.atInfo().kv("binary", binary).kv("link", link).log("Set up symlink to CLI binary");
+        } catch (IOException | SemverException e) {
+            logger.atError().log("Failed to set up symlink to CLI binary", e);
+        }
+    }
+
+    private void setCliClientPermission(Path clientDir) {
+        Path binary = clientDir.resolve(CLI_CLIENT_BIN).resolve(CLI_CLIENT_BINARY);
+        binary.toFile().setExecutable(true, false);
+        binary.toFile().setReadable(true, false);
+        binary.toFile().setWritable(true);
+
+        File[] libraries = clientDir.resolve(CLI_CLIENT_LIB).toFile().listFiles();
+        if (libraries != null) {
+            for (File file : libraries) {
+                file.setWritable(true);
+                file.setReadable(true, false);
+            }
+        }
     }
 
     @Override
@@ -191,6 +238,7 @@ public class CLIService extends PluginService {
             return;
         }
         for (String posixGroup : posixGroups.split(",")) {
+            posixGroup = posixGroup.trim();
             UserPlatform.BasicAttributes group;
             try {
                 group = getGroup(posixGroup);

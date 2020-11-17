@@ -167,7 +167,7 @@ class CLIServiceTest extends GGServiceTestUtil {
         when(cliConfigSpy.getRoot()).thenReturn(mockRootTopics);
 
         Topic mockPosixGroupsTopic = mock(Topic.class);
-        when(mockPosixGroupsTopic.getOnce()).thenReturn("ubuntu,123,someone");
+        when(mockPosixGroupsTopic.getOnce()).thenReturn("ubuntu , 123,someone");
         when(cliConfigSpy.find(PARAMETERS_CONFIG_KEY, AUTHORIZED_POSIX_GROUPS)).thenReturn(mockPosixGroupsTopic);
 
         CLIService cliServiceSpy = spy(cliService);

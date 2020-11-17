@@ -64,12 +64,8 @@ public class TemplateCommand extends BaseCommand {
     private Path genTemplateDir;
     private final ArrayList<String> params = new ArrayList<>();
     private Path localTemplateDir;
-//    private String serviceName = null;
-//    private String serviceVersion = null;
-//    private boolean generateRecipe = true;
     private RecipieFile keyFile;
     private final List<String> artifacts = new ArrayList<>();
-//    private String hashbang;
     private String javaVersion = "11";
     private final Map<String, RecipieFile> recipes = new LinkedHashMap<>();
     private boolean isOK = true;
@@ -91,16 +87,12 @@ public class TemplateCommand extends BaseCommand {
             scanFiles();
             if (keyFile == null) {
                 err("cli.tpl.files");
-            }
-            if (!build()) {
+            } else if (!build()) {
                 return 1;
             }
         }
         if (!isOK) {
             return 1;
-        }
-        if (dryrun) {
-            return 0;
         }
         ArrayList<String> args = new ArrayList<>();
         args.add("--ggcRootPath");
@@ -121,11 +113,10 @@ public class TemplateCommand extends BaseCommand {
             args.add("-p");
             args.add(s);
         });
-//        args.add("-c");  ??
-        System.out.print("Executing: greengrass-cli");
-        args.forEach(s -> System.out.print(' ' + s));
+        System.out.append(dryrun ? "DryRun" : "Executing").append(": greengrass-cli");
+        args.forEach(s -> System.out.append(' ').append(s));
         System.out.println();
-        return parent.runCommand(args.toArray(new String[args.size()]));
+        return dryrun ? 0 : parent.runCommand(args.toArray(new String[args.size()]));
     }
 
     private int scanFiles() {
@@ -135,7 +126,7 @@ public class TemplateCommand extends BaseCommand {
                 params.add(fn);
             } else {
                 Path pn = Paths.get(fn);
-                if(fn.endsWith(".jar")) {
+                if (fn.endsWith(".jar")) {
                     if (keyFile == null) {
                         if (!harvestJar(pn)) {
                             isOK = false;
@@ -143,7 +134,7 @@ public class TemplateCommand extends BaseCommand {
                     }
                     addArtifact(fn, false);
                 } else {
-                    if(isRecipe(fn)) {
+                    if (isRecipe(fn)) {
                         addRecipe(fn, capture(pn));
                     } else {
                         addArtifact(fn, true);
@@ -160,14 +151,16 @@ public class TemplateCommand extends BaseCommand {
 
     private void addArtifact(String fn, boolean xinfo) {
         if (keyFile == null && xinfo) {
-            String body = "";
+            String body = null;
             try {
                 body = ReadFirst(Paths.get(fn).toUri().toURL());
             } catch (MalformedURLException ex) {
                 err("cli.tpl.erd", ex);
                 isOK = false;
             }
-            keyFile = new RecipieFile(fn, body, false);
+            if (body != null) {
+                keyFile = new RecipieFile(fn, body, false);
+            }
         }
         artifacts.add(fn);
     }
@@ -184,8 +177,9 @@ public class TemplateCommand extends BaseCommand {
             return sb.toString();
         } catch (IOException ioe) {
             isOK = false;
+            err("cli.tpl.erd", ioe);
         }
-        return null;
+        return "";
     }
 
     @SuppressWarnings("UseSpecificCatch")
@@ -213,22 +207,17 @@ public class TemplateCommand extends BaseCommand {
             serviceVersion = "0.0.0";
         }
         Matcher m = Pattern.compile("(.+)-[A-Z]+").matcher(serviceVersion);
-        if (m.matches()) // Clean "-SNAPSHOT" from the end of the version string
-        {
+        if (m.matches()) {
             serviceVersion = m.group(1);
         }
         if (!keyFile.isRecipe) {
-            if(keyFile == null) {
-                err("cli.tpl.nbasis", null);
-                return false;
-            }
             keyPath = Paths.get(keyFile.filename);
             String templateName;
             if (keyFile.hashbang != null) {
                 templateName = "hashbang.yml";
             } else if (Files.isExecutable(keyPath)) {
                 templateName = "executable.yml";
-            } else if(keyFile!=null) {
+            } else if (keyFile != null) {
                 templateName = extension(keyFile.filename) + ".yml";
             } else {
                 err("cli.tpl.nbasis", null);
@@ -270,7 +259,7 @@ public class TemplateCommand extends BaseCommand {
         });
         recipes.forEach((name, body) -> {
             try {
-                if(body.isRecipe) {
+                if (body.isRecipe) {
                     body.write(rd);
                 }
             } catch (IOException ex) {
@@ -280,13 +269,13 @@ public class TemplateCommand extends BaseCommand {
         });
         return isOK;
     }
-    
+
     private VelocityEngine velocityEngine;
     private VelocityContext context;
     Path keyPath;
-    
+
     private VelocityEngine getVelocityEngine() {
-        if(velocityEngine==null) {
+        if (velocityEngine == null) {
             velocityEngine = new VelocityEngine();
             context = new VelocityContext();
             velocityEngine.setProperty(RuntimeConstants.RESOURCE_LOADER, "file,classpath");
@@ -350,13 +339,13 @@ public class TemplateCommand extends BaseCommand {
             }
             jar.stream().forEach(e -> {
                 String name = e.getName();
-                if (name.startsWith("RECIPES/") && isRecipe(name))
-                    try (Reader in = new InputStreamReader(jar.getInputStream(e))){
-                        System.out.println("RECIPIES:  "+e.getName());
+                if (name.startsWith("RECIPES/") && isRecipe(name)) {
+                    try (Reader in = new InputStreamReader(jar.getInputStream(e))) {
                         addRecipe(e.getName(), capture(in));
                     } catch (IOException ioe) {
                         err("cli.tpl.crj", e.getName());
                     }
+                }
             });
         } catch (IOException ex) {
             err("cli.tpl.erd", pn);
@@ -365,16 +354,18 @@ public class TemplateCommand extends BaseCommand {
         return true;
     }
 
-    private void err(String tag) {
-        err(tag, null);
-    }
-    
     private static final Pattern RECIPEPATTERN = Pattern.compile(".*\\.(yaml|yml|ggr)$");
+
     private static boolean isRecipe(String name) {
         return RECIPEPATTERN.matcher(name).matches();
     }
 
+    private void err(String tag) {
+        err(tag, null);
+    }
+
     private void err(String tag, Object aux) {
+        isOK = false;
         String msg = ResourceBundle.getBundle("com.aws.greengrass.cli.CLI_messages")
                 .getString(tag);
         if (aux != null) {
@@ -385,13 +376,15 @@ public class TemplateCommand extends BaseCommand {
 
     private RecipieFile addRecipe(String name, String body) {
         RecipieFile ret = null;
-        if(name!=null && body!=null) {
+        if (name != null && body != null) {
             int sl = name.lastIndexOf('/');
             if (sl >= 0) {
                 name = name.substring(sl + 1);
             }
             ret = new RecipieFile(name, body, true);
-            if(keyFile == null) keyFile = ret;
+            if (keyFile == null) {
+                keyFile = ret;
+            }
             recipes.put(ret.serviceName, ret);
         }
         return ret;
@@ -434,11 +427,12 @@ public class TemplateCommand extends BaseCommand {
 
     @SuppressWarnings("UseSpecificCatch")
     public class opHandlers {
+
         public String platform(String recipe) {
             try {
                 StringWriter out = new StringWriter();
                 getVelocityEngine()
-                        .getTemplate("platforms/"+recipe,"UTF-8")
+                        .getTemplate("platforms/" + recipe, "UTF-8")
                         .merge(context, out);
                 addRecipe(recipe, out.toString());
             } catch (Throwable ex) {
@@ -473,8 +467,9 @@ public class TemplateCommand extends BaseCommand {
         }
         return f.substring(0, dot);
     }
-    
+
     static class RecipieFile {
+
         private final String body;
         final String serviceName;
         final String serviceVersion;
@@ -482,15 +477,16 @@ public class TemplateCommand extends BaseCommand {
         final String hashbang;
         final String filename;
         final boolean isRecipe;
+
         RecipieFile(String fn, String b, boolean is) {
             isRecipe = is;
             filename = fn;
             String name = chopExtension(fn);
             Matcher version = Pattern.compile("-[0-9]").matcher(name);
             String p1, p2;
-            if(version.find()) {
-                p1 = name.substring(0,version.start());
-                p2 = name.substring(version.start()+1);
+            if (version.find()) {
+                p1 = name.substring(0, version.start());
+                p2 = name.substring(version.start() + 1);
             } else {
                 p1 = name;
                 p2 = "0.0.0";
@@ -502,25 +498,33 @@ public class TemplateCommand extends BaseCommand {
             Matcher m = Pattern.compile("#! *(.*)").matcher(body);
             hashbang = m.lookingAt() ? m.group(1) : null;
         }
+
         private String getPart(String part, String dflt) {
-            Matcher m = Pattern.compile(part+": *([^;,\n\"]+)", Pattern.CASE_INSENSITIVE).matcher(body);
+            Matcher m = Pattern.compile(part + ": *([^;,\n\"]+)", Pattern.CASE_INSENSITIVE).matcher(body);
             return clean(m.find() ? m.group(1) : dflt, dflt);
         }
+
         private String clean(String s, String dflt) {
-            if(s==null) return dflt;
+            if (s == null) {
+                return dflt;
+            }
             Matcher m = Pattern.compile(" *([^ #]+)").matcher(s);
-            if(m.lookingAt()) s = m.group(1);
+            if (m.lookingAt()) {
+                s = m.group(1);
+            }
             s = s.trim();
             return isEmpty(s) ? dflt : s;
         }
+
         public void write(Path dir) throws IOException {
-            if(!isRecipe) return;
-            Path fn = dir.resolve(serviceName+'-'+serviceVersion+".yaml");
-            System.out.println("Writing "+fn);
-            try (Writer out = Files.newBufferedWriter(fn,
-                    StandardOpenOption.CREATE,
-                    StandardOpenOption.TRUNCATE_EXISTING)) {
-                out.write(body);
+            if (isRecipe) {
+                Path fn = dir.resolve(serviceName + '-' + serviceVersion + ".yaml");
+                System.out.println("Writing " + fn);
+                try (Writer out = Files.newBufferedWriter(fn,
+                        StandardOpenOption.CREATE,
+                        StandardOpenOption.TRUNCATE_EXISTING)) {
+                    out.write(body);
+                }
             }
         }
     }

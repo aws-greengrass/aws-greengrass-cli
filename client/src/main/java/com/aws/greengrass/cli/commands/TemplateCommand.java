@@ -33,7 +33,6 @@ import java.util.jar.JarFile;
 import java.util.jar.Manifest;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
-import org.apache.velocity.Template;
 import org.apache.velocity.VelocityContext;
 import org.apache.velocity.app.VelocityEngine;
 import org.apache.velocity.runtime.resource.loader.ClasspathResourceLoader;
@@ -68,32 +67,18 @@ public class TemplateCommand extends BaseCommand {
     private final List<String> artifacts = new ArrayList<>();
     private String javaVersion = "11";
     private final Map<String, RecipieFile> recipes = new LinkedHashMap<>();
-    private boolean isOK = true;
 
     @Override
     public void run() {
-        // This is nuts, but apparently necessary.
-        if (template() != 0) {
-            throw new CommandLine.ParameterException(spec.commandLine(), "Template generation failed");
-        }
-    }
-
-    int template() {
         genTemplateDir = Paths.get(NucleusAdapterIpcClientImpl.deTilde(generatedTemplateDirectory));
         if (files == null || files.length == 0) {
             err("cli.tpl.files");
         }
-        if (files != null) {
-            scanFiles();
-            if (keyFile == null) {
-                err("cli.tpl.files");
-            } else if (!build()) {
-                return 1;
-            }
+        scanFiles();
+        if (keyFile == null) {
+            err("cli.tpl.files");
         }
-        if (!isOK) {
-            return 1;
-        }
+        build();
         ArrayList<String> args = new ArrayList<>();
         args.add("--ggcRootPath");
         args.add(parent.getGgcRootPath());
@@ -116,7 +101,9 @@ public class TemplateCommand extends BaseCommand {
         System.out.append(dryrun ? "DryRun" : "Executing").append(": greengrass-cli");
         args.forEach(s -> System.out.append(' ').append(s));
         System.out.println();
-        return dryrun ? 0 : parent.runCommand(args.toArray(new String[args.size()]));
+        if(!dryrun && parent.runCommand(args.toArray(new String[args.size()])) != 0) {
+            err("cli.tpl.deploy");
+        }
     }
 
     private int scanFiles() {
@@ -128,9 +115,7 @@ public class TemplateCommand extends BaseCommand {
                 Path pn = Paths.get(fn);
                 if (fn.endsWith(".jar")) {
                     if (keyFile == null) {
-                        if (!harvestJar(pn)) {
-                            isOK = false;
-                        }
+                        harvestJar(pn);
                     }
                     addArtifact(fn, false);
                 } else {
@@ -156,7 +141,6 @@ public class TemplateCommand extends BaseCommand {
                 body = ReadFirst(Paths.get(fn).toUri().toURL());
             } catch (MalformedURLException ex) {
                 err("cli.tpl.erd", ex);
-                isOK = false;
             }
             if (body != null) {
                 keyFile = new RecipieFile(fn, body, false);
@@ -176,14 +160,13 @@ public class TemplateCommand extends BaseCommand {
             }
             return sb.toString();
         } catch (IOException ioe) {
-            isOK = false;
             err("cli.tpl.erd", ioe);
         }
         return "";
     }
 
     @SuppressWarnings("UseSpecificCatch")
-    public boolean build() {
+    public void build() {
         String serviceName = keyFile.serviceName;
         String serviceVersion = keyFile.serviceVersion;
         if (genTemplateDir == null) {
@@ -210,6 +193,31 @@ public class TemplateCommand extends BaseCommand {
         if (m.matches()) {
             serviceVersion = m.group(1);
         }
+        generateTemplate();
+        Path ad = Paths.get(artifactDir).resolve(serviceName).resolve(serviceVersion);
+        Path rd = Paths.get(recipeDir);
+        System.out.println("Artifacts in " + ad + "\nRecipes in " + rd);
+
+        try {
+            Files.createDirectories(ad);
+            Files.createDirectories(rd);
+        } catch (IOException ex) {
+            err("cli.tpl.err", ex);
+        }
+        artifacts.forEach(fn -> {
+            Path src = Paths.get(fn);
+            Path dest = ad.resolve(src.getFileName());
+            try {
+                Files.copy(src, dest, StandardCopyOption.REPLACE_EXISTING);
+            } catch (IOException ex) {
+                err("cli.tpl.cnc", fn);
+            }
+        });
+        recipes.forEach((name, body) -> body.write(rd));
+    }
+    
+    @SuppressWarnings("UseSpecificCatch")
+    private void generateTemplate() {
         if (!keyFile.isRecipe) {
             keyPath = Paths.get(keyFile.filename);
             String templateName;
@@ -231,43 +239,10 @@ public class TemplateCommand extends BaseCommand {
                 addRecipe(keyFile.filename, tls.toString());
             } catch (Throwable t) {
                 err("cli.tpl.nft", keyFile);
-                return false;
             }
         } else {
             System.out.println("[ using provided recipe file ]"); //            ComponentRecipe r = getParsedRecipe();
         }
-        Path ad = Paths.get(artifactDir).resolve(serviceName).resolve(serviceVersion);
-        Path rd = Paths.get(recipeDir);
-        System.out.println("Artifacts in " + ad + "\nRecipes in " + rd);
-
-        try {
-            Files.createDirectories(ad);
-            Files.createDirectories(rd);
-        } catch (IOException ex) {
-            err("cli.tpl.err", ex);
-            return false;
-        }
-        artifacts.forEach(fn -> {
-            Path src = Paths.get(fn);
-            Path dest = ad.resolve(src.getFileName());
-            try {
-                Files.copy(src, dest, StandardCopyOption.REPLACE_EXISTING);
-            } catch (IOException ex) {
-                err("cli.tpl.cnc", fn);
-                isOK = false;
-            }
-        });
-        recipes.forEach((name, body) -> {
-            try {
-                if (body.isRecipe) {
-                    body.write(rd);
-                }
-            } catch (IOException ex) {
-                err("cli.tpl.err", ex);
-                isOK = false;
-            }
-        });
-        return isOK;
     }
 
     private VelocityEngine velocityEngine;
@@ -316,7 +291,7 @@ public class TemplateCommand extends BaseCommand {
         return velocityEngine;
     }
 
-    private boolean harvestJar(Path pn) {
+    private void harvestJar(Path pn) {
         try (JarFile jar = new JarFile(pn.toFile())) {
             Manifest m = jar.getManifest();
             if (m != null) {
@@ -349,9 +324,7 @@ public class TemplateCommand extends BaseCommand {
             });
         } catch (IOException ex) {
             err("cli.tpl.erd", pn);
-            return false;
         }
-        return true;
     }
 
     private static final Pattern RECIPEPATTERN = Pattern.compile(".*\\.(yaml|yml|ggr)$");
@@ -365,7 +338,6 @@ public class TemplateCommand extends BaseCommand {
     }
 
     private void err(String tag, Object aux) {
-        isOK = false;
         String msg = ResourceBundle.getBundle("com.aws.greengrass.cli.CLI_messages")
                 .getString(tag);
         if (aux != null) {
@@ -468,7 +440,7 @@ public class TemplateCommand extends BaseCommand {
         return f.substring(0, dot);
     }
 
-    static class RecipieFile {
+    class RecipieFile {
 
         private final String body;
         final String serviceName;
@@ -516,7 +488,7 @@ public class TemplateCommand extends BaseCommand {
             return isEmpty(s) ? dflt : s;
         }
 
-        public void write(Path dir) throws IOException {
+        public void write(Path dir) {
             if (isRecipe) {
                 Path fn = dir.resolve(serviceName + '-' + serviceVersion + ".yaml");
                 System.out.println("Writing " + fn);
@@ -524,6 +496,8 @@ public class TemplateCommand extends BaseCommand {
                         StandardOpenOption.CREATE,
                         StandardOpenOption.TRUNCATE_EXISTING)) {
                     out.write(body);
+                } catch (IOException ex) {
+                    err("cli.tpl.err", ex);
                 }
             }
         }

@@ -31,6 +31,7 @@ import lombok.Data;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
 import org.apache.commons.lang3.StringUtils;
+import software.amazon.awssdk.aws.greengrass.GeneratedAbstractCreateDebugPasswordOperationHandler;
 import software.amazon.awssdk.aws.greengrass.GeneratedAbstractCreateLocalDeploymentOperationHandler;
 import software.amazon.awssdk.aws.greengrass.GeneratedAbstractGetComponentDetailsOperationHandler;
 import software.amazon.awssdk.aws.greengrass.GeneratedAbstractGetLocalDeploymentStatusOperationHandler;
@@ -40,6 +41,8 @@ import software.amazon.awssdk.aws.greengrass.GeneratedAbstractRestartComponentOp
 import software.amazon.awssdk.aws.greengrass.GeneratedAbstractStopComponentOperationHandler;
 import software.amazon.awssdk.aws.greengrass.GeneratedAbstractUpdateRecipesAndArtifactsOperationHandler;
 import software.amazon.awssdk.aws.greengrass.model.ComponentDetails;
+import software.amazon.awssdk.aws.greengrass.model.CreateDebugPasswordRequest;
+import software.amazon.awssdk.aws.greengrass.model.CreateDebugPasswordResponse;
 import software.amazon.awssdk.aws.greengrass.model.CreateLocalDeploymentRequest;
 import software.amazon.awssdk.aws.greengrass.model.CreateLocalDeploymentResponse;
 import software.amazon.awssdk.aws.greengrass.model.DeploymentStatus;
@@ -74,7 +77,11 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.nio.file.StandardCopyOption;
+import java.security.SecureRandom;
+import java.time.Duration;
+import java.time.Instant;
 import java.util.ArrayList;
+import java.util.Base64;
 import java.util.Collection;
 import java.util.HashMap;
 import java.util.List;
@@ -107,6 +114,10 @@ public class CLIEventStreamAgent {
             new ObjectMapper().disable(DeserializationFeature.FAIL_ON_INVALID_SUBTYPE)
                     .disable(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES);
 
+    private static final int DEBUG_PASSWORD_LENGTH_REQUIREMENT = 32;
+    private static final String DEBUG_USERNAME = "debug";
+    private static final Duration DEBUG_PASSWORD_EXPIRATION = Duration.ofHours(4);
+
     @Inject
     @Setter(AccessLevel.PACKAGE)
     private Kernel kernel;
@@ -114,6 +125,7 @@ public class CLIEventStreamAgent {
     @Inject
     @Setter(AccessLevel.PACKAGE)
     private DeploymentQueue deploymentQueue;
+    private final SecureRandom random = new SecureRandom();
 
     public GetComponentDetailsHandler getGetComponentDetailsHandler(OperationContinuationHandlerContext context) {
         return new GetComponentDetailsHandler(context);
@@ -149,6 +161,11 @@ public class CLIEventStreamAgent {
     public ListLocalDeploymentsHandler getListLocalDeploymentsHandler(OperationContinuationHandlerContext context,
                                                                       Topics cliServiceConfig) {
         return new ListLocalDeploymentsHandler(context, cliServiceConfig);
+    }
+
+    public CreateDebugPasswordHandler getCreateDebugPasswordHandler(OperationContinuationHandlerContext context,
+                                                                    Topics config) {
+        return new CreateDebugPasswordHandler(context, config);
     }
 
     /**
@@ -664,6 +681,54 @@ public class CLIEventStreamAgent {
         public void handleStreamEvent(EventStreamJsonMessage streamRequestEvent) {
 
         }
+    }
+
+    class CreateDebugPasswordHandler extends GeneratedAbstractCreateDebugPasswordOperationHandler {
+        private final String componentName;
+        private final Topics config;
+
+        public CreateDebugPasswordHandler(OperationContinuationHandlerContext context, Topics config) {
+            super(context);
+            this.componentName = context.getAuthenticationData().getIdentityLabel();
+            this.config = config;
+        }
+
+        @Override
+        protected void onStreamClosed() {
+        }
+
+        @Override
+        public CreateDebugPasswordResponse handleRequest(CreateDebugPasswordRequest request) {
+            return translateExceptions(() -> {
+                authorizeRequest(componentName);
+                CreateDebugPasswordResponse response = new CreateDebugPasswordResponse();
+
+                String password = generatePassword(DEBUG_PASSWORD_LENGTH_REQUIREMENT);
+                Instant expiration = Instant.now().plus(DEBUG_PASSWORD_EXPIRATION);
+                ((Topics) config.lookupTopics("_debugPassword")
+                        .withParentNeedsToKnow(false))
+                        .lookup(DEBUG_USERNAME,
+                                password,
+                                "expiration")
+                        .withValue(expiration.toEpochMilli());
+
+                response.setPassword(password);
+                response.setPasswordExpiration(expiration);
+                response.setUsername(DEBUG_USERNAME);
+
+                return response;
+            });
+        }
+
+        @Override
+        public void handleStreamEvent(EventStreamJsonMessage streamRequestEvent) {
+        }
+    }
+
+    private String generatePassword(int length) {
+        byte[] bytes = new byte[length];
+        random.nextBytes(bytes);
+        return Base64.getUrlEncoder().withoutPadding().encodeToString(bytes);
     }
 
     private void validateComponentName(String componentName) {

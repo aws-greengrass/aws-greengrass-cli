@@ -12,6 +12,8 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import software.amazon.awssdk.aws.greengrass.GetLocalDeploymentStatusResponseHandler;
 import software.amazon.awssdk.aws.greengrass.GreengrassCoreIPCClient;
 import software.amazon.awssdk.aws.greengrass.model.ComponentDetails;
+import software.amazon.awssdk.aws.greengrass.model.CreateDebugPasswordRequest;
+import software.amazon.awssdk.aws.greengrass.model.CreateDebugPasswordResponse;
 import software.amazon.awssdk.aws.greengrass.model.CreateLocalDeploymentRequest;
 import software.amazon.awssdk.aws.greengrass.model.CreateLocalDeploymentResponse;
 import software.amazon.awssdk.aws.greengrass.model.GetComponentDetailsRequest;
@@ -200,6 +202,19 @@ public class NucleusAdapterIpcClientImpl implements NucleusAdapterIpc {
             return listComponentsResponse.getComponents();
         } catch (ExecutionException | TimeoutException | InterruptedException e) {
             //TODO: update when the sdk method signature includes exceptions
+            throw new RuntimeException(e);
+        } finally {
+            close();
+        }
+    }
+
+    @Override
+    public CreateDebugPasswordResponse createDebugPassword() {
+        CreateDebugPasswordRequest request = new CreateDebugPasswordRequest();
+        try {
+            return getIpcClient().createDebugPassword(request, Optional.empty()).getResponse()
+                    .get(DEFAULT_TIMEOUT_IN_SEC, TimeUnit.SECONDS);
+        } catch (ExecutionException | TimeoutException | InterruptedException e) {
             throw new RuntimeException(e);
         } finally {
             close();

@@ -144,6 +144,8 @@ public class CLIService extends PluginService {
                 -> cliEventStreamAgent.getGetLocalDeploymentStatusHandler(context, config));
         greengrassCoreIPCService.setListLocalDeploymentsHandler((context)
                 -> cliEventStreamAgent.getListLocalDeploymentsHandler(context, config));
+        greengrassCoreIPCService.setCreateDebugPasswordHandler((context)
+                -> cliEventStreamAgent.getCreateDebugPasswordHandler(context, config.getRoot()));
     }
 
     @Override
@@ -185,7 +187,7 @@ public class CLIService extends PluginService {
     }
 
     @Override
-    protected void startup() throws InterruptedException {
+    protected void startup() {
         registerIpcEventStreamHandlers();
         try {
             generateCliIpcInfo();
@@ -211,7 +213,7 @@ public class CLIService extends PluginService {
         return Platform.getInstance().lookupGroupByName(posixGroup);
     }
 
-    private synchronized void generateCliIpcInfo() throws UnauthenticatedException, IOException, InterruptedException {
+    private synchronized void generateCliIpcInfo() throws UnauthenticatedException, IOException {
         // GG_NEEDS_REVIEW: TODO: replace with the new IPC domain socket path
         if (config.getRoot().find(SETENV_CONFIG_NAMESPACE, NUCLEUS_DOMAIN_SOCKET_FILEPATH) == null) {
             logger.atWarn().log("Did not find IPC socket URL in the config. Not creating the cli ipc info file");
@@ -253,7 +255,7 @@ public class CLIService extends PluginService {
     @SuppressFBWarnings(value = {"RV_RETURN_VALUE_IGNORED_BAD_PRACTICE", "RV_RETURN_VALUE_IGNORED"},
             justification = "File is created in the same method")
     private synchronized void generateCliIpcInfoForEffectiveUser(Path directory)
-            throws UnauthenticatedException, IOException, InterruptedException {
+            throws UnauthenticatedException, IOException {
         String defaultClientId =
                 USER_CLIENT_ID_PREFIX + Platform.getInstance().lookupCurrentUser().getPrincipalIdentifier();
         Path ipcInfoFile = generateCliIpcInfoForClient(defaultClientId, directory);

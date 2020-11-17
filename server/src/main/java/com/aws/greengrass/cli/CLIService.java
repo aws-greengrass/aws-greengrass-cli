@@ -238,6 +238,7 @@ public class CLIService extends PluginService {
             return;
         }
         for (String posixGroup : posixGroups.split(",")) {
+            posixGroup = posixGroup.trim();
             UserPlatform.BasicAttributes group;
             try {
                 group = getGroup(posixGroup);

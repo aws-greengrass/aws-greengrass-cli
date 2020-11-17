@@ -30,7 +30,6 @@ import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
-import org.apache.commons.lang3.StringUtils;
 import software.amazon.awssdk.aws.greengrass.GeneratedAbstractCreateDebugPasswordOperationHandler;
 import software.amazon.awssdk.aws.greengrass.GeneratedAbstractCreateLocalDeploymentOperationHandler;
 import software.amazon.awssdk.aws.greengrass.GeneratedAbstractGetComponentDetailsOperationHandler;
@@ -77,6 +76,8 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.nio.file.StandardCopyOption;
+import java.security.MessageDigest;
+import java.security.NoSuchAlgorithmException;
 import java.security.SecureRandom;
 import java.time.Duration;
 import java.time.Instant;
@@ -451,7 +452,7 @@ public class CLIEventStreamAgent {
         private void validateUpdateRecipesAndArtifactsRequest(UpdateRecipesAndArtifactsRequest request) {
             String recipeDirectoryPath = request.getRecipeDirectoryPath();
             String artifactsDirectoryPath = request.getArtifactsDirectoryPath();
-            if (StringUtils.isEmpty(recipeDirectoryPath) && StringUtils.isEmpty(artifactsDirectoryPath)) {
+            if (Utils.isEmpty(recipeDirectoryPath) && Utils.isEmpty(artifactsDirectoryPath)) {
                 throw new InvalidArgumentsError("Need to provide at least one of the directory paths to update");
             }
         }
@@ -728,6 +729,11 @@ public class CLIEventStreamAgent {
     private String generatePassword(int length) {
         byte[] bytes = new byte[length];
         random.nextBytes(bytes);
+        try {
+            bytes = MessageDigest.getInstance("SHA-256").digest(bytes);
+        } catch (NoSuchAlgorithmException ignored) {
+            // Not possible since we know that sha-256 definitely exists
+        }
         return Base64.getUrlEncoder().withoutPadding().encodeToString(bytes);
     }
 

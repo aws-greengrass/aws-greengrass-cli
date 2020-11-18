@@ -30,7 +30,7 @@ import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
-import org.apache.commons.lang3.StringUtils;
+import software.amazon.awssdk.aws.greengrass.GeneratedAbstractCreateDebugPasswordOperationHandler;
 import software.amazon.awssdk.aws.greengrass.GeneratedAbstractCreateLocalDeploymentOperationHandler;
 import software.amazon.awssdk.aws.greengrass.GeneratedAbstractGetComponentDetailsOperationHandler;
 import software.amazon.awssdk.aws.greengrass.GeneratedAbstractGetLocalDeploymentStatusOperationHandler;
@@ -40,6 +40,8 @@ import software.amazon.awssdk.aws.greengrass.GeneratedAbstractRestartComponentOp
 import software.amazon.awssdk.aws.greengrass.GeneratedAbstractStopComponentOperationHandler;
 import software.amazon.awssdk.aws.greengrass.GeneratedAbstractUpdateRecipesAndArtifactsOperationHandler;
 import software.amazon.awssdk.aws.greengrass.model.ComponentDetails;
+import software.amazon.awssdk.aws.greengrass.model.CreateDebugPasswordRequest;
+import software.amazon.awssdk.aws.greengrass.model.CreateDebugPasswordResponse;
 import software.amazon.awssdk.aws.greengrass.model.CreateLocalDeploymentRequest;
 import software.amazon.awssdk.aws.greengrass.model.CreateLocalDeploymentResponse;
 import software.amazon.awssdk.aws.greengrass.model.DeploymentStatus;
@@ -63,6 +65,7 @@ import software.amazon.awssdk.aws.greengrass.model.RestartComponentResponse;
 import software.amazon.awssdk.aws.greengrass.model.ServiceError;
 import software.amazon.awssdk.aws.greengrass.model.StopComponentRequest;
 import software.amazon.awssdk.aws.greengrass.model.StopComponentResponse;
+import software.amazon.awssdk.aws.greengrass.model.UnauthorizedError;
 import software.amazon.awssdk.aws.greengrass.model.UpdateRecipesAndArtifactsRequest;
 import software.amazon.awssdk.aws.greengrass.model.UpdateRecipesAndArtifactsResponse;
 import software.amazon.awssdk.eventstreamrpc.OperationContinuationHandlerContext;
@@ -73,7 +76,13 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.nio.file.StandardCopyOption;
+import java.security.MessageDigest;
+import java.security.NoSuchAlgorithmException;
+import java.security.SecureRandom;
+import java.time.Duration;
+import java.time.Instant;
 import java.util.ArrayList;
+import java.util.Base64;
 import java.util.Collection;
 import java.util.HashMap;
 import java.util.List;
@@ -82,6 +91,8 @@ import java.util.UUID;
 import java.util.stream.Collectors;
 import javax.inject.Inject;
 
+import static com.aws.greengrass.cli.CLIService.CLI_SERVICE;
+import static com.aws.greengrass.cli.CLIService.GREENGRASS_CLI_CLIENT_ID_PREFIX;
 import static com.aws.greengrass.componentmanager.ComponentStore.RECIPE_FILE_NAME_FORMAT;
 import static com.aws.greengrass.componentmanager.KernelConfigResolver.CONFIGURATION_CONFIG_KEY;
 import static com.aws.greengrass.componentmanager.KernelConfigResolver.VERSION_CONFIG_KEY;
@@ -90,6 +101,7 @@ import static com.aws.greengrass.deployment.DeploymentStatusKeeper.DEPLOYMENT_ID
 import static com.aws.greengrass.deployment.DeploymentStatusKeeper.DEPLOYMENT_STATUS_KEY_NAME;
 import static com.aws.greengrass.deployment.DeploymentStatusKeeper.DEPLOYMENT_TYPE_KEY_NAME;
 import static com.aws.greengrass.deployment.converter.DeploymentDocumentConverter.LOCAL_DEPLOYMENT_GROUP_NAME;
+import static com.aws.greengrass.ipc.common.ExceptionUtil.translateExceptions;
 import static com.aws.greengrass.ipc.common.IPCErrorStrings.DEPLOYMENTS_QUEUE_FULL;
 import static com.aws.greengrass.ipc.common.IPCErrorStrings.DEPLOYMENTS_QUEUE_NOT_INITIALIZED;
 
@@ -103,6 +115,10 @@ public class CLIEventStreamAgent {
             new ObjectMapper().disable(DeserializationFeature.FAIL_ON_INVALID_SUBTYPE)
                     .disable(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES);
 
+    private static final int DEBUG_PASSWORD_LENGTH_REQUIREMENT = 32;
+    private static final String DEBUG_USERNAME = "debug";
+    private static final Duration DEBUG_PASSWORD_EXPIRATION = Duration.ofHours(4);
+
     @Inject
     @Setter(AccessLevel.PACKAGE)
     private Kernel kernel;
@@ -110,6 +126,7 @@ public class CLIEventStreamAgent {
     @Inject
     @Setter(AccessLevel.PACKAGE)
     private DeploymentQueue deploymentQueue;
+    private final SecureRandom random = new SecureRandom();
 
     public GetComponentDetailsHandler getGetComponentDetailsHandler(OperationContinuationHandlerContext context) {
         return new GetComponentDetailsHandler(context);
@@ -147,6 +164,11 @@ public class CLIEventStreamAgent {
         return new ListLocalDeploymentsHandler(context, cliServiceConfig);
     }
 
+    public CreateDebugPasswordHandler getCreateDebugPasswordHandler(OperationContinuationHandlerContext context,
+                                                                    Topics config) {
+        return new CreateDebugPasswordHandler(context, config);
+    }
+
     /**
      * Persists the local deployment details in the config.
      *
@@ -164,8 +186,11 @@ public class CLIEventStreamAgent {
     @SuppressFBWarnings("SIC_INNER_SHOULD_BE_STATIC")
     class GetComponentDetailsHandler extends GeneratedAbstractGetComponentDetailsOperationHandler {
 
+        private final String componentName;
+
         public GetComponentDetailsHandler(OperationContinuationHandlerContext context) {
             super(context);
+            this.componentName = context.getAuthenticationData().getIdentityLabel();
         }
 
         @Override
@@ -176,20 +201,24 @@ public class CLIEventStreamAgent {
         @Override
         @SuppressWarnings("PMD.PreserveStackTrace")
         public GetComponentDetailsResponse handleRequest(GetComponentDetailsRequest request) {
-            validateGetComponentDetailsRequest(request);
-            String componentName = request.getComponentName();
-            GreengrassService service;
-            try {
-                service = kernel.locate(componentName);
-            } catch (ServiceLoadException e) {
-                logger.atError().kv("ComponentName", componentName)
-                        .log("Did not find the component with the given name in Greengrass");
-                throw new ResourceNotFoundError("Component with name " + componentName + " not found in Greengrass");
-            }
-            ComponentDetails componentDetails = getComponentDetails(service);
-            GetComponentDetailsResponse response = new GetComponentDetailsResponse();
-            response.setComponentDetails(componentDetails);
-            return response;
+            return translateExceptions(() -> {
+                authorizeRequest(componentName);
+                validateGetComponentDetailsRequest(request);
+                String componentName = request.getComponentName();
+                GreengrassService service;
+                try {
+                    service = kernel.locate(componentName);
+                } catch (ServiceLoadException e) {
+                    logger.atError().kv("ComponentName", componentName)
+                            .log("Did not find the component with the given name in Greengrass");
+                    throw new ResourceNotFoundError(
+                            "Component with name " + componentName + " not found in Greengrass");
+                }
+                ComponentDetails componentDetails = getComponentDetails(service);
+                GetComponentDetailsResponse response = new GetComponentDetailsResponse();
+                response.setComponentDetails(componentDetails);
+                return response;
+            });
         }
 
         @Override
@@ -199,6 +228,13 @@ public class CLIEventStreamAgent {
 
         private void validateGetComponentDetailsRequest(GetComponentDetailsRequest request) {
             validateComponentName(request.getComponentName());
+        }
+    }
+
+    private void authorizeRequest(String componentName) {
+        if (Utils.isEmpty(componentName) || !componentName.startsWith(GREENGRASS_CLI_CLIENT_ID_PREFIX)
+                && !CLI_SERVICE.equals(componentName)) {
+            throw new UnauthorizedError("Component is not authorized to call CLI APIs");
         }
     }
 
@@ -220,8 +256,11 @@ public class CLIEventStreamAgent {
     @SuppressFBWarnings("SIC_INNER_SHOULD_BE_STATIC")
     class ListComponentsHandler extends GeneratedAbstractListComponentsOperationHandler {
 
+        private final String componentName;
+
         public ListComponentsHandler(OperationContinuationHandlerContext context) {
             super(context);
+            this.componentName = context.getAuthenticationData().getIdentityLabel();
         }
 
         @Override
@@ -231,12 +270,16 @@ public class CLIEventStreamAgent {
 
         @Override
         public ListComponentsResponse handleRequest(ListComponentsRequest request) {
-            Collection<GreengrassService> services = kernel.orderedDependencies();
-            List<ComponentDetails> listOfComponents = services.stream().filter(service -> service != kernel.getMain())
-                    .map(CLIEventStreamAgent.this::getComponentDetails).collect(Collectors.toList());
-            ListComponentsResponse response = new ListComponentsResponse();
-            response.setComponents(listOfComponents);
-            return response;
+            return translateExceptions(() -> {
+                authorizeRequest(componentName);
+                Collection<GreengrassService> services = kernel.orderedDependencies();
+                List<ComponentDetails> listOfComponents =
+                        services.stream().filter(service -> service != kernel.getMain())
+                                .map(CLIEventStreamAgent.this::getComponentDetails).collect(Collectors.toList());
+                ListComponentsResponse response = new ListComponentsResponse();
+                response.setComponents(listOfComponents);
+                return response;
+            });
         }
 
         @Override
@@ -248,8 +291,11 @@ public class CLIEventStreamAgent {
     @SuppressFBWarnings("SIC_INNER_SHOULD_BE_STATIC")
     class RestartComponentsHandler extends GeneratedAbstractRestartComponentOperationHandler {
 
+        private final String componentName;
+
         public RestartComponentsHandler(OperationContinuationHandlerContext context) {
             super(context);
+            this.componentName = context.getAuthenticationData().getIdentityLabel();
         }
 
         @Override
@@ -260,23 +306,27 @@ public class CLIEventStreamAgent {
         @Override
         @SuppressWarnings("PMD.PreserveStackTrace")
         public RestartComponentResponse handleRequest(RestartComponentRequest request) {
-            validateRestartComponentRequest(request);
-            String componentName = request.getComponentName();
-            RestartComponentResponse response = new RestartComponentResponse();
-            response.setRestartStatus(RequestStatus.SUCCEEDED);
-            try {
-                GreengrassService service = kernel.locate(componentName);
-                // TODO: [P41179234]: Add checks that can prevent triggering a component restart/stop
-                // Success of this request means restart was triggered successfully
-                if (!service.requestRestart()) {
-                    response.setRestartStatus(RequestStatus.FAILED);
+            return translateExceptions(() -> {
+                authorizeRequest(componentName);
+                validateRestartComponentRequest(request);
+                String componentName = request.getComponentName();
+                RestartComponentResponse response = new RestartComponentResponse();
+                response.setRestartStatus(RequestStatus.SUCCEEDED);
+                try {
+                    GreengrassService service = kernel.locate(componentName);
+                    // TODO: [P41179234]: Add checks that can prevent triggering a component restart/stop
+                    // Success of this request means restart was triggered successfully
+                    if (!service.requestRestart()) {
+                        response.setRestartStatus(RequestStatus.FAILED);
+                    }
+                } catch (ServiceLoadException e) {
+                    logger.atError().kv("ComponentName", componentName)
+                            .log("Did not find the component with the given name in Greengrass");
+                    throw new ResourceNotFoundError(
+                            "Component with name " + componentName + " not found in Greengrass");
                 }
-            } catch (ServiceLoadException e) {
-                logger.atError().kv("ComponentName", componentName)
-                        .log("Did not find the component with the given name in Greengrass");
-                throw new ResourceNotFoundError("Component with name " + componentName + " not found in Greengrass");
-            }
-            return response;
+                return response;
+            });
         }
 
         private void validateRestartComponentRequest(RestartComponentRequest request) {
@@ -292,8 +342,11 @@ public class CLIEventStreamAgent {
     @SuppressFBWarnings("SIC_INNER_SHOULD_BE_STATIC")
     class StopComponentHandler extends GeneratedAbstractStopComponentOperationHandler {
 
+        private final String componentName;
+
         public StopComponentHandler(OperationContinuationHandlerContext context) {
             super(context);
+            this.componentName = context.getAuthenticationData().getIdentityLabel();
         }
 
         @Override
@@ -304,21 +357,25 @@ public class CLIEventStreamAgent {
         @Override
         @SuppressWarnings("PMD.PreserveStackTrace")
         public StopComponentResponse handleRequest(StopComponentRequest request) {
-            validateStopComponentRequest(request);
-            String componentName = request.getComponentName();
-            try {
-                GreengrassService service = kernel.locate(componentName);
-                // TODO: [P41179234]: Add checks that can prevent triggering a component restart/stop
-                // Success of this request means stop was triggered successfully
-                service.requestStop();
-            } catch (ServiceLoadException e) {
-                logger.atError().kv("ComponentName", componentName)
-                        .log("Did not find the component with the given name in Greengrass");
-                throw new ResourceNotFoundError("Component with name " + componentName + " not found in Greengrass");
-            }
-            StopComponentResponse response = new StopComponentResponse();
-            response.setStopStatus(RequestStatus.SUCCEEDED);
-            return response;
+            return translateExceptions(() -> {
+                authorizeRequest(componentName);
+                validateStopComponentRequest(request);
+                String componentName = request.getComponentName();
+                try {
+                    GreengrassService service = kernel.locate(componentName);
+                    // TODO: [P41179234]: Add checks that can prevent triggering a component restart/stop
+                    // Success of this request means stop was triggered successfully
+                    service.requestStop();
+                } catch (ServiceLoadException e) {
+                    logger.atError().kv("ComponentName", componentName)
+                            .log("Did not find the component with the given name in Greengrass");
+                    throw new ResourceNotFoundError(
+                            "Component with name " + componentName + " not found in Greengrass");
+                }
+                StopComponentResponse response = new StopComponentResponse();
+                response.setStopStatus(RequestStatus.SUCCEEDED);
+                return response;
+            });
         }
 
         @Override
@@ -333,8 +390,11 @@ public class CLIEventStreamAgent {
 
     class UpdateRecipesAndArtifactsHandler extends GeneratedAbstractUpdateRecipesAndArtifactsOperationHandler {
 
+        private final String componentName;
+
         public UpdateRecipesAndArtifactsHandler(OperationContinuationHandlerContext context) {
             super(context);
+            this.componentName = context.getAuthenticationData().getIdentityLabel();
         }
 
         @Override
@@ -345,39 +405,43 @@ public class CLIEventStreamAgent {
         @Override
         @SuppressWarnings("PMD.PreserveStackTrace")
         public UpdateRecipesAndArtifactsResponse handleRequest(UpdateRecipesAndArtifactsRequest request) {
-            validateUpdateRecipesAndArtifactsRequest(request);
-            Path kernelPackageStorePath = kernel.getNucleusPaths().componentStorePath();
-            if (!Utils.isEmpty(request.getRecipeDirectoryPath())) {
-                Path recipeDirectoryPath = Paths.get(request.getRecipeDirectoryPath());
-                Path kernelRecipeDirectoryPath = kernelPackageStorePath.resolve(ComponentStore.RECIPE_DIRECTORY);
-                try {
-                    copyRecipes(recipeDirectoryPath, kernelRecipeDirectoryPath);
-                } catch (IOException e) {
-                    logger.atError().setCause(e).kv("Recipe Directory path", recipeDirectoryPath)
-                            .log("Caught exception while updating the recipes");
-                    throw new InvalidRecipeDirectoryPathError(e.getMessage());
-                }
-            }
-            if (!Utils.isEmpty(request.getArtifactsDirectoryPath())) {
-                Path artifactsDirectoryPath = Paths.get(request.getArtifactsDirectoryPath());
-                Path kernelArtifactsDirectoryPath = kernelPackageStorePath.resolve(ComponentStore.ARTIFACT_DIRECTORY);
-                try {
-                    if (kernelArtifactsDirectoryPath.startsWith(artifactsDirectoryPath)) {
-                        String errorString = "Requested artifacts directory path is parent of kernel artifacts "
-                                + "directory path. Specify another path to avoid recursive copy";
-                        logger.atError().log(errorString);
-                        throw new InvalidArtifactsDirectoryPathError(errorString);
-                    } else {
-                        Utils.copyFolderRecursively(artifactsDirectoryPath, kernelArtifactsDirectoryPath,
-                                StandardCopyOption.REPLACE_EXISTING);
+            return translateExceptions(() -> {
+                authorizeRequest(componentName);
+                validateUpdateRecipesAndArtifactsRequest(request);
+                Path kernelPackageStorePath = kernel.getNucleusPaths().componentStorePath();
+                if (!Utils.isEmpty(request.getRecipeDirectoryPath())) {
+                    Path recipeDirectoryPath = Paths.get(request.getRecipeDirectoryPath());
+                    Path kernelRecipeDirectoryPath = kernelPackageStorePath.resolve(ComponentStore.RECIPE_DIRECTORY);
+                    try {
+                        copyRecipes(recipeDirectoryPath, kernelRecipeDirectoryPath);
+                    } catch (IOException e) {
+                        logger.atError().setCause(e).kv("Recipe Directory path", recipeDirectoryPath)
+                                .log("Caught exception while updating the recipes");
+                        throw new InvalidRecipeDirectoryPathError(e.getMessage());
                     }
-                } catch (IOException e) {
-                    logger.atError().setCause(e).kv("Artifact Directory path", artifactsDirectoryPath)
-                            .log("Caught exception while updating the recipes");
-                    throw new InvalidArtifactsDirectoryPathError(e.getMessage());
                 }
-            }
-            return new UpdateRecipesAndArtifactsResponse();
+                if (!Utils.isEmpty(request.getArtifactsDirectoryPath())) {
+                    Path artifactsDirectoryPath = Paths.get(request.getArtifactsDirectoryPath());
+                    Path kernelArtifactsDirectoryPath =
+                            kernelPackageStorePath.resolve(ComponentStore.ARTIFACT_DIRECTORY);
+                    try {
+                        if (kernelArtifactsDirectoryPath.startsWith(artifactsDirectoryPath)) {
+                            String errorString = "Requested artifacts directory path is parent of kernel artifacts "
+                                    + "directory path. Specify another path to avoid recursive copy";
+                            logger.atError().log(errorString);
+                            throw new InvalidArtifactsDirectoryPathError(errorString);
+                        } else {
+                            Utils.copyFolderRecursively(artifactsDirectoryPath, kernelArtifactsDirectoryPath,
+                                    StandardCopyOption.REPLACE_EXISTING);
+                        }
+                    } catch (IOException e) {
+                        logger.atError().setCause(e).kv("Artifact Directory path", artifactsDirectoryPath)
+                                .log("Caught exception while updating the recipes");
+                        throw new InvalidArtifactsDirectoryPathError(e.getMessage());
+                    }
+                }
+                return new UpdateRecipesAndArtifactsResponse();
+            });
         }
 
         @Override
@@ -388,7 +452,7 @@ public class CLIEventStreamAgent {
         private void validateUpdateRecipesAndArtifactsRequest(UpdateRecipesAndArtifactsRequest request) {
             String recipeDirectoryPath = request.getRecipeDirectoryPath();
             String artifactsDirectoryPath = request.getArtifactsDirectoryPath();
-            if (StringUtils.isEmpty(recipeDirectoryPath) && StringUtils.isEmpty(artifactsDirectoryPath)) {
+            if (Utils.isEmpty(recipeDirectoryPath) && Utils.isEmpty(artifactsDirectoryPath)) {
                 throw new InvalidArgumentsError("Need to provide at least one of the directory paths to update");
             }
         }
@@ -439,10 +503,12 @@ public class CLIEventStreamAgent {
     class CreateLocalDeploymentHandler extends GeneratedAbstractCreateLocalDeploymentOperationHandler {
 
         private final Topics cliServiceConfig;
+        private final String componentName;
 
         public CreateLocalDeploymentHandler(OperationContinuationHandlerContext context, Topics cliServiceConfig) {
             super(context);
             this.cliServiceConfig = cliServiceConfig;
+            this.componentName = context.getAuthenticationData().getIdentityLabel();
         }
 
         @Override
@@ -453,8 +519,9 @@ public class CLIEventStreamAgent {
         @Override
         @SuppressWarnings({"PMD.PreserveStackTrace", "PMD.AvoidCatchingGenericException"})
         public CreateLocalDeploymentResponse handleRequest(CreateLocalDeploymentRequest request) {
-            String deploymentId = UUID.randomUUID().toString();
-            try {
+            return translateExceptions(() -> {
+                authorizeRequest(componentName);
+                String deploymentId = UUID.randomUUID().toString();
                 //All inputs are valid. If all inputs are empty, then user might just want to retrigger the deployment
                 // with new recipes set using the updateRecipesAndArtifacts API.
                 Map<String, ConfigurationUpdateOperation> configUpdate = null;
@@ -473,8 +540,8 @@ public class CLIEventStreamAgent {
                         .componentToRunWithInfo(request.getComponentToRunWithInfo())
                         .requestTimestamp(System.currentTimeMillis()).groupName(
                                 request.getGroupName() == null || request.getGroupName().isEmpty()
-                                        ? LOCAL_DEPLOYMENT_GROUP_NAME
-                                        : request.getGroupName()).configurationUpdate(configUpdate).build();
+                                        ? LOCAL_DEPLOYMENT_GROUP_NAME : request.getGroupName())
+                        .configurationUpdate(configUpdate).build();
                 String deploymentDocument;
                 try {
                     deploymentDocument = OBJECT_MAPPER.writeValueAsString(localOverrideRequest);
@@ -507,11 +574,7 @@ public class CLIEventStreamAgent {
                         throw new ServiceError(DEPLOYMENTS_QUEUE_FULL);
                     }
                 }
-            } catch (RuntimeException e) {
-                logger.atError().kv(DEPLOYMENT_ID_LOG_KEY, deploymentId).setCause(e)
-                        .log("Caught exception while creating local deployment");
-                throw new ServiceError(e.getMessage());
-            }
+            });
         }
 
         @Override
@@ -523,10 +586,12 @@ public class CLIEventStreamAgent {
     class GetLocalDeploymentStatusHandler extends GeneratedAbstractGetLocalDeploymentStatusOperationHandler {
 
         private final Topics cliServiceConfig;
+        private final String componentName;
 
         public GetLocalDeploymentStatusHandler(OperationContinuationHandlerContext context, Topics cliServiceConfig) {
             super(context);
             this.cliServiceConfig = cliServiceConfig;
+            this.componentName = context.getAuthenticationData().getIdentityLabel();
         }
 
         @Override
@@ -536,25 +601,28 @@ public class CLIEventStreamAgent {
 
         @Override
         public GetLocalDeploymentStatusResponse handleRequest(GetLocalDeploymentStatusRequest request) {
-            validateGetLocalDeploymentStatusRequest(request);
-            Topics localDeployments = cliServiceConfig.findTopics(PERSISTENT_LOCAL_DEPLOYMENTS);
-            if (localDeployments == null || localDeployments.findTopics(request.getDeploymentId()) == null) {
-                ResourceNotFoundError rnf = new ResourceNotFoundError();
-                rnf.setMessage("Cannot find deployment");
-                rnf.setResourceType(LOCAL_DEPLOYMENT_RESOURCE);
-                rnf.setResourceName(request.getDeploymentId());
-                throw rnf;
-            } else {
-                Topics deployment = localDeployments.findTopics(request.getDeploymentId());
-                DeploymentStatus status =
-                        deploymentStatusFromString(Coerce.toString(deployment.find(DEPLOYMENT_STATUS_KEY_NAME)));
-                GetLocalDeploymentStatusResponse response = new GetLocalDeploymentStatusResponse();
-                LocalDeployment localDeployment = new LocalDeployment();
-                localDeployment.setDeploymentId(request.getDeploymentId());
-                localDeployment.setStatus(status);
-                response.setDeployment(localDeployment);
-                return response;
-            }
+            return translateExceptions(() -> {
+                authorizeRequest(componentName);
+                validateGetLocalDeploymentStatusRequest(request);
+                Topics localDeployments = cliServiceConfig.findTopics(PERSISTENT_LOCAL_DEPLOYMENTS);
+                if (localDeployments == null || localDeployments.findTopics(request.getDeploymentId()) == null) {
+                    ResourceNotFoundError rnf = new ResourceNotFoundError();
+                    rnf.setMessage("Cannot find deployment");
+                    rnf.setResourceType(LOCAL_DEPLOYMENT_RESOURCE);
+                    rnf.setResourceName(request.getDeploymentId());
+                    throw rnf;
+                } else {
+                    Topics deployment = localDeployments.findTopics(request.getDeploymentId());
+                    DeploymentStatus status =
+                            deploymentStatusFromString(Coerce.toString(deployment.find(DEPLOYMENT_STATUS_KEY_NAME)));
+                    GetLocalDeploymentStatusResponse response = new GetLocalDeploymentStatusResponse();
+                    LocalDeployment localDeployment = new LocalDeployment();
+                    localDeployment.setDeploymentId(request.getDeploymentId());
+                    localDeployment.setStatus(status);
+                    response.setDeployment(localDeployment);
+                    return response;
+                }
+            });
         }
 
         @Override
@@ -575,10 +643,12 @@ public class CLIEventStreamAgent {
     class ListLocalDeploymentsHandler extends GeneratedAbstractListLocalDeploymentsOperationHandler {
 
         private final Topics cliServiceConfig;
+        private final String componentName;
 
         public ListLocalDeploymentsHandler(OperationContinuationHandlerContext context, Topics cliServiceConfig) {
             super(context);
             this.cliServiceConfig = cliServiceConfig;
+            this.componentName = context.getAuthenticationData().getIdentityLabel();
         }
 
         @Override
@@ -588,27 +658,83 @@ public class CLIEventStreamAgent {
 
         @Override
         public ListLocalDeploymentsResponse handleRequest(ListLocalDeploymentsRequest request) {
-            List<LocalDeployment> persistedDeployments = new ArrayList<>();
-            Topics localDeployments = cliServiceConfig.findTopics(PERSISTENT_LOCAL_DEPLOYMENTS);
-            if (localDeployments != null) {
-                localDeployments.forEach(topic -> {
-                    Topics topics = (Topics) topic;
-                    LocalDeployment localDeployment = new LocalDeployment();
-                    localDeployment.setDeploymentId(topics.getName());
-                    localDeployment.setStatus(
-                            deploymentStatusFromString(Coerce.toString(topics.find(DEPLOYMENT_STATUS_KEY_NAME))));
-                    persistedDeployments.add(localDeployment);
-                });
-            }
-            ListLocalDeploymentsResponse response = new ListLocalDeploymentsResponse();
-            response.setLocalDeployments(persistedDeployments);
-            return response;
+            return translateExceptions(() -> {
+                authorizeRequest(componentName);
+                List<LocalDeployment> persistedDeployments = new ArrayList<>();
+                Topics localDeployments = cliServiceConfig.findTopics(PERSISTENT_LOCAL_DEPLOYMENTS);
+                if (localDeployments != null) {
+                    localDeployments.forEach(topic -> {
+                        Topics topics = (Topics) topic;
+                        LocalDeployment localDeployment = new LocalDeployment();
+                        localDeployment.setDeploymentId(topics.getName());
+                        localDeployment.setStatus(
+                                deploymentStatusFromString(Coerce.toString(topics.find(DEPLOYMENT_STATUS_KEY_NAME))));
+                        persistedDeployments.add(localDeployment);
+                    });
+                }
+                ListLocalDeploymentsResponse response = new ListLocalDeploymentsResponse();
+                response.setLocalDeployments(persistedDeployments);
+                return response;
+            });
         }
 
         @Override
         public void handleStreamEvent(EventStreamJsonMessage streamRequestEvent) {
 
         }
+    }
+
+    class CreateDebugPasswordHandler extends GeneratedAbstractCreateDebugPasswordOperationHandler {
+        private final String componentName;
+        private final Topics config;
+
+        public CreateDebugPasswordHandler(OperationContinuationHandlerContext context, Topics config) {
+            super(context);
+            this.componentName = context.getAuthenticationData().getIdentityLabel();
+            this.config = config;
+        }
+
+        @Override
+        protected void onStreamClosed() {
+        }
+
+        @Override
+        public CreateDebugPasswordResponse handleRequest(CreateDebugPasswordRequest request) {
+            return translateExceptions(() -> {
+                authorizeRequest(componentName);
+                CreateDebugPasswordResponse response = new CreateDebugPasswordResponse();
+
+                String password = generatePassword(DEBUG_PASSWORD_LENGTH_REQUIREMENT);
+                Instant expiration = Instant.now().plus(DEBUG_PASSWORD_EXPIRATION);
+                ((Topics) config.lookupTopics("_debugPassword")
+                        .withParentNeedsToKnow(false))
+                        .lookup(DEBUG_USERNAME,
+                                password,
+                                "expiration")
+                        .withValue(expiration.toEpochMilli());
+
+                response.setPassword(password);
+                response.setPasswordExpiration(expiration);
+                response.setUsername(DEBUG_USERNAME);
+
+                return response;
+            });
+        }
+
+        @Override
+        public void handleStreamEvent(EventStreamJsonMessage streamRequestEvent) {
+        }
+    }
+
+    private String generatePassword(int length) {
+        byte[] bytes = new byte[length];
+        random.nextBytes(bytes);
+        try {
+            bytes = MessageDigest.getInstance("SHA-256").digest(bytes);
+        } catch (NoSuchAlgorithmException ignored) {
+            // Not possible since we know that sha-256 definitely exists
+        }
+        return Base64.getUrlEncoder().withoutPadding().encodeToString(bytes);
     }
 
     private void validateComponentName(String componentName) {

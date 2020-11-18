@@ -18,6 +18,7 @@ import com.aws.greengrass.lifecyclemanager.GreengrassService;
 import com.aws.greengrass.lifecyclemanager.Kernel;
 import com.aws.greengrass.lifecyclemanager.exceptions.ServiceLoadException;
 import com.aws.greengrass.testcommons.testutilities.GGExtension;
+import com.aws.greengrass.util.Coerce;
 import com.aws.greengrass.util.NucleusPaths;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.DeserializationFeature;
@@ -32,6 +33,8 @@ import org.mockito.ArgumentCaptor;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import software.amazon.awssdk.aws.greengrass.model.ComponentDetails;
+import software.amazon.awssdk.aws.greengrass.model.CreateDebugPasswordRequest;
+import software.amazon.awssdk.aws.greengrass.model.CreateDebugPasswordResponse;
 import software.amazon.awssdk.aws.greengrass.model.CreateLocalDeploymentRequest;
 import software.amazon.awssdk.aws.greengrass.model.DeploymentStatus;
 import software.amazon.awssdk.aws.greengrass.model.GetComponentDetailsRequest;
@@ -49,11 +52,11 @@ import software.amazon.awssdk.aws.greengrass.model.ResourceNotFoundError;
 import software.amazon.awssdk.aws.greengrass.model.RestartComponentRequest;
 import software.amazon.awssdk.aws.greengrass.model.ServiceError;
 import software.amazon.awssdk.aws.greengrass.model.StopComponentRequest;
+import software.amazon.awssdk.aws.greengrass.model.UnauthorizedError;
 import software.amazon.awssdk.aws.greengrass.model.UpdateRecipesAndArtifactsRequest;
 import software.amazon.awssdk.crt.eventstream.ServerConnectionContinuation;
 import software.amazon.awssdk.eventstreamrpc.OperationContinuationHandlerContext;
 import software.amazon.awssdk.utils.ImmutableMap;
-
 
 import java.io.IOException;
 import java.nio.file.Files;
@@ -65,11 +68,14 @@ import java.util.Map;
 import java.util.UUID;
 
 import static com.aws.greengrass.cli.CLIEventStreamAgent.PERSISTENT_LOCAL_DEPLOYMENTS;
+import static com.aws.greengrass.cli.CLIService.GREENGRASS_CLI_CLIENT_ID_FMT;
 import static com.aws.greengrass.componentmanager.KernelConfigResolver.PARAMETERS_CONFIG_KEY;
 import static com.aws.greengrass.componentmanager.KernelConfigResolver.VERSION_CONFIG_KEY;
 import static com.aws.greengrass.deployment.DeploymentStatusKeeper.DEPLOYMENT_STATUS_KEY_NAME;
 import static com.aws.greengrass.ipc.common.IPCErrorStrings.DEPLOYMENTS_QUEUE_NOT_INITIALIZED;
 import static com.aws.greengrass.testcommons.testutilities.ExceptionLogProtector.ignoreExceptionOfType;
+import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.hasLength;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
@@ -107,8 +113,18 @@ class CLIEventStreamAgentTest {
     @BeforeEach
     void setup() {
         when(mockContext.getContinuation()).thenReturn(mock(ServerConnectionContinuation.class));
+        when(mockContext.getAuthenticationData()).thenReturn(() -> String.format(GREENGRASS_CLI_CLIENT_ID_FMT, "abc"));
         cliEventStreamAgent = new CLIEventStreamAgent();
         cliEventStreamAgent.setKernel(kernel);
+    }
+
+    @Test
+    void test_GetComponentDetails_with_bad_auth_token_rejects() {
+        // Pretend that TEST_SERVICE has connected and wants to call the CLI APIs
+        when(mockContext.getAuthenticationData()).thenReturn(() -> TEST_SERVICE);
+        GetComponentDetailsRequest request = new GetComponentDetailsRequest();
+        assertThrows(UnauthorizedError.class, () ->
+                cliEventStreamAgent.getGetComponentDetailsHandler(mockContext).handleRequest(request));
     }
 
     @Test
@@ -442,6 +458,23 @@ class CLIEventStreamAgentTest {
                     fail("Invalid deploymentId found in list of local deployments");
                 }
             });
+        }
+    }
+
+    @Test
+    void test_createDebugPassword() throws IOException {
+        CreateDebugPasswordRequest request = new CreateDebugPasswordRequest();
+        try(Context context = new Context()) {
+            Topics topics = Topics.of(context, "", null);
+            CreateDebugPasswordResponse response =
+                    cliEventStreamAgent.getCreateDebugPasswordHandler(mockContext, topics)
+                            .handleRequest(request);
+
+            assertEquals("debug", response.getUsername());
+            assertThat(response.getPassword(), hasLength(43)); // Length is 43 due to Base64 encoding overhead
+            assertNotNull(topics.findTopics("_debugPassword", "debug", response.getPassword()));
+            assertEquals(response.getPasswordExpiration().toEpochMilli(),
+                    Coerce.toLong(topics.find("_debugPassword", "debug", response.getPassword(), "expiration")));
         }
     }
 }

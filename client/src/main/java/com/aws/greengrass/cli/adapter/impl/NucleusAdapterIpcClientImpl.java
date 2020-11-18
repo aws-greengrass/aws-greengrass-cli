@@ -12,6 +12,8 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import software.amazon.awssdk.aws.greengrass.GetLocalDeploymentStatusResponseHandler;
 import software.amazon.awssdk.aws.greengrass.GreengrassCoreIPCClient;
 import software.amazon.awssdk.aws.greengrass.model.ComponentDetails;
+import software.amazon.awssdk.aws.greengrass.model.CreateDebugPasswordRequest;
+import software.amazon.awssdk.aws.greengrass.model.CreateDebugPasswordResponse;
 import software.amazon.awssdk.aws.greengrass.model.CreateLocalDeploymentRequest;
 import software.amazon.awssdk.aws.greengrass.model.CreateLocalDeploymentResponse;
 import software.amazon.awssdk.aws.greengrass.model.GetComponentDetailsRequest;
@@ -206,12 +208,20 @@ public class NucleusAdapterIpcClientImpl implements NucleusAdapterIpc {
         }
     }
 
-    private GreengrassCoreIPCClient getIpcClient() {
-        if (ipcClient != null) {
-            return ipcClient;
+    @Override
+    public CreateDebugPasswordResponse createDebugPassword() {
+        CreateDebugPasswordRequest request = new CreateDebugPasswordRequest();
+        try {
+            return getIpcClient().createDebugPassword(request, Optional.empty()).getResponse()
+                    .get(DEFAULT_TIMEOUT_IN_SEC, TimeUnit.SECONDS);
+        } catch (ExecutionException | TimeoutException | InterruptedException e) {
+            throw new RuntimeException(e);
+        } finally {
+            close();
         }
-        // GG_NEEDS_REVIEW: TODO: When the greengrass-cli is installed in the Greengrass root path this will derived from the current
-        // working directory, instead of an env variable. Until then using env variable.
+    }
+
+    private String getGgcRoot() {
         // check if root path was passed as an argument to the command line, else fall back to env variable
         // if root path not found then throw exception
         String ggcRootPath = root != null ? root : System.getenv("GGC_ROOT_PATH");
@@ -220,6 +230,15 @@ public class NucleusAdapterIpcClientImpl implements NucleusAdapterIpc {
                     + "--ggcRootPath {PATH} {rest of the arguments} " +
                     "or set the environment variable GGC_ROOT_PATH");
         }
+
+        return ggcRootPath;
+    }
+
+    private GreengrassCoreIPCClient getIpcClient() {
+        if (ipcClient != null) {
+            return ipcClient;
+        }
+        String ggcRootPath = getGgcRoot();
         try {
             Map<String, String> ipcInfoMap = OBJECT_MAPPER.readValue(loadCliIpcInfo(ggcRootPath), HashMap.class);
             String domainSocketPath = ipcInfoMap.get(DOMAIN_SOCKET_PATH);
@@ -227,11 +246,14 @@ public class NucleusAdapterIpcClientImpl implements NucleusAdapterIpc {
                 Files.delete(Paths.get(IPC_SERVER_SOCKET_SYMLINK));
             }
             boolean symlinkCreated = false;
-            try {
-                Files.createSymbolicLink(Paths.get(IPC_SERVER_SOCKET_SYMLINK), Paths.get(domainSocketPath));
-                symlinkCreated = true;
-            } catch (IOException e) {
-                //Symlink not created, ignoring and using absolute path
+            // Only symlink when the absolute path would overflow
+            if (Paths.get(domainSocketPath).toString().length() >= 108) {
+                try {
+                    Files.createSymbolicLink(Paths.get(IPC_SERVER_SOCKET_SYMLINK), Paths.get(domainSocketPath));
+                    symlinkCreated = true;
+                } catch (IOException e) {
+                    //Symlink not created, ignoring and using absolute path
+                }
             }
             String token = ipcInfoMap.get(CLI_AUTH_TOKEN);
 
@@ -305,7 +327,7 @@ public class NucleusAdapterIpcClientImpl implements NucleusAdapterIpc {
     }
 
     private byte[] loadCliIpcInfo(String ggcRootPath) throws IOException {
-        Path directory = Paths.get(deTilde(ggcRootPath)).resolve(CLI_IPC_INFO_DIRECTORY);
+        Path directory = Paths.get(deTilde(ggcRootPath)).resolve(CLI_IPC_INFO_DIRECTORY).normalize();
 
         IOException e = new IOException("Not able to find auth information in directory: " + directory +
                 ". Please run CLI as authorized user or group.");

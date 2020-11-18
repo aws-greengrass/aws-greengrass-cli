@@ -12,7 +12,6 @@ import com.aws.greengrass.cli.commands.PasswordCommand;
 import com.aws.greengrass.cli.module.AdapterModule;
 import com.aws.greengrass.cli.module.CommandsComponent;
 import com.aws.greengrass.cli.module.DaggerCommandsComponent;
-import com.aws.greengrass.ipc.services.cli.exceptions.GenericCliIpcServerException;
 import picocli.CommandLine;
 import picocli.CommandLine.Command;
 import picocli.CommandLine.HelpCommand;
@@ -45,8 +44,7 @@ public class CLI implements Runnable {
             exitCode = new CommandLine(cli, new CommandFactory(cli.createCommandComponent()))
                     .setExecutionExceptionHandler((e, commandLine, parseResult) -> {
                         if (e instanceof CommandLine.UnmatchedArgumentException
-                                || e instanceof CommandLine.MissingParameterException
-                                || e instanceof GenericCliIpcServerException) {
+                                || e instanceof CommandLine.MissingParameterException) {
                             System.out.println(commandLine.getColorScheme().errorText(e.getMessage()));
                             commandLine.usage(System.out);
                             return 0;

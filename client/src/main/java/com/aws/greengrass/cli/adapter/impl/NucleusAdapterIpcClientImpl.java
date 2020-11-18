@@ -246,11 +246,14 @@ public class NucleusAdapterIpcClientImpl implements NucleusAdapterIpc {
                 Files.delete(Paths.get(IPC_SERVER_SOCKET_SYMLINK));
             }
             boolean symlinkCreated = false;
-            try {
-                Files.createSymbolicLink(Paths.get(IPC_SERVER_SOCKET_SYMLINK), Paths.get(domainSocketPath));
-                symlinkCreated = true;
-            } catch (IOException e) {
-                //Symlink not created, ignoring and using absolute path
+            // Only symlink when the absolute path would overflow
+            if (Paths.get(domainSocketPath).toString().length() >= 108) {
+                try {
+                    Files.createSymbolicLink(Paths.get(IPC_SERVER_SOCKET_SYMLINK), Paths.get(domainSocketPath));
+                    symlinkCreated = true;
+                } catch (IOException e) {
+                    //Symlink not created, ignoring and using absolute path
+                }
             }
             String token = ipcInfoMap.get(CLI_AUTH_TOKEN);
 

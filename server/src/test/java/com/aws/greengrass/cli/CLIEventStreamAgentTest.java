@@ -7,7 +7,9 @@ package com.aws.greengrass.cli;
 
 import com.amazon.aws.iot.greengrass.component.common.ComponentRecipe;
 import com.amazon.aws.iot.greengrass.component.common.RecipeFormatVersion;
+import com.amazon.aws.iot.greengrass.component.common.SerializerFactory;
 import com.aws.greengrass.componentmanager.ComponentStore;
+import com.aws.greengrass.componentmanager.models.ComponentIdentifier;
 import com.aws.greengrass.config.Topics;
 import com.aws.greengrass.dependency.Context;
 import com.aws.greengrass.dependency.State;
@@ -30,6 +32,7 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.junit.jupiter.api.extension.ExtensionContext;
 import org.junit.jupiter.api.io.TempDir;
 import org.mockito.ArgumentCaptor;
+import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import software.amazon.awssdk.aws.greengrass.model.ComponentDetails;
@@ -75,6 +78,7 @@ import static com.aws.greengrass.deployment.DeploymentStatusKeeper.DEPLOYMENT_ST
 import static com.aws.greengrass.ipc.common.IPCErrorStrings.DEPLOYMENTS_QUEUE_NOT_INITIALIZED;
 import static com.aws.greengrass.testcommons.testutilities.ExceptionLogProtector.ignoreExceptionOfType;
 import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.hasLength;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
@@ -83,14 +87,14 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.junit.jupiter.api.Assertions.fail;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.only;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 @ExtendWith({MockitoExtension.class, GGExtension.class})
 class CLIEventStreamAgentTest {
-
-    private CLIEventStreamAgent cliEventStreamAgent;
 
     private static final String TEST_SERVICE = "TestService";
     private static final String MOCK_GROUP = "mockGroup";
@@ -110,12 +114,16 @@ class CLIEventStreamAgentTest {
     @Mock
     DeploymentQueue deploymentQueue;
 
+    @Mock
+    private ComponentStore componentStore;
+
+    @InjectMocks
+    private CLIEventStreamAgent cliEventStreamAgent;
+
     @BeforeEach
     void setup() {
         when(mockContext.getContinuation()).thenReturn(mock(ServerConnectionContinuation.class));
         when(mockContext.getAuthenticationData()).thenReturn(() -> String.format(GREENGRASS_CLI_CLIENT_ID_FMT, "abc"));
-        cliEventStreamAgent = new CLIEventStreamAgent();
-        cliEventStreamAgent.setKernel(kernel);
     }
 
     @Test
@@ -123,15 +131,15 @@ class CLIEventStreamAgentTest {
         // Pretend that TEST_SERVICE has connected and wants to call the CLI APIs
         when(mockContext.getAuthenticationData()).thenReturn(() -> TEST_SERVICE);
         GetComponentDetailsRequest request = new GetComponentDetailsRequest();
-        assertThrows(UnauthorizedError.class, () ->
-                cliEventStreamAgent.getGetComponentDetailsHandler(mockContext).handleRequest(request));
+        assertThrows(UnauthorizedError.class,
+                () -> cliEventStreamAgent.getGetComponentDetailsHandler(mockContext).handleRequest(request));
     }
 
     @Test
     void test_GetComponentDetails_empty_component_name() {
         GetComponentDetailsRequest request = new GetComponentDetailsRequest();
-        assertThrows(InvalidArgumentsError.class, () ->
-                cliEventStreamAgent.getGetComponentDetailsHandler(mockContext).handleRequest(request));
+        assertThrows(InvalidArgumentsError.class,
+                () -> cliEventStreamAgent.getGetComponentDetailsHandler(mockContext).handleRequest(request));
     }
 
     @Test
@@ -140,8 +148,8 @@ class CLIEventStreamAgentTest {
         GetComponentDetailsRequest request = new GetComponentDetailsRequest();
         request.setComponentName(TEST_SERVICE);
         when(kernel.locate(TEST_SERVICE)).thenThrow(new ServiceLoadException("error"));
-        assertThrows(ResourceNotFoundError.class, () ->
-                cliEventStreamAgent.getGetComponentDetailsHandler(mockContext).handleRequest(request));
+        assertThrows(ResourceNotFoundError.class,
+                () -> cliEventStreamAgent.getGetComponentDetailsHandler(mockContext).handleRequest(request));
     }
 
     @Test
@@ -184,7 +192,8 @@ class CLIEventStreamAgentTest {
             when(mockTestService.getServiceConfig()).thenReturn(mockServiceConfig);
             when(kernel.getMain()).thenReturn(mockMainService);
             when(kernel.orderedDependencies()).thenReturn(Arrays.asList(mockTestService, mockMainService));
-            ListComponentsResponse response = cliEventStreamAgent.getListComponentsHandler(mockContext).handleRequest(request);
+            ListComponentsResponse response =
+                    cliEventStreamAgent.getListComponentsHandler(mockContext).handleRequest(request);
             assertEquals(1, response.getComponents().size());
             ComponentDetails componentDetails = response.getComponents().get(0);
             assertEquals(TEST_SERVICE, componentDetails.getComponentName());
@@ -196,8 +205,8 @@ class CLIEventStreamAgentTest {
     @Test
     void testRestartComponent_emptyComponentName() {
         RestartComponentRequest restartComponentRequest = new RestartComponentRequest();
-        assertThrows(InvalidArgumentsError.class,
-                () -> cliEventStreamAgent.getRestartComponentsHandler(mockContext).handleRequest(restartComponentRequest));
+        assertThrows(InvalidArgumentsError.class, () -> cliEventStreamAgent.getRestartComponentsHandler(mockContext)
+                .handleRequest(restartComponentRequest));
     }
 
     @Test
@@ -206,8 +215,8 @@ class CLIEventStreamAgentTest {
         RestartComponentRequest restartComponentRequest = new RestartComponentRequest();
         restartComponentRequest.setComponentName("INVALID_COMPONENT");
         when(kernel.locate("INVALID_COMPONENT")).thenThrow(new ServiceLoadException("error"));
-        assertThrows(ResourceNotFoundError.class,
-                () -> cliEventStreamAgent.getRestartComponentsHandler(mockContext).handleRequest(restartComponentRequest));
+        assertThrows(ResourceNotFoundError.class, () -> cliEventStreamAgent.getRestartComponentsHandler(mockContext)
+                .handleRequest(restartComponentRequest));
     }
 
     @Test
@@ -267,7 +276,7 @@ class CLIEventStreamAgentTest {
     }
 
     @Test
-    void testUpdateRecipesAndArtifacts_successful_update(ExtensionContext context) throws IOException {
+    void testUpdateRecipesAndArtifacts_successful_update(ExtensionContext context) throws Exception {
         ignoreExceptionOfType(context, NoSuchFileException.class);
         UpdateRecipesAndArtifactsRequest request = new UpdateRecipesAndArtifactsRequest();
         Path mockArtifactsDirectoryPath = Files.createTempDirectory("mockArtifactsDirectoryPath");
@@ -276,11 +285,9 @@ class CLIEventStreamAgentTest {
         request.setRecipeDirectoryPath(mockRecipesDirectoryPath.toString());
         Path componentPath = Files.createDirectories(mockRecipesDirectoryPath.resolve("SampleComponent-1.0.0"));
         Path recipeFilePath = Files.createFile(componentPath.resolve("sampleRecipe.yml"));
-        ComponentRecipe componentRecipe = ComponentRecipe.builder()
-                .componentName("SampleComponent")
-                .componentVersion(new Semver("1.0.0"))
-                .recipeFormatVersion(RecipeFormatVersion.JAN_25_2020)
-                .build();
+        ComponentRecipe componentRecipe =
+                ComponentRecipe.builder().componentName("SampleComponent").componentVersion(new Semver("1.0.0"))
+                        .recipeFormatVersion(RecipeFormatVersion.JAN_25_2020).build();
         Files.write(recipeFilePath, OBJECT_MAPPER.writeValueAsBytes(componentRecipe));
         Files.createFile(mockArtifactsDirectoryPath.resolve("artifact.zip"));
         Files.createDirectories(mockPath.resolve(ComponentStore.RECIPE_DIRECTORY));
@@ -289,23 +296,29 @@ class CLIEventStreamAgentTest {
         when(kernel.getNucleusPaths()).thenReturn(nucleusPaths);
         when(nucleusPaths.componentStorePath()).thenReturn(mockPath);
         cliEventStreamAgent.getUpdateRecipesAndArtifactsHandler(mockContext).handleRequest(request);
-        assertTrue(Files.exists(mockPath.resolve(ComponentStore.RECIPE_DIRECTORY)
-                .resolve("SampleComponent-1.0.0.yaml")));
+
+        ArgumentCaptor<String> recipeStringCaptor = ArgumentCaptor.forClass(String.class);
+        verify(componentStore, only())
+                .savePackageRecipe(eq(new ComponentIdentifier("SampleComponent", new Semver("1.0.0"))),
+                        recipeStringCaptor.capture());
+
+        ComponentRecipe actualRecipeSaved =
+                SerializerFactory.getRecipeSerializer().readValue(recipeStringCaptor.getValue(), ComponentRecipe.class);
+
+        assertThat(actualRecipeSaved, equalTo(componentRecipe));
         assertTrue(Files.exists(mockPath.resolve(ComponentStore.ARTIFACT_DIRECTORY).resolve("artifact.zip")));
     }
 
     @Test
-    void testUpdateRecipesAndArtifacts_redundant_dir_path(ExtensionContext context) throws IOException {
+    void testUpdateRecipesAndArtifacts_redundant_dir_path(ExtensionContext context) throws Exception {
         ignoreExceptionOfType(context, NoSuchFileException.class);
         UpdateRecipesAndArtifactsRequest request = new UpdateRecipesAndArtifactsRequest();
         request.setArtifactsDirectoryPath(mockPath.toString());
         request.setRecipeDirectoryPath(mockPath.toString());
         Path recipeFilePath = Files.createFile(mockPath.resolve("sampleRecipe.yml"));
-        ComponentRecipe componentRecipe = ComponentRecipe.builder()
-                .componentName("SampleComponent")
-                .componentVersion(new Semver("1.0.0"))
-                .recipeFormatVersion(RecipeFormatVersion.JAN_25_2020)
-                .build();
+        ComponentRecipe componentRecipe =
+                ComponentRecipe.builder().componentName("SampleComponent").componentVersion(new Semver("1.0.0"))
+                        .recipeFormatVersion(RecipeFormatVersion.JAN_25_2020).build();
         Files.write(recipeFilePath, OBJECT_MAPPER.writeValueAsBytes(componentRecipe));
         Files.createDirectories(mockPath.resolve(ComponentStore.RECIPE_DIRECTORY));
         Files.createDirectories(mockPath.resolve(ComponentStore.ARTIFACT_DIRECTORY));
@@ -315,27 +328,33 @@ class CLIEventStreamAgentTest {
         when(nucleusPaths.componentStorePath()).thenReturn(mockPath);
         assertThrows(InvalidArtifactsDirectoryPathError.class,
                 () -> cliEventStreamAgent.getUpdateRecipesAndArtifactsHandler(mockContext).handleRequest(request));
-        assertTrue(Files.exists(mockPath.resolve(ComponentStore.RECIPE_DIRECTORY)
-                .resolve("SampleComponent-1.0.0.yaml")));
+        ArgumentCaptor<String> recipeStringCaptor = ArgumentCaptor.forClass(String.class);
+        verify(componentStore, only())
+                .savePackageRecipe(eq(new ComponentIdentifier("SampleComponent", new Semver("1.0.0"))),
+                        recipeStringCaptor.capture());
+
+        ComponentRecipe actualRecipeSaved =
+                SerializerFactory.getRecipeSerializer().readValue(recipeStringCaptor.getValue(), ComponentRecipe.class);
         assertFalse(Files.exists(mockPath.resolve(ComponentStore.ARTIFACT_DIRECTORY).resolve("artifact.zip")));
     }
 
     @Test
     void testCreateLocalDeployment_deployments_Q_not_initialized(ExtensionContext context) {
         ignoreExceptionOfType(context, ServiceError.class);
+        cliEventStreamAgent.setDeploymentQueue(null);   // set it to be not initialized
         Topics mockCliConfig = mock(Topics.class);
         CreateLocalDeploymentRequest request = new CreateLocalDeploymentRequest();
         try {
             cliEventStreamAgent.getCreateLocalDeploymentHandler(mockContext, mockCliConfig).handleRequest(request);
         } catch (ServiceError e) {
-           assertEquals(DEPLOYMENTS_QUEUE_NOT_INITIALIZED, e.getMessage());
-           return;
-       }
-       fail();
+            assertEquals(DEPLOYMENTS_QUEUE_NOT_INITIALIZED, e.getMessage());
+            return;
+        }
+        fail();
     }
 
     @Test
-    void testCreateLocalDeployment_successfull() throws JsonProcessingException {
+    void testCreateLocalDeployment_successful() throws JsonProcessingException {
         Topics mockCliConfig = mock(Topics.class);
         Topics localDeployments = mock(Topics.class);
         Topics localDeploymentDetailsTopics = mock(Topics.class);
@@ -362,16 +381,16 @@ class CLIEventStreamAgentTest {
         assertTrue(localOverrideRequest.getComponentsToMerge().containsValue("1.0.0"));
         assertTrue(localOverrideRequest.getComponentsToRemove().contains("SomeService"));
         assertNotNull(localOverrideRequest.getConfigurationUpdate().get(TEST_SERVICE));
-        assertEquals("value1", localOverrideRequest.getConfigurationUpdate()
-                .get(TEST_SERVICE).getValueToMerge().get("param1"));
+        assertEquals("value1",
+                localOverrideRequest.getConfigurationUpdate().get(TEST_SERVICE).getValueToMerge().get("param1"));
 
 
         verify(localDeployments).lookupTopics(localOverrideRequest.getRequestId());
         ArgumentCaptor<Map> deploymentDetailsCaptor = ArgumentCaptor.forClass(Map.class);
         verify(localDeploymentDetailsTopics).replaceAndWait(deploymentDetailsCaptor.capture());
-        CLIEventStreamAgent.LocalDeploymentDetails localDeploymentDetails =
-                OBJECT_MAPPER.convertValue((Map<String, Object>)deploymentDetailsCaptor.getValue(),
-                CLIEventStreamAgent.LocalDeploymentDetails.class);
+        CLIEventStreamAgent.LocalDeploymentDetails localDeploymentDetails = OBJECT_MAPPER
+                .convertValue((Map<String, Object>) deploymentDetailsCaptor.getValue(),
+                        CLIEventStreamAgent.LocalDeploymentDetails.class);
         assertEquals(Deployment.DeploymentType.LOCAL, localDeploymentDetails.getDeploymentType());
         assertEquals(DeploymentStatus.QUEUED, localDeploymentDetails.getStatus());
     }
@@ -382,8 +401,8 @@ class CLIEventStreamAgentTest {
         GetLocalDeploymentStatusRequest request = new GetLocalDeploymentStatusRequest();
         request.setDeploymentId("InvalidId");
         assertThrows(InvalidArgumentsError.class,
-                () -> cliEventStreamAgent.getGetLocalDeploymentStatusHandler(mockContext,
-            mockCliConfig).handleRequest(request));
+                () -> cliEventStreamAgent.getGetLocalDeploymentStatusHandler(mockContext, mockCliConfig)
+                        .handleRequest(request));
     }
 
     @Test
@@ -396,8 +415,8 @@ class CLIEventStreamAgentTest {
         GetLocalDeploymentStatusRequest request = new GetLocalDeploymentStatusRequest();
         request.setDeploymentId(deploymentId);
         assertThrows(ResourceNotFoundError.class,
-                () -> cliEventStreamAgent.getGetLocalDeploymentStatusHandler(mockContext,
-                        mockCliConfig).handleRequest(request));
+                () -> cliEventStreamAgent.getGetLocalDeploymentStatusHandler(mockContext, mockCliConfig)
+                        .handleRequest(request));
     }
 
     @Test
@@ -413,8 +432,9 @@ class CLIEventStreamAgentTest {
             when(localDeployments.findTopics(deploymentId)).thenReturn(mockLocalDeployment);
             GetLocalDeploymentStatusRequest request = new GetLocalDeploymentStatusRequest();
             request.setDeploymentId(deploymentId);
-            GetLocalDeploymentStatusResponse response = cliEventStreamAgent
-                    .getGetLocalDeploymentStatusHandler(mockContext, mockCliConfig).handleRequest(request);
+            GetLocalDeploymentStatusResponse response =
+                    cliEventStreamAgent.getGetLocalDeploymentStatusHandler(mockContext, mockCliConfig)
+                            .handleRequest(request);
             assertEquals(deploymentId, response.getDeployment().getDeploymentId());
             assertEquals(DeploymentStatus.IN_PROGRESS, response.getDeployment().getStatus());
         }
@@ -424,12 +444,13 @@ class CLIEventStreamAgentTest {
     @SuppressWarnings("PMD.CloseResource")
     void testListLocalDeployment_no_local_deployments() throws IOException {
         Topics mockCliConfig = mock(Topics.class);
-        try(Context context = new Context()) {
+        try (Context context = new Context()) {
             Topics localDeployments = Topics.of(context, "localDeployments", null);
             when(mockCliConfig.findTopics(PERSISTENT_LOCAL_DEPLOYMENTS)).thenReturn(localDeployments);
             ListLocalDeploymentsRequest request = new ListLocalDeploymentsRequest();
-            ListLocalDeploymentsResponse response = cliEventStreamAgent
-                    .getListLocalDeploymentsHandler(mockContext, mockCliConfig).handleRequest(request);
+            ListLocalDeploymentsResponse response =
+                    cliEventStreamAgent.getListLocalDeploymentsHandler(mockContext, mockCliConfig)
+                            .handleRequest(request);
             assertEquals(0, response.getLocalDeployments().size());
         }
     }
@@ -438,16 +459,19 @@ class CLIEventStreamAgentTest {
     @SuppressWarnings("PMD.CloseResource")
     void testListLocalDeployment_successful() throws IOException {
         Topics mockCliConfig = mock(Topics.class);
-        try(Context context = new Context()) {
+        try (Context context = new Context()) {
             Topics localDeployments = Topics.of(context, "localDeployments", null);
             String deploymentId1 = UUID.randomUUID().toString();
-            localDeployments.lookupTopics(deploymentId1).lookup(DEPLOYMENT_STATUS_KEY_NAME).withValue(DeploymentStatus.IN_PROGRESS.toString());
+            localDeployments.lookupTopics(deploymentId1).lookup(DEPLOYMENT_STATUS_KEY_NAME)
+                    .withValue(DeploymentStatus.IN_PROGRESS.toString());
             String deploymentId2 = UUID.randomUUID().toString();
-            localDeployments.lookupTopics(deploymentId2).lookup(DEPLOYMENT_STATUS_KEY_NAME).withValue(DeploymentStatus.SUCCEEDED.toString());
+            localDeployments.lookupTopics(deploymentId2).lookup(DEPLOYMENT_STATUS_KEY_NAME)
+                    .withValue(DeploymentStatus.SUCCEEDED.toString());
             when(mockCliConfig.findTopics(PERSISTENT_LOCAL_DEPLOYMENTS)).thenReturn(localDeployments);
             ListLocalDeploymentsRequest request = new ListLocalDeploymentsRequest();
-            ListLocalDeploymentsResponse response = cliEventStreamAgent
-                    .getListLocalDeploymentsHandler(mockContext, mockCliConfig).handleRequest(request);
+            ListLocalDeploymentsResponse response =
+                    cliEventStreamAgent.getListLocalDeploymentsHandler(mockContext, mockCliConfig)
+                            .handleRequest(request);
             assertEquals(2, response.getLocalDeployments().size());
             response.getLocalDeployments().stream().forEach(ld -> {
                 if (ld.getDeploymentId().equals(deploymentId1)) {
@@ -464,11 +488,10 @@ class CLIEventStreamAgentTest {
     @Test
     void test_createDebugPassword() throws IOException {
         CreateDebugPasswordRequest request = new CreateDebugPasswordRequest();
-        try(Context context = new Context()) {
+        try (Context context = new Context()) {
             Topics topics = Topics.of(context, "", null);
             CreateDebugPasswordResponse response =
-                    cliEventStreamAgent.getCreateDebugPasswordHandler(mockContext, topics)
-                            .handleRequest(request);
+                    cliEventStreamAgent.getCreateDebugPasswordHandler(mockContext, topics).handleRequest(request);
 
             assertEquals("debug", response.getUsername());
             assertThat(response.getPassword(), hasLength(43)); // Length is 43 due to Base64 encoding overhead

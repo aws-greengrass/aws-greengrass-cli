@@ -69,7 +69,7 @@ import java.util.UUID;
 
 import static com.aws.greengrass.cli.CLIEventStreamAgent.PERSISTENT_LOCAL_DEPLOYMENTS;
 import static com.aws.greengrass.cli.CLIService.GREENGRASS_CLI_CLIENT_ID_FMT;
-import static com.aws.greengrass.componentmanager.KernelConfigResolver.PARAMETERS_CONFIG_KEY;
+import static com.aws.greengrass.componentmanager.KernelConfigResolver.CONFIGURATION_CONFIG_KEY;
 import static com.aws.greengrass.componentmanager.KernelConfigResolver.VERSION_CONFIG_KEY;
 import static com.aws.greengrass.deployment.DeploymentStatusKeeper.DEPLOYMENT_STATUS_KEY_NAME;
 import static com.aws.greengrass.ipc.common.IPCErrorStrings.DEPLOYMENTS_QUEUE_NOT_INITIALIZED;
@@ -156,7 +156,7 @@ class CLIEventStreamAgentTest {
         Topics mockServiceConfig = Topics.of(context, TEST_SERVICE, null);
         mockServiceConfig.lookup(VERSION_CONFIG_KEY).withValue("1.0.0");
         Map<String, Object> mockParameterConfig = ImmutableMap.of("param1", "value1");
-        mockServiceConfig.lookupTopics(PARAMETERS_CONFIG_KEY).replaceAndWait(mockParameterConfig);
+        mockServiceConfig.lookupTopics(CONFIGURATION_CONFIG_KEY).replaceAndWait(mockParameterConfig);
         when(mockTestService.getServiceConfig()).thenReturn(mockServiceConfig);
         when(kernel.locate(TEST_SERVICE)).thenReturn(mockTestService);
         GetComponentDetailsResponse response =
@@ -180,7 +180,7 @@ class CLIEventStreamAgentTest {
             Topics mockServiceConfig = Topics.of(context, TEST_SERVICE, null);
             mockServiceConfig.lookup(VERSION_CONFIG_KEY).withValue("1.0.0");
             Map<String, Object> mockParameterConfig = ImmutableMap.of("param1", "value1");
-            mockServiceConfig.lookupTopics(PARAMETERS_CONFIG_KEY).replaceAndWait(mockParameterConfig);
+            mockServiceConfig.lookupTopics(CONFIGURATION_CONFIG_KEY).replaceAndWait(mockParameterConfig);
             when(mockTestService.getServiceConfig()).thenReturn(mockServiceConfig);
             when(kernel.getMain()).thenReturn(mockMainService);
             when(kernel.orderedDependencies()).thenReturn(Arrays.asList(mockTestService, mockMainService));

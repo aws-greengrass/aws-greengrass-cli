@@ -5,10 +5,12 @@ ComponentPublisher: Me
 ComponentVersion: '1.0.1'
 Manifests:
   - Platform:
-      os: all
+      os: windows
     Lifecycle:
-      run:
-        windows:
+      run: |-
           powershell -command echo recipe 1.0.1; sleep 100
-        posix:
+  - Platform:
+      os: "*"
+    Lifecycle:
+      run: |-
           echo "recipe 1.0.1"; sleep 100

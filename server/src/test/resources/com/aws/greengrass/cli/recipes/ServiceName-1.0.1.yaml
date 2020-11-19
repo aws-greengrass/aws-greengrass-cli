@@ -10,7 +10,7 @@ Manifests:
       run: |-
           powershell -command echo recipe 1.0.1; sleep 100
   - Platform:
-      os: all
+      os: "*"
     Lifecycle:
       run: |-
           echo "recipe 1.0.1"; sleep 100

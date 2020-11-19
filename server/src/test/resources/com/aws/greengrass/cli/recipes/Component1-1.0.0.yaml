@@ -16,7 +16,7 @@ Manifests:
     Artifacts:
       - URI: s3://mock-bucket/run.sh
   - Platform:
-      os: all
+      os: "*"
     Lifecycle:
       run: |-
         sh {artifacts:path}/run.sh; echo {configuration:/Message}; sleep 100

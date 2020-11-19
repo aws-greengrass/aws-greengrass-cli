@@ -40,7 +40,7 @@ import java.util.HashMap;
 import java.util.Map;
 import javax.inject.Inject;
 
-import static com.aws.greengrass.componentmanager.KernelConfigResolver.PARAMETERS_CONFIG_KEY;
+import static com.aws.greengrass.componentmanager.KernelConfigResolver.CONFIGURATION_CONFIG_KEY;
 import static com.aws.greengrass.componentmanager.KernelConfigResolver.VERSION_CONFIG_KEY;
 import static com.aws.greengrass.ipc.AuthenticationHandler.SERVICE_UNIQUE_ID_KEY;
 import static com.aws.greengrass.ipc.IPCEventStreamService.NUCLEUS_DOMAIN_SOCKET_FILEPATH;
@@ -122,7 +122,7 @@ public class CLIService extends PluginService {
                 this::deploymentStatusChanged, CLIService.class.getName());
 
 
-        config.lookup(PARAMETERS_CONFIG_KEY, AUTHORIZED_POSIX_GROUPS).subscribe((why, newv) -> {
+        config.lookup(CONFIGURATION_CONFIG_KEY, AUTHORIZED_POSIX_GROUPS).subscribe((why, newv) -> {
             requestReinstall();
         });
     }
@@ -229,7 +229,7 @@ public class CLIService extends PluginService {
             return;
         }
 
-        Topic authorizedPosixGroups = config.find(PARAMETERS_CONFIG_KEY, AUTHORIZED_POSIX_GROUPS);
+        Topic authorizedPosixGroups = config.find(CONFIGURATION_CONFIG_KEY, AUTHORIZED_POSIX_GROUPS);
         if (authorizedPosixGroups == null) {
             generateCliIpcInfoForEffectiveUser(authTokenDir);
             return;

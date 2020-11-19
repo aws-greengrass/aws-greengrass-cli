@@ -40,11 +40,7 @@ import static com.aws.greengrass.cli.CLIService.CLI_AUTH_TOKEN;
 import static com.aws.greengrass.cli.CLIService.CLI_SERVICE;
 import static com.aws.greengrass.cli.CLIService.DOMAIN_SOCKET_PATH;
 import static com.aws.greengrass.cli.CLIService.OBJECT_MAPPER;
-<<<<<<< Upstream, based on 730da6bf7ee3f201c0eb7cef03159b3fe84f32e6
 import static com.aws.greengrass.cli.CLIService.AUTHORIZED_POSIX_GROUPS;
-=======
-import static com.aws.greengrass.cli.CLIService.posixGroups;
->>>>>>> 19b8769 removing old ipc elements from cli (#63)
 import static com.aws.greengrass.componentmanager.KernelConfigResolver.PARAMETERS_CONFIG_KEY;
 import static com.aws.greengrass.ipc.IPCEventStreamService.NUCLEUS_DOMAIN_SOCKET_FILEPATH;
 import static com.aws.greengrass.lifecyclemanager.GreengrassService.PRIVATE_STORE_NAMESPACE_TOPIC;

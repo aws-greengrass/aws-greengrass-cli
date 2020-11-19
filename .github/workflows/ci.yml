@@ -1,7 +1,7 @@
 name: CI with Maven
 on:
   push:
-    branches: [ main ]
+    branches: [ master ]
   pull_request:
     branches: '*'
 jobs:

@@ -63,6 +63,7 @@ import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.Arrays;
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -303,7 +304,7 @@ class IPCCliTest {
     @Order(8)
     void GIVEN_kernel_running_WHEN_change_configuration_and_deployment_THEN_kernel_copies_artifacts_correctly(ExtensionContext context)
             throws Exception {
-        ignoreExceptionOfType(context, ComponentVersionNegotiationException.class);
+
         ignoreExceptionOfType(context, PackageDownloadException.class);
         ignoreExceptionOfType(context, ComponentVersionNegotiationException.class);
 

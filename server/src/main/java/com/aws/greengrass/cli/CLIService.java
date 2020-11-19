@@ -23,11 +23,8 @@ import com.aws.greengrass.util.platforms.Platform;
 import com.aws.greengrass.util.platforms.UserPlatform;
 import com.fasterxml.jackson.databind.DeserializationFeature;
 import com.fasterxml.jackson.databind.ObjectMapper;
-<<<<<<< Upstream, based on 730da6bf7ee3f201c0eb7cef03159b3fe84f32e6
 import com.vdurmont.semver4j.Semver;
 import com.vdurmont.semver4j.SemverException;
-=======
->>>>>>> 19b8769 removing old ipc elements from cli (#63)
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import lombok.Data;
 import software.amazon.awssdk.aws.greengrass.GreengrassCoreIPCService;
@@ -59,11 +56,7 @@ public class CLIService extends PluginService {
     public static final String CLI_CLIENT_BIN = "bin";
     public static final String CLI_CLIENT_LIB = "lib";
     public static final String CLI_AUTH_TOKEN = "cli_auth_token";
-<<<<<<< Upstream, based on 730da6bf7ee3f201c0eb7cef03159b3fe84f32e6
     public static final String AUTHORIZED_POSIX_GROUPS = "AuthorizedPosixGroups";
-=======
-    public static final String posixGroups = "AuthorizedPosixGroups";
->>>>>>> 19b8769 removing old ipc elements from cli (#63)
 
     static final String USER_CLIENT_ID_PREFIX = "user-";
     static final String GROUP_CLIENT_ID_PREFIX = "group-";
@@ -129,13 +122,8 @@ public class CLIService extends PluginService {
                 this::deploymentStatusChanged, CLIService.class.getName());
 
 
-<<<<<<< Upstream, based on 730da6bf7ee3f201c0eb7cef03159b3fe84f32e6
         config.lookup(PARAMETERS_CONFIG_KEY, AUTHORIZED_POSIX_GROUPS).subscribe((why, newv) -> {
             requestReinstall();
-=======
-        config.lookup(PARAMETERS_CONFIG_KEY, posixGroups).subscribe((why, newv) -> {
-            requestRestart();
->>>>>>> 19b8769 removing old ipc elements from cli (#63)
         });
     }
 

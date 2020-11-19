@@ -85,11 +85,7 @@ public class DeploymentCommand extends BaseCommand {
         createLocalDeploymentRequest.setComponentToConfiguration(configurationUpdate);
         createLocalDeploymentRequest.setRootComponentVersionsToAdd(componentsToMerge);
         createLocalDeploymentRequest.setRootComponentsToRemove(componentsToRemove);
-<<<<<<< Upstream, based on 730da6bf7ee3f201c0eb7cef03159b3fe84f32e6
         createLocalDeploymentRequest.setComponentToRunWithInfo(getComponentToRunWithInfo(runWithOptions));
-=======
-
->>>>>>> 54a7059 Fixes for pull request comments.
         String deploymentId = nucleusAdapterIpc.createLocalDeployment(createLocalDeploymentRequest);
         System.out.println("Local deployment has been submitted! Deployment Id: " + deploymentId);
         return 0;

@@ -1,6 +1,10 @@
 ---
 services:
   aws.greengrass.Nucleus:
+    #remove after parameters -> configuration switch
+    parameters:
+      runWithDefault:
+        posixUser: nobody
     configuration:
       runWithDefault:
         posixUser: nobody

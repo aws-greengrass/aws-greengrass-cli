@@ -3,8 +3,12 @@ RecipeFormatVersion: '2020-01-25'
 ComponentName: aws.greengrass.Cli
 ComponentDescription: This component provides CLI access to the Nucleus via IPC. It mostly wraps IPC functionality (see Device SDK) with trivial code, and effectively provides further documentation. It also makes the open source GGC usable.
 ComponentPublisher: AWS
-ComponentVersion: '1.0.0'
+ComponentVersion: '2.0.0'
 ComponentType: aws.greengrass.plugin
+ComponentDependencies:
+  aws.greengrass.Nucleus:
+    VersionRequirement: ~2.0.0
+    DependencyType: SOFT
 Manifests:
   - Platform:
       os: linux

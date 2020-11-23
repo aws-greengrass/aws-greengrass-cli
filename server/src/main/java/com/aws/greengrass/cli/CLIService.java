@@ -14,7 +14,6 @@ import com.aws.greengrass.deployment.DeploymentStatusKeeper;
 import com.aws.greengrass.deployment.model.Deployment;
 import com.aws.greengrass.ipc.AuthenticationHandler;
 import com.aws.greengrass.ipc.exceptions.UnauthenticatedException;
-import com.aws.greengrass.ipc.services.cli.models.DeploymentStatus;
 import com.aws.greengrass.lifecyclemanager.Kernel;
 import com.aws.greengrass.lifecyclemanager.PluginService;
 import com.aws.greengrass.util.Coerce;
@@ -29,6 +28,7 @@ import com.vdurmont.semver4j.SemverException;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import lombok.Data;
 import software.amazon.awssdk.aws.greengrass.GreengrassCoreIPCService;
+import software.amazon.awssdk.aws.greengrass.model.DeploymentStatus;
 
 import java.io.File;
 import java.io.IOException;
@@ -40,7 +40,7 @@ import java.util.HashMap;
 import java.util.Map;
 import javax.inject.Inject;
 
-import static com.aws.greengrass.componentmanager.KernelConfigResolver.PARAMETERS_CONFIG_KEY;
+import static com.aws.greengrass.componentmanager.KernelConfigResolver.CONFIGURATION_CONFIG_KEY;
 import static com.aws.greengrass.componentmanager.KernelConfigResolver.VERSION_CONFIG_KEY;
 import static com.aws.greengrass.ipc.AuthenticationHandler.SERVICE_UNIQUE_ID_KEY;
 import static com.aws.greengrass.ipc.IPCEventStreamService.NUCLEUS_DOMAIN_SOCKET_FILEPATH;
@@ -122,7 +122,7 @@ public class CLIService extends PluginService {
                 this::deploymentStatusChanged, CLIService.class.getName());
 
 
-        config.lookup(PARAMETERS_CONFIG_KEY, AUTHORIZED_POSIX_GROUPS).subscribe((why, newv) -> {
+        config.lookup(CONFIGURATION_CONFIG_KEY, AUTHORIZED_POSIX_GROUPS).subscribe((why, newv) -> {
             requestReinstall();
         });
     }
@@ -229,7 +229,7 @@ public class CLIService extends PluginService {
             return;
         }
 
-        Topic authorizedPosixGroups = config.find(PARAMETERS_CONFIG_KEY, AUTHORIZED_POSIX_GROUPS);
+        Topic authorizedPosixGroups = config.find(CONFIGURATION_CONFIG_KEY, AUTHORIZED_POSIX_GROUPS);
         if (authorizedPosixGroups == null) {
             generateCliIpcInfoForEffectiveUser(authTokenDir);
             return;

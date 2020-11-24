@@ -8,6 +8,8 @@ package com.aws.greengrass.cli;
 import com.amazon.aws.iot.greengrass.component.common.ComponentRecipe;
 import com.amazon.aws.iot.greengrass.component.common.SerializerFactory;
 import com.aws.greengrass.componentmanager.ComponentStore;
+import com.aws.greengrass.componentmanager.exceptions.PackageLoadingException;
+import com.aws.greengrass.componentmanager.models.ComponentIdentifier;
 import com.aws.greengrass.config.Topics;
 import com.aws.greengrass.deployment.DeploymentQueue;
 import com.aws.greengrass.deployment.model.ConfigurationUpdateOperation;
@@ -93,7 +95,6 @@ import javax.inject.Inject;
 
 import static com.aws.greengrass.cli.CLIService.CLI_SERVICE;
 import static com.aws.greengrass.cli.CLIService.GREENGRASS_CLI_CLIENT_ID_PREFIX;
-import static com.aws.greengrass.componentmanager.ComponentStore.RECIPE_FILE_NAME_FORMAT;
 import static com.aws.greengrass.componentmanager.KernelConfigResolver.CONFIGURATION_CONFIG_KEY;
 import static com.aws.greengrass.componentmanager.KernelConfigResolver.VERSION_CONFIG_KEY;
 import static com.aws.greengrass.deployment.DeploymentConfigMerger.DEPLOYMENT_ID_LOG_KEY;
@@ -120,12 +121,15 @@ public class CLIEventStreamAgent {
     private static final Duration DEBUG_PASSWORD_EXPIRATION = Duration.ofHours(4);
 
     @Inject
-    @Setter(AccessLevel.PACKAGE)
     private Kernel kernel;
 
     @Inject
     @Setter(AccessLevel.PACKAGE)
     private DeploymentQueue deploymentQueue;
+
+    @Inject
+    private ComponentStore componentStore;
+
     private final SecureRandom random = new SecureRandom();
 
     public GetComponentDetailsHandler getGetComponentDetailsHandler(OperationContinuationHandlerContext context) {
@@ -232,8 +236,8 @@ public class CLIEventStreamAgent {
     }
 
     private void authorizeRequest(String componentName) {
-        if (Utils.isEmpty(componentName) || !componentName.startsWith(GREENGRASS_CLI_CLIENT_ID_PREFIX)
-                && !CLI_SERVICE.equals(componentName)) {
+        if (Utils.isEmpty(componentName) || !componentName.startsWith(GREENGRASS_CLI_CLIENT_ID_PREFIX) && !CLI_SERVICE
+                .equals(componentName)) {
             throw new UnauthorizedError("Component is not authorized to call CLI APIs");
         }
     }
@@ -411,9 +415,8 @@ public class CLIEventStreamAgent {
                 Path kernelPackageStorePath = kernel.getNucleusPaths().componentStorePath();
                 if (!Utils.isEmpty(request.getRecipeDirectoryPath())) {
                     Path recipeDirectoryPath = Paths.get(request.getRecipeDirectoryPath());
-                    Path kernelRecipeDirectoryPath = kernelPackageStorePath.resolve(ComponentStore.RECIPE_DIRECTORY);
                     try {
-                        copyRecipes(recipeDirectoryPath, kernelRecipeDirectoryPath);
+                        copyRecipesToComponentStore(recipeDirectoryPath);
                     } catch (IOException e) {
                         logger.atError().setCause(e).kv("Recipe Directory path", recipeDirectoryPath)
                                 .log("Caught exception while updating the recipes");
@@ -457,7 +460,7 @@ public class CLIEventStreamAgent {
             }
         }
 
-        private void copyRecipes(Path from, Path to) throws IOException {
+        private void copyRecipesToComponentStore(Path from) throws IOException {
             for (Path r : Files.walk(from).collect(Collectors.toList())) {
                 String ext = Utils.extension(r.toString());
                 ComponentRecipe recipe = null;
@@ -493,9 +496,18 @@ public class CLIEventStreamAgent {
                 }
 
                 // Write the recipe as YAML with the proper filename into the store
-                Path copyTo = to.resolve(String.format(RECIPE_FILE_NAME_FORMAT, recipe.getComponentName(),
-                        recipe.getComponentVersion().getValue()));
-                Files.write(copyTo, SerializerFactory.getRecipeSerializer().writeValueAsBytes(recipe));
+                ComponentIdentifier componentIdentifier =
+                        new ComponentIdentifier(recipe.getComponentName(), recipe.getComponentVersion());
+
+                try {
+                    componentStore.savePackageRecipe(componentIdentifier,
+                            SerializerFactory.getRecipeSerializer().writeValueAsString(recipe));
+                } catch (PackageLoadingException e) {
+                    // Throw on error so that the user will receive this message and we will stop the deployment.
+                    // This is to fail fast while providing actionable feedback.
+                    throw new IOException(String.format("Unable to copy recipe for '%s' to component store due to: %s",
+                            componentIdentifier.toString(), e.getMessage()), e);
+                }
             }
         }
     }
@@ -706,12 +718,8 @@ public class CLIEventStreamAgent {
 
                 String password = generatePassword(DEBUG_PASSWORD_LENGTH_REQUIREMENT);
                 Instant expiration = Instant.now().plus(DEBUG_PASSWORD_EXPIRATION);
-                ((Topics) config.lookupTopics("_debugPassword")
-                        .withParentNeedsToKnow(false))
-                        .lookup(DEBUG_USERNAME,
-                                password,
-                                "expiration")
-                        .withValue(expiration.toEpochMilli());
+                ((Topics) config.lookupTopics("_debugPassword").withParentNeedsToKnow(false))
+                        .lookup(DEBUG_USERNAME, password, "expiration").withValue(expiration.toEpochMilli());
 
                 response.setPassword(password);
                 response.setPasswordExpiration(expiration);

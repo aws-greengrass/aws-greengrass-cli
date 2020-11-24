@@ -191,7 +191,7 @@
         <dependency>
             <groupId>com.aws.greengrass</groupId>
             <artifactId>nucleus</artifactId>
-            <version>1.0-recipe_storage_upgrade-SNAPSHOT</version>
+            <version>1.0-SNAPSHOT</version>
             <scope>provided</scope>
         </dependency>
         <dependency>
@@ -209,7 +209,7 @@
         <dependency>
             <groupId>com.aws.greengrass</groupId>
             <artifactId>nucleus</artifactId>
-            <version>1.0-recipe_storage_upgrade-SNAPSHOT</version>
+            <version>1.0-SNAPSHOT</version>
             <type>test-jar</type>
             <scope>test</scope>
         </dependency>

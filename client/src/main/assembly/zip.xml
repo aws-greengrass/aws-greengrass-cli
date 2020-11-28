@@ -26,7 +26,7 @@
         </file>
         <!-- TODO: remove when sdk jar is consumed from a maven repo-->
         <file>
-            <source>${project.basedir}/lib/aws-greengrass-ipc-sdk.jar</source>
+            <source>${project.basedir}/lib/aws-iot-device-sdk-1.0.0-SNAPSHOT-shaded.jar</source>
             <outputDirectory>lib</outputDirectory>
         </file>
         <file>

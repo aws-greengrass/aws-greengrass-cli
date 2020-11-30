@@ -79,13 +79,11 @@
             <scope>test</scope>
         </dependency>
 
-        <!-- TODO: remove when sdk jar is consumed from a maven repo-->
+        <!-- TODO: Change when Iot Device SDK with greengrass ipc is released publicly-->
         <dependency>
-            <groupId>aws.greengrass.ipc.sdk</groupId>
-            <artifactId>aws-grenngrass-ask</artifactId>
-            <version>1.0</version>
-            <scope>system</scope>
-            <systemPath>${project.basedir}/lib/aws-iot-device-sdk-1.0.0-SNAPSHOT-shaded.jar</systemPath>
+            <groupId>software.amazon.awssdk.iotdevicesdk</groupId>
+            <artifactId>aws-iot-device-sdk-v2</artifactId>
+            <version>1.0-SNAPSHOT</version>
         </dependency>
     </dependencies>
     <build>

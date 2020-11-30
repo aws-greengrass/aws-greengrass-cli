@@ -24,11 +24,6 @@
             <source>${project.build.directory}/${project.artifactId}-${project.version}-dependency.jar</source>
             <outputDirectory>lib</outputDirectory>
         </file>
-        <!-- TODO: remove when sdk jar is consumed from a maven repo-->
-        <file>
-            <source>${project.basedir}/lib/aws-iot-device-sdk-1.0.0-SNAPSHOT-shaded.jar</source>
-            <outputDirectory>lib</outputDirectory>
-        </file>
         <file>
             <source>${project.basedir}/install.sh</source>
             <outputDirectory>/</outputDirectory>

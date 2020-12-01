@@ -5,11 +5,7 @@
 
 package com.aws.greengrass.cli;
 
-import com.amazon.aws.iot.greengrass.component.common.ComponentRecipe;
-import com.amazon.aws.iot.greengrass.component.common.SerializerFactory;
 import com.aws.greengrass.componentmanager.ComponentStore;
-import com.aws.greengrass.componentmanager.exceptions.PackageLoadingException;
-import com.aws.greengrass.componentmanager.models.ComponentIdentifier;
 import com.aws.greengrass.config.Topics;
 import com.aws.greengrass.deployment.DeploymentQueue;
 import com.aws.greengrass.deployment.model.ConfigurationUpdateOperation;
@@ -40,7 +36,6 @@ import software.amazon.awssdk.aws.greengrass.GeneratedAbstractListComponentsOper
 import software.amazon.awssdk.aws.greengrass.GeneratedAbstractListLocalDeploymentsOperationHandler;
 import software.amazon.awssdk.aws.greengrass.GeneratedAbstractRestartComponentOperationHandler;
 import software.amazon.awssdk.aws.greengrass.GeneratedAbstractStopComponentOperationHandler;
-import software.amazon.awssdk.aws.greengrass.GeneratedAbstractUpdateRecipesAndArtifactsOperationHandler;
 import software.amazon.awssdk.aws.greengrass.model.ComponentDetails;
 import software.amazon.awssdk.aws.greengrass.model.CreateDebugPasswordRequest;
 import software.amazon.awssdk.aws.greengrass.model.CreateDebugPasswordResponse;
@@ -53,7 +48,6 @@ import software.amazon.awssdk.aws.greengrass.model.GetLocalDeploymentStatusReque
 import software.amazon.awssdk.aws.greengrass.model.GetLocalDeploymentStatusResponse;
 import software.amazon.awssdk.aws.greengrass.model.InvalidArgumentsError;
 import software.amazon.awssdk.aws.greengrass.model.InvalidArtifactsDirectoryPathError;
-import software.amazon.awssdk.aws.greengrass.model.InvalidRecipeDirectoryPathError;
 import software.amazon.awssdk.aws.greengrass.model.LifecycleState;
 import software.amazon.awssdk.aws.greengrass.model.ListComponentsRequest;
 import software.amazon.awssdk.aws.greengrass.model.ListComponentsResponse;
@@ -68,16 +62,11 @@ import software.amazon.awssdk.aws.greengrass.model.ServiceError;
 import software.amazon.awssdk.aws.greengrass.model.StopComponentRequest;
 import software.amazon.awssdk.aws.greengrass.model.StopComponentResponse;
 import software.amazon.awssdk.aws.greengrass.model.UnauthorizedError;
-import software.amazon.awssdk.aws.greengrass.model.UpdateRecipesAndArtifactsRequest;
-import software.amazon.awssdk.aws.greengrass.model.UpdateRecipesAndArtifactsResponse;
 import software.amazon.awssdk.eventstreamrpc.OperationContinuationHandlerContext;
 import software.amazon.awssdk.eventstreamrpc.model.EventStreamJsonMessage;
 
-import java.io.IOException;
-import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
-import java.nio.file.StandardCopyOption;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.security.SecureRandom;
@@ -127,9 +116,6 @@ public class CLIEventStreamAgent {
     @Setter(AccessLevel.PACKAGE)
     private DeploymentQueue deploymentQueue;
 
-    @Inject
-    private ComponentStore componentStore;
-
     private final SecureRandom random = new SecureRandom();
 
     public GetComponentDetailsHandler getGetComponentDetailsHandler(OperationContinuationHandlerContext context) {
@@ -148,10 +134,10 @@ public class CLIEventStreamAgent {
         return new StopComponentHandler(context);
     }
 
-    public UpdateRecipesAndArtifactsHandler getUpdateRecipesAndArtifactsHandler(
-            OperationContinuationHandlerContext context) {
-        return new UpdateRecipesAndArtifactsHandler(context);
-    }
+    //public UpdateRecipesAndArtifactsHandler getUpdateRecipesAndArtifactsHandler(
+    //        OperationContinuationHandlerContext context) {
+    //    return new UpdateRecipesAndArtifactsHandler(context);
+    //}
 
     public CreateLocalDeploymentHandler getCreateLocalDeploymentHandler(OperationContinuationHandlerContext context,
                                                                         Topics cliServiceConfig) {
@@ -391,7 +377,7 @@ public class CLIEventStreamAgent {
             validateComponentName(request.getComponentName());
         }
     }
-
+    /*
     class UpdateRecipesAndArtifactsHandler extends GeneratedAbstractUpdateRecipesAndArtifactsOperationHandler {
 
         private final String componentName;
@@ -511,6 +497,7 @@ public class CLIEventStreamAgent {
             }
         }
     }
+    */
 
     class CreateLocalDeploymentHandler extends GeneratedAbstractCreateLocalDeploymentOperationHandler {
 
@@ -546,10 +533,25 @@ public class CLIEventStreamAgent {
                                 return configUpdateOption;
                             }));
                 }
+
+                if (!Utils.isEmpty(request.getArtifactsDirectoryPath())) {
+                    Path artifactsDirectoryPath = Paths.get(request.getArtifactsDirectoryPath());
+                    Path kernelArtifactsDirectoryPath = kernel.getNucleusPaths().componentStorePath()
+                            .resolve(ComponentStore.ARTIFACT_DIRECTORY);
+                    if (kernelArtifactsDirectoryPath.startsWith(artifactsDirectoryPath)) {
+                        String errorString = "Requested artifacts directory path is parent of kernel artifacts "
+                                + "directory path. Specify another path to avoid recursive copy";
+                        logger.atError().log(errorString);
+                        throw new InvalidArtifactsDirectoryPathError(errorString);
+                    }
+                }
+
                 LocalOverrideRequest localOverrideRequest = LocalOverrideRequest.builder().requestId(deploymentId)
                         .componentsToMerge(request.getRootComponentVersionsToAdd())
                         .componentsToRemove(request.getRootComponentsToRemove())
                         .componentToRunWithInfo(request.getComponentToRunWithInfo())
+                        .recipeDirectoryPath(request.getRecipeDirectoryPath())
+                        .artifactsDirectoryPath(request.getArtifactsDirectoryPath())
                         .requestTimestamp(System.currentTimeMillis()).groupName(
                                 request.getGroupName() == null || request.getGroupName().isEmpty()
                                         ? LOCAL_DEPLOYMENT_GROUP_NAME : request.getGroupName())

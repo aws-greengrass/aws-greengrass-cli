@@ -26,6 +26,7 @@ import java.util.Arrays;
 import java.util.HashMap;
 import java.util.Map;
 
+import static com.aws.greengrass.cli.adapter.impl.NucleusAdapterIpcClientImpl.deTilde;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.core.Is.is;
 import static org.mockito.ArgumentMatchers.any;
@@ -54,7 +55,9 @@ class DeploymentCommandTest {
     @Test
     void GIVEN_WHEN_artifact_dir_is_provided_THEN_request_contains_provided_artifact_dir() {
         int exitCode = runCommandLine("deployment", "create", "--artifactDir", ARTIFACT_FOLDER_PATH_STR);
-        verify(nucleusAdapteripc).updateRecipesAndArtifacts(null, ARTIFACT_FOLDER_PATH_STR);
+        CreateLocalDeploymentRequest request = new CreateLocalDeploymentRequest();
+        request.setArtifactsDirectoryPath(deTilde(ARTIFACT_FOLDER_PATH_STR));
+        verify(nucleusAdapteripc).createLocalDeployment(request);
         assertThat(exitCode, is(0));
     }
 
@@ -62,7 +65,9 @@ class DeploymentCommandTest {
     void GIVEN_WHEN_artifact_dir_is_provided_with_short_name_THEN_request_contains_provided_artifact_dir() {
         int exitCode = runCommandLine("deployment", "create", "-a", ARTIFACT_FOLDER_PATH_STR);
 
-        verify(nucleusAdapteripc).updateRecipesAndArtifacts(null, ARTIFACT_FOLDER_PATH_STR);
+        CreateLocalDeploymentRequest request = new CreateLocalDeploymentRequest();
+        request.setArtifactsDirectoryPath(deTilde(ARTIFACT_FOLDER_PATH_STR));
+        verify(nucleusAdapteripc).createLocalDeployment(request);
         assertThat(exitCode, is(0));
     }
 
@@ -71,16 +76,28 @@ class DeploymentCommandTest {
         int exitCode =
                 runCommandLine("deployment", "create", "-a", ARTIFACT_FOLDER_PATH_STR, "-a", ARTIFACT_FOLDER_PATH_STR);
 
-        verify(nucleusAdapteripc, never()).updateRecipesAndArtifacts(any(), any());
+        verify(nucleusAdapteripc, never()).createLocalDeployment(any());
         assertThat(exitCode, is(2));
     }
 
     @Test
     void GIVEN_WHEN_recipe_dir_is_provided_THEN_request_contains_provided_recipe_dir() {
         int exitCode = runCommandLine("deployment", "create", "--recipeDir", RECIPE_FOLDER_PATH_STR);
-        verify(nucleusAdapteripc).updateRecipesAndArtifacts(RECIPE_FOLDER_PATH_STR, null);
+        CreateLocalDeploymentRequest request = new CreateLocalDeploymentRequest();
+        request.setRecipeDirectoryPath(deTilde(RECIPE_FOLDER_PATH_STR));
+        verify(nucleusAdapteripc).createLocalDeployment(request);
         assertThat(exitCode, is(0));
     }
+
+    @Test
+    void GIVEN_WHEN_recipe_dir_is_provided_with_short_name_THEN_request_contains_provided_recipe_dir() {
+        int exitCode = runCommandLine("deployment", "create", "-r", RECIPE_FOLDER_PATH_STR);
+        CreateLocalDeploymentRequest request = new CreateLocalDeploymentRequest();
+        request.setRecipeDirectoryPath(deTilde(RECIPE_FOLDER_PATH_STR));
+        verify(nucleusAdapteripc).createLocalDeployment(request);
+        assertThat(exitCode, is(0));
+    }
+
 
     @Test
     void GIVEN_WHEN_recipe_dir_is_provided_more_than_once_THEN_invalid_request_is_returned() {
@@ -95,14 +112,6 @@ class DeploymentCommandTest {
         int exitCode = runCommandLine("deployment", "create");
         CreateLocalDeploymentRequest request = new CreateLocalDeploymentRequest();
         verify(nucleusAdapteripc).createLocalDeployment(request);
-        assertThat(exitCode, is(0));
-    }
-
-
-    @Test
-    void GIVEN_WHEN_recipe_dir_is_provided_with_short_name_THEN_request_contains_provided_recipe_dir() {
-        int exitCode = runCommandLine("deployment", "create", "-r", RECIPE_FOLDER_PATH_STR);
-        verify(nucleusAdapteripc).updateRecipesAndArtifacts(RECIPE_FOLDER_PATH_STR, null);
         assertThat(exitCode, is(0));
     }
     @Test

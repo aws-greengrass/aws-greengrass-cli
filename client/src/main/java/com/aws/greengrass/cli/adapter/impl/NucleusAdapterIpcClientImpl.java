@@ -25,7 +25,6 @@ import software.amazon.awssdk.aws.greengrass.model.ListLocalDeploymentsResponse;
 import software.amazon.awssdk.aws.greengrass.model.LocalDeployment;
 import software.amazon.awssdk.aws.greengrass.model.RestartComponentRequest;
 import software.amazon.awssdk.aws.greengrass.model.StopComponentRequest;
-import software.amazon.awssdk.aws.greengrass.model.UpdateRecipesAndArtifactsRequest;
 import software.amazon.awssdk.crt.io.ClientBootstrap;
 import software.amazon.awssdk.crt.io.EventLoopGroup;
 import software.amazon.awssdk.crt.io.SocketOptions;
@@ -126,20 +125,20 @@ public class NucleusAdapterIpcClientImpl implements NucleusAdapterIpc {
         }
     }
 
-    @Override
-    public void updateRecipesAndArtifacts(String recipesDirectoryPath, String artifactsDirectoryPath) {
-
-        try {
-            UpdateRecipesAndArtifactsRequest request = new UpdateRecipesAndArtifactsRequest();
-            request.setRecipeDirectoryPath(deTilde(recipesDirectoryPath));
-            request.setArtifactsDirectoryPath(deTilde(artifactsDirectoryPath));
-            getIpcClient().updateRecipesAndArtifacts(request, Optional.empty()).getResponse()
-                    .get(DEFAULT_TIMEOUT_IN_SEC, TimeUnit.SECONDS);
-        } catch (ExecutionException | TimeoutException | InterruptedException e) {
-            //TODO: update when the sdk method signature includes exceptions
-            throw new RuntimeException(e);
-        }
-    }
+//    @Override
+//    public void updateRecipesAndArtifacts(String recipesDirectoryPath, String artifactsDirectoryPath) {
+//
+//        try {
+//            UpdateRecipesAndArtifactsRequest request = new UpdateRecipesAndArtifactsRequest();
+//            request.setRecipeDirectoryPath(deTilde(recipesDirectoryPath));
+//            request.setArtifactsDirectoryPath(deTilde(artifactsDirectoryPath));
+//            getIpcClient().updateRecipesAndArtifacts(request, Optional.empty()).getResponse()
+//                    .get(DEFAULT_TIMEOUT_IN_SEC, TimeUnit.SECONDS);
+//        } catch (ExecutionException | TimeoutException | InterruptedException e) {
+//            //TODO: update when the sdk method signature includes exceptions
+//            throw new RuntimeException(e);
+//        }
+//    }
 
     @Override
     public LocalDeployment getLocalDeploymentStatus(String deploymentId) {

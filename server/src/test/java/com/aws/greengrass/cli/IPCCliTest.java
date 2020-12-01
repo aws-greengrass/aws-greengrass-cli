@@ -12,9 +12,13 @@ import com.aws.greengrass.config.Topic;
 import com.aws.greengrass.dependency.State;
 import com.aws.greengrass.deployment.DeviceConfiguration;
 import com.aws.greengrass.integrationtests.BaseITCase;
+import com.aws.greengrass.integrationtests.ipc.IPCTestUtils;
+import com.aws.greengrass.ipc.exceptions.UnauthenticatedException;
+import com.aws.greengrass.lifecyclemanager.GlobalStateChangeListener;
 import com.aws.greengrass.lifecyclemanager.Kernel;
 import com.aws.greengrass.lifecyclemanager.exceptions.ServiceLoadException;
 import com.aws.greengrass.testcommons.testutilities.GGExtension;
+import com.aws.greengrass.testcommons.testutilities.TestUtils;
 import com.aws.greengrass.testcommons.testutilities.UniqueRootPathExtension;
 import com.aws.greengrass.util.Exec;
 import com.aws.greengrass.util.platforms.Platform;
@@ -32,11 +36,13 @@ import org.junit.jupiter.api.condition.DisabledOnOs;
 import org.junit.jupiter.api.condition.OS;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.junit.jupiter.api.extension.ExtensionContext;
+import software.amazon.awssdk.aws.greengrass.GetComponentDetailsResponseHandler;
 import software.amazon.awssdk.aws.greengrass.GreengrassCoreIPCClient;
 import software.amazon.awssdk.aws.greengrass.model.ComponentDetails;
 import software.amazon.awssdk.aws.greengrass.model.CreateLocalDeploymentRequest;
 import software.amazon.awssdk.aws.greengrass.model.CreateLocalDeploymentResponse;
 import software.amazon.awssdk.aws.greengrass.model.GetComponentDetailsRequest;
+import software.amazon.awssdk.aws.greengrass.model.GetComponentDetailsResponse;
 import software.amazon.awssdk.aws.greengrass.model.InvalidArgumentsError;
 import software.amazon.awssdk.aws.greengrass.model.LifecycleState;
 import software.amazon.awssdk.aws.greengrass.model.ListComponentsRequest;
@@ -47,6 +53,7 @@ import software.amazon.awssdk.aws.greengrass.model.ResourceNotFoundError;
 import software.amazon.awssdk.aws.greengrass.model.RestartComponentRequest;
 import software.amazon.awssdk.aws.greengrass.model.RunWithInfo;
 import software.amazon.awssdk.eventstreamrpc.EventStreamRPCConnection;
+import software.amazon.awssdk.eventstreamrpc.model.AccessDeniedException;
 
 import java.io.File;
 import java.io.IOException;
@@ -65,10 +72,13 @@ import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 
+import static com.aws.greengrass.cli.CLIService.AUTHORIZED_POSIX_GROUPS;
 import static com.aws.greengrass.cli.CLIService.CLI_AUTH_TOKEN;
 import static com.aws.greengrass.cli.CLIService.CLI_SERVICE;
+import static com.aws.greengrass.componentmanager.KernelConfigResolver.CONFIGURATION_CONFIG_KEY;
 import static com.aws.greengrass.integrationtests.ipc.IPCTestUtils.TEST_SERVICE_NAME;
 import static com.aws.greengrass.integrationtests.ipc.IPCTestUtils.getEventStreamRpcConnection;
+import static com.aws.greengrass.integrationtests.ipc.IPCTestUtils.getListenerForServiceRunning;
 import static com.aws.greengrass.integrationtests.ipc.IPCTestUtils.prepareKernelFromConfigFile;
 import static com.aws.greengrass.integrationtests.ipc.IPCTestUtils.waitForDeploymentToBeSuccessful;
 import static com.aws.greengrass.integrationtests.ipc.IPCTestUtils.waitForServiceToComeInState;
@@ -350,33 +360,36 @@ class IPCCliTest {
     void GIVEN_kernel_running_WHEN_CLI_authorized_groups_updated_THEN_old_token_revoked_and_new_token_accepted(ExtensionContext context)
             throws Exception {
 
-        //TODO: re-enable after fixing the latest ipc sdk changes. Do not merge till this is fixed
-//        ignoreExceptionOfType(context, UnauthenticatedException.class);
-//        String oldAuthToken = getAuthTokenFromInfoFile();
-//        CountDownLatch awaitIpcServiceLatch = new CountDownLatch(1);
-//        GlobalStateChangeListener listener = getListenerForServiceRunning(awaitIpcServiceLatch, CLI_SERVICE);
-//        kernel.getContext().addGlobalStateChangeListener(listener);
-//
-//        String validGid;
-//        if (Exec.isWindows) {
-//            // GG_NEEDS_REVIEW: TODO support windows
-//            validGid = "0";
-//        } else {
-//            validGid = selectAValidGid();
-//        }
-//        assertNotNull(validGid, "Failed to find a single valid GID on this test instance");
-//        kernel.locate(CLI_SERVICE).getConfig().lookup(CONFIGURATION_CONFIG_KEY, AUTHORIZED_POSIX_GROUPS).withValue(validGid);
-//        assertTrue(awaitIpcServiceLatch.await(10, TimeUnit.SECONDS));
-//        kernel.getContext().removeGlobalStateChangeListener(listener);
-//        ExecutionException executionException = assertThrows(ExecutionException.class, () ->
-//                IPCTestUtils.connectToGGCOverEventStreamIPC(TestUtils.getSocketOptionsForIPC(),
-//                        oldAuthToken, kernel));
-//        assertEquals(AccessDeniedException.class, executionException.getCause().getClass());
-//
-//        try(EventStreamRPCConnection eventStreamRPCConnection = IPCTestUtils.connectToGGCOverEventStreamIPC(TestUtils.getSocketOptionsForIPC(),
-//                getAuthTokenFromInfoFile(), kernel)){
-//           // assertTrue(eventStreamRPCConnection.getConnection().isOpen());
-//        }
+        ignoreExceptionOfType(context, RuntimeException.class);
+        String oldAuthToken = getAuthTokenFromInfoFile();
+        CountDownLatch awaitIpcServiceLatch = new CountDownLatch(1);
+        GlobalStateChangeListener listener = getListenerForServiceRunning(awaitIpcServiceLatch, CLI_SERVICE);
+        kernel.getContext().addGlobalStateChangeListener(listener);
+
+        String validGid;
+        if (Exec.isWindows) {
+            // GG_NEEDS_REVIEW: TODO support windows
+            validGid = "0";
+        } else {
+            validGid = selectAValidGid();
+        }
+        assertNotNull(validGid, "Failed to find a single valid GID on this test instance");
+        kernel.locate(CLI_SERVICE).getConfig().lookup(CONFIGURATION_CONFIG_KEY, AUTHORIZED_POSIX_GROUPS).withValue(validGid);
+        assertTrue(awaitIpcServiceLatch.await(10, TimeUnit.SECONDS));
+        kernel.getContext().removeGlobalStateChangeListener(listener);
+        ExecutionException executionException = assertThrows(ExecutionException.class, () ->
+                IPCTestUtils.connectToGGCOverEventStreamIPC(TestUtils.getSocketOptionsForIPC(),
+                        oldAuthToken, kernel));
+        assertEquals(AccessDeniedException.class, executionException.getCause().getClass());
+
+        try(EventStreamRPCConnection eventStreamRPCConnection = IPCTestUtils.connectToGGCOverEventStreamIPC(TestUtils.getSocketOptionsForIPC(),
+                getAuthTokenFromInfoFile(), kernel)){
+
+            GreengrassCoreIPCClient client = new GreengrassCoreIPCClient(eventStreamRPCConnection);
+            ListComponentsResponse listComponentsResponse = client.listComponents(new ListComponentsRequest(), Optional.empty()).getResponse()
+                    .get(DEFAULT_TIMEOUT_IN_SEC, TimeUnit.SECONDS);
+            assertTrue(listComponentsResponse.getComponents().size() > 0);
+        }
     }
 
 

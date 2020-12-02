@@ -9,7 +9,6 @@ import com.aws.greengrass.componentmanager.ComponentStore;
 import com.aws.greengrass.componentmanager.exceptions.ComponentVersionNegotiationException;
 import com.aws.greengrass.componentmanager.exceptions.PackageDownloadException;
 import com.aws.greengrass.config.Topic;
-import com.aws.greengrass.config.Topics;
 import com.aws.greengrass.dependency.State;
 import com.aws.greengrass.deployment.DeviceConfiguration;
 import com.aws.greengrass.integrationtests.BaseITCase;
@@ -37,11 +36,13 @@ import org.junit.jupiter.api.condition.DisabledOnOs;
 import org.junit.jupiter.api.condition.OS;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.junit.jupiter.api.extension.ExtensionContext;
+import software.amazon.awssdk.aws.greengrass.GetComponentDetailsResponseHandler;
 import software.amazon.awssdk.aws.greengrass.GreengrassCoreIPCClient;
 import software.amazon.awssdk.aws.greengrass.model.ComponentDetails;
 import software.amazon.awssdk.aws.greengrass.model.CreateLocalDeploymentRequest;
 import software.amazon.awssdk.aws.greengrass.model.CreateLocalDeploymentResponse;
 import software.amazon.awssdk.aws.greengrass.model.GetComponentDetailsRequest;
+import software.amazon.awssdk.aws.greengrass.model.GetComponentDetailsResponse;
 import software.amazon.awssdk.aws.greengrass.model.InvalidArgumentsError;
 import software.amazon.awssdk.aws.greengrass.model.LifecycleState;
 import software.amazon.awssdk.aws.greengrass.model.ListComponentsRequest;
@@ -51,13 +52,13 @@ import software.amazon.awssdk.aws.greengrass.model.ListLocalDeploymentsResponse;
 import software.amazon.awssdk.aws.greengrass.model.ResourceNotFoundError;
 import software.amazon.awssdk.aws.greengrass.model.RestartComponentRequest;
 import software.amazon.awssdk.aws.greengrass.model.RunWithInfo;
-import software.amazon.awssdk.aws.greengrass.model.UpdateRecipesAndArtifactsRequest;
 import software.amazon.awssdk.eventstreamrpc.EventStreamRPCConnection;
 import software.amazon.awssdk.eventstreamrpc.model.AccessDeniedException;
 
 import java.io.File;
 import java.io.IOException;
 import java.net.ConnectException;
+import java.net.URISyntaxException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
@@ -72,9 +73,9 @@ import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 
+import static com.aws.greengrass.cli.CLIService.AUTHORIZED_POSIX_GROUPS;
 import static com.aws.greengrass.cli.CLIService.CLI_AUTH_TOKEN;
 import static com.aws.greengrass.cli.CLIService.CLI_SERVICE;
-import static com.aws.greengrass.cli.CLIService.AUTHORIZED_POSIX_GROUPS;
 import static com.aws.greengrass.componentmanager.KernelConfigResolver.CONFIGURATION_CONFIG_KEY;
 import static com.aws.greengrass.integrationtests.ipc.IPCTestUtils.TEST_SERVICE_NAME;
 import static com.aws.greengrass.integrationtests.ipc.IPCTestUtils.getEventStreamRpcConnection;
@@ -238,14 +239,11 @@ class IPCCliTest {
 
         // updated recipes
         Path recipesPath = Paths.get(this.getClass().getResource("recipes").toURI());
-        UpdateRecipesAndArtifactsRequest request = new UpdateRecipesAndArtifactsRequest();
-        request.setRecipeDirectoryPath(recipesPath.toString());
-        clientConnection.updateRecipesAndArtifacts(request, Optional.empty()).getResponse()
-                .get(DEFAULT_TIMEOUT_IN_SEC, TimeUnit.SECONDS);
 
         // Deployment to add a component
         CreateLocalDeploymentRequest createLocalDeploymentRequest = new CreateLocalDeploymentRequest();
         createLocalDeploymentRequest.setRootComponentVersionsToAdd(Collections.singletonMap(TEST_SERVICE_NAME, "1.0.1"));
+        createLocalDeploymentRequest.setRecipeDirectoryPath(recipesPath.toAbsolutePath().toString());
         CountDownLatch serviceLatch = waitForServiceToComeInState(TEST_SERVICE_NAME, State.RUNNING, kernel);
 
         CreateLocalDeploymentResponse addComponentDeploymentResponse =
@@ -311,14 +309,6 @@ class IPCCliTest {
         // updated recipes
         Path recipesPath = Paths.get(this.getClass().getResource("recipes").toURI());
         Path artifactsPath = Paths.get(this.getClass().getResource("artifacts").toURI());
-        UpdateRecipesAndArtifactsRequest request = new UpdateRecipesAndArtifactsRequest();
-        request.setRecipeDirectoryPath(recipesPath.toString());
-        request.setArtifactsDirectoryPath(artifactsPath.toString());
-        clientConnection.updateRecipesAndArtifacts(request, Optional.empty()).getResponse()
-                .get(DEFAULT_TIMEOUT_IN_SEC, TimeUnit.SECONDS);
-
-        assertTrue(Files.exists(kernel.getNucleusPaths().componentStorePath().resolve(ComponentStore.ARTIFACT_DIRECTORY)
-                .resolve("Component1").resolve("1.0.0").resolve("run.sh")));
 
         Map<String, Map<String, Object>> componentToConfiguration;
         String update = "{\"Component1\":{\"MERGE\":{\"Message\":\"NewWorld\"}}}";
@@ -334,6 +324,9 @@ class IPCCliTest {
         createLocalDeploymentRequest.setRootComponentVersionsToAdd(Collections.singletonMap("Component1", "1.0.0"));
         createLocalDeploymentRequest.setComponentToConfiguration(componentToConfiguration);
         createLocalDeploymentRequest.setComponentToRunWithInfo(componentToRunWithInfo);
+        createLocalDeploymentRequest.setRecipeDirectoryPath(recipesPath.toAbsolutePath().toString());
+        createLocalDeploymentRequest.setArtifactsDirectoryPath(artifactsPath.toAbsolutePath().toString());
+
 
         CountDownLatch waitForComponent1ToRun = waitForServiceToComeInState("Component1", State.RUNNING, kernel);
         CreateLocalDeploymentResponse addComponentDeploymentResponse =
@@ -352,14 +345,55 @@ class IPCCliTest {
         assertEquals("NewWorld", componentDetails.getConfiguration().get("Message"));
         Topic posixUser = kernel.getConfig().find(SERVICES_NAMESPACE_TOPIC, "Component1", RUN_WITH_NAMESPACE_TOPIC, "posixUser");
         assertEquals("nobody", posixUser.getOnce());
+
+        assertTrue(Files.exists(kernel.getNucleusPaths().componentStorePath().resolve(ComponentStore.ARTIFACT_DIRECTORY)
+                .resolve("Component1").resolve("1.0.0").resolve("run.sh")));
     }
 
     @Test
     @Order(9)
+    void GIVEN_kernel_running_WHEN_multiple_deployments_scheduled_THEN_all_deployments_succeed(ExtensionContext context) throws Exception {
+
+
+        ignoreExceptionOfType(context, PackageDownloadException.class);
+        ignoreExceptionOfType(context, ComponentVersionNegotiationException.class);
+
+        Path recipesPath = Paths.get(this.getClass().getResource("recipes").toURI());
+        Path artifactsPath = Paths.get(this.getClass().getResource("artifacts").toURI());
+
+        CreateLocalDeploymentRequest createLocalDeploymentRequest = new CreateLocalDeploymentRequest();
+        createLocalDeploymentRequest.setGroupName("NewGroup");
+        createLocalDeploymentRequest.setRootComponentVersionsToAdd(Collections.singletonMap("Component1", "1.0.0"));
+        createLocalDeploymentRequest.setRecipeDirectoryPath(recipesPath.toAbsolutePath().toString());
+        createLocalDeploymentRequest.setArtifactsDirectoryPath(artifactsPath.toAbsolutePath().toString());
+
+        CreateLocalDeploymentResponse firstDeploymentResponse =
+                clientConnection.createLocalDeployment(createLocalDeploymentRequest, Optional.empty()).getResponse()
+                        .get(DEFAULT_TIMEOUT_IN_SEC, TimeUnit.SECONDS);
+        CountDownLatch waitForFirstDeployment = waitForDeploymentToBeSuccessful(firstDeploymentResponse.getDeploymentId(), kernel);
+
+        createLocalDeploymentRequest = new CreateLocalDeploymentRequest();
+        createLocalDeploymentRequest.setGroupName("NewGroup");
+        createLocalDeploymentRequest.setRootComponentVersionsToAdd(Collections.singletonMap("ServiceName", "1.0.1"));
+        createLocalDeploymentRequest.setRecipeDirectoryPath(recipesPath.toAbsolutePath().toString());
+        createLocalDeploymentRequest.setArtifactsDirectoryPath(artifactsPath.toAbsolutePath().toString());
+
+
+        CreateLocalDeploymentResponse secondDeploymentResponse =
+                clientConnection.createLocalDeployment(createLocalDeploymentRequest, Optional.empty()).getResponse()
+                        .get(DEFAULT_TIMEOUT_IN_SEC, TimeUnit.SECONDS);
+        CountDownLatch waitForSecondDeployment = waitForDeploymentToBeSuccessful(secondDeploymentResponse.getDeploymentId(), kernel);
+
+        assertTrue(waitForFirstDeployment.await(60, TimeUnit.SECONDS));
+        assertTrue(waitForSecondDeployment.await(60, TimeUnit.SECONDS));
+    }
+
+    @Test
+    @Order(10)
     void GIVEN_kernel_running_WHEN_CLI_authorized_groups_updated_THEN_old_token_revoked_and_new_token_accepted(ExtensionContext context)
             throws Exception {
 
-        ignoreExceptionOfType(context, UnauthenticatedException.class);
+        ignoreExceptionOfType(context, RuntimeException.class);
         String oldAuthToken = getAuthTokenFromInfoFile();
         CountDownLatch awaitIpcServiceLatch = new CountDownLatch(1);
         GlobalStateChangeListener listener = getListenerForServiceRunning(awaitIpcServiceLatch, CLI_SERVICE);
@@ -383,7 +417,11 @@ class IPCCliTest {
 
         try(EventStreamRPCConnection eventStreamRPCConnection = IPCTestUtils.connectToGGCOverEventStreamIPC(TestUtils.getSocketOptionsForIPC(),
                 getAuthTokenFromInfoFile(), kernel)){
-            assertTrue(eventStreamRPCConnection.getConnection().isOpen());
+
+            GreengrassCoreIPCClient client = new GreengrassCoreIPCClient(eventStreamRPCConnection);
+            ListComponentsResponse listComponentsResponse = client.listComponents(new ListComponentsRequest(), Optional.empty()).getResponse()
+                    .get(DEFAULT_TIMEOUT_IN_SEC, TimeUnit.SECONDS);
+            assertTrue(listComponentsResponse.getComponents().size() > 0);
         }
     }
 

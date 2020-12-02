@@ -76,9 +76,6 @@ public class DeploymentCommand extends BaseCommand {
                 return 1;
             }
         }
-        if (recipeDir != null || artifactDir != null) {
-            nucleusAdapterIpc.updateRecipesAndArtifacts(recipeDir, artifactDir);
-        }
 
         CreateLocalDeploymentRequest createLocalDeploymentRequest = new CreateLocalDeploymentRequest();
         createLocalDeploymentRequest.setGroupName(groupId);
@@ -86,6 +83,8 @@ public class DeploymentCommand extends BaseCommand {
         createLocalDeploymentRequest.setRootComponentVersionsToAdd(componentsToMerge);
         createLocalDeploymentRequest.setRootComponentsToRemove(componentsToRemove);
         createLocalDeploymentRequest.setComponentToRunWithInfo(getComponentToRunWithInfo(runWithOptions));
+        createLocalDeploymentRequest.setRecipeDirectoryPath(deTilde(recipeDir));
+        createLocalDeploymentRequest.setArtifactsDirectoryPath(deTilde(artifactDir));
         String deploymentId = nucleusAdapterIpc.createLocalDeployment(createLocalDeploymentRequest);
         System.out.println("Local deployment has been submitted! Deployment Id: " + deploymentId);
         return 0;

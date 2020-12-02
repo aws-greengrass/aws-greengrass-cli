@@ -5,11 +5,7 @@
 
 package com.aws.greengrass.cli;
 
-import com.amazon.aws.iot.greengrass.component.common.ComponentRecipe;
-import com.amazon.aws.iot.greengrass.component.common.SerializerFactory;
 import com.aws.greengrass.componentmanager.ComponentStore;
-import com.aws.greengrass.componentmanager.exceptions.PackageLoadingException;
-import com.aws.greengrass.componentmanager.models.ComponentIdentifier;
 import com.aws.greengrass.config.Topics;
 import com.aws.greengrass.deployment.DeploymentQueue;
 import com.aws.greengrass.deployment.model.ConfigurationUpdateOperation;
@@ -40,7 +36,6 @@ import software.amazon.awssdk.aws.greengrass.GeneratedAbstractListComponentsOper
 import software.amazon.awssdk.aws.greengrass.GeneratedAbstractListLocalDeploymentsOperationHandler;
 import software.amazon.awssdk.aws.greengrass.GeneratedAbstractRestartComponentOperationHandler;
 import software.amazon.awssdk.aws.greengrass.GeneratedAbstractStopComponentOperationHandler;
-import software.amazon.awssdk.aws.greengrass.GeneratedAbstractUpdateRecipesAndArtifactsOperationHandler;
 import software.amazon.awssdk.aws.greengrass.model.ComponentDetails;
 import software.amazon.awssdk.aws.greengrass.model.CreateDebugPasswordRequest;
 import software.amazon.awssdk.aws.greengrass.model.CreateDebugPasswordResponse;
@@ -53,7 +48,6 @@ import software.amazon.awssdk.aws.greengrass.model.GetLocalDeploymentStatusReque
 import software.amazon.awssdk.aws.greengrass.model.GetLocalDeploymentStatusResponse;
 import software.amazon.awssdk.aws.greengrass.model.InvalidArgumentsError;
 import software.amazon.awssdk.aws.greengrass.model.InvalidArtifactsDirectoryPathError;
-import software.amazon.awssdk.aws.greengrass.model.InvalidRecipeDirectoryPathError;
 import software.amazon.awssdk.aws.greengrass.model.LifecycleState;
 import software.amazon.awssdk.aws.greengrass.model.ListComponentsRequest;
 import software.amazon.awssdk.aws.greengrass.model.ListComponentsResponse;
@@ -68,16 +62,11 @@ import software.amazon.awssdk.aws.greengrass.model.ServiceError;
 import software.amazon.awssdk.aws.greengrass.model.StopComponentRequest;
 import software.amazon.awssdk.aws.greengrass.model.StopComponentResponse;
 import software.amazon.awssdk.aws.greengrass.model.UnauthorizedError;
-import software.amazon.awssdk.aws.greengrass.model.UpdateRecipesAndArtifactsRequest;
-import software.amazon.awssdk.aws.greengrass.model.UpdateRecipesAndArtifactsResponse;
 import software.amazon.awssdk.eventstreamrpc.OperationContinuationHandlerContext;
 import software.amazon.awssdk.eventstreamrpc.model.EventStreamJsonMessage;
 
-import java.io.IOException;
-import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
-import java.nio.file.StandardCopyOption;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.security.SecureRandom;
@@ -118,7 +107,7 @@ public class CLIEventStreamAgent {
 
     private static final int DEBUG_PASSWORD_LENGTH_REQUIREMENT = 32;
     private static final String DEBUG_USERNAME = "debug";
-    private static final Duration DEBUG_PASSWORD_EXPIRATION = Duration.ofHours(4);
+    private static final Duration DEBUG_PASSWORD_EXPIRATION = Duration.ofHours(8);
 
     @Inject
     private Kernel kernel;
@@ -126,9 +115,6 @@ public class CLIEventStreamAgent {
     @Inject
     @Setter(AccessLevel.PACKAGE)
     private DeploymentQueue deploymentQueue;
-
-    @Inject
-    private ComponentStore componentStore;
 
     private final SecureRandom random = new SecureRandom();
 
@@ -146,11 +132,6 @@ public class CLIEventStreamAgent {
 
     public StopComponentHandler getStopComponentsHandler(OperationContinuationHandlerContext context) {
         return new StopComponentHandler(context);
-    }
-
-    public UpdateRecipesAndArtifactsHandler getUpdateRecipesAndArtifactsHandler(
-            OperationContinuationHandlerContext context) {
-        return new UpdateRecipesAndArtifactsHandler(context);
     }
 
     public CreateLocalDeploymentHandler getCreateLocalDeploymentHandler(OperationContinuationHandlerContext context,
@@ -392,126 +373,6 @@ public class CLIEventStreamAgent {
         }
     }
 
-    class UpdateRecipesAndArtifactsHandler extends GeneratedAbstractUpdateRecipesAndArtifactsOperationHandler {
-
-        private final String componentName;
-
-        public UpdateRecipesAndArtifactsHandler(OperationContinuationHandlerContext context) {
-            super(context);
-            this.componentName = context.getAuthenticationData().getIdentityLabel();
-        }
-
-        @Override
-        protected void onStreamClosed() {
-
-        }
-
-        @Override
-        @SuppressWarnings("PMD.PreserveStackTrace")
-        public UpdateRecipesAndArtifactsResponse handleRequest(UpdateRecipesAndArtifactsRequest request) {
-            return translateExceptions(() -> {
-                authorizeRequest(componentName);
-                validateUpdateRecipesAndArtifactsRequest(request);
-                Path kernelPackageStorePath = kernel.getNucleusPaths().componentStorePath();
-                if (!Utils.isEmpty(request.getRecipeDirectoryPath())) {
-                    Path recipeDirectoryPath = Paths.get(request.getRecipeDirectoryPath());
-                    try {
-                        copyRecipesToComponentStore(recipeDirectoryPath);
-                    } catch (IOException e) {
-                        logger.atError().setCause(e).kv("Recipe Directory path", recipeDirectoryPath)
-                                .log("Caught exception while updating the recipes");
-                        throw new InvalidRecipeDirectoryPathError(e.getMessage());
-                    }
-                }
-                if (!Utils.isEmpty(request.getArtifactsDirectoryPath())) {
-                    Path artifactsDirectoryPath = Paths.get(request.getArtifactsDirectoryPath());
-                    Path kernelArtifactsDirectoryPath =
-                            kernelPackageStorePath.resolve(ComponentStore.ARTIFACT_DIRECTORY);
-                    try {
-                        if (kernelArtifactsDirectoryPath.startsWith(artifactsDirectoryPath)) {
-                            String errorString = "Requested artifacts directory path is parent of kernel artifacts "
-                                    + "directory path. Specify another path to avoid recursive copy";
-                            logger.atError().log(errorString);
-                            throw new InvalidArtifactsDirectoryPathError(errorString);
-                        } else {
-                            Utils.copyFolderRecursively(artifactsDirectoryPath, kernelArtifactsDirectoryPath,
-                                    StandardCopyOption.REPLACE_EXISTING);
-                        }
-                    } catch (IOException e) {
-                        logger.atError().setCause(e).kv("Artifact Directory path", artifactsDirectoryPath)
-                                .log("Caught exception while updating the recipes");
-                        throw new InvalidArtifactsDirectoryPathError(e.getMessage());
-                    }
-                }
-                return new UpdateRecipesAndArtifactsResponse();
-            });
-        }
-
-        @Override
-        public void handleStreamEvent(EventStreamJsonMessage streamRequestEvent) {
-
-        }
-
-        private void validateUpdateRecipesAndArtifactsRequest(UpdateRecipesAndArtifactsRequest request) {
-            String recipeDirectoryPath = request.getRecipeDirectoryPath();
-            String artifactsDirectoryPath = request.getArtifactsDirectoryPath();
-            if (Utils.isEmpty(recipeDirectoryPath) && Utils.isEmpty(artifactsDirectoryPath)) {
-                throw new InvalidArgumentsError("Need to provide at least one of the directory paths to update");
-            }
-        }
-
-        private void copyRecipesToComponentStore(Path from) throws IOException {
-            for (Path r : Files.walk(from).collect(Collectors.toList())) {
-                String ext = Utils.extension(r.toString());
-                ComponentRecipe recipe = null;
-                if (r.toFile().length() == 0) {
-                    logger.atInfo().log("Skipping recipe file {} because it is empty", r);
-                    continue;
-                }
-
-                try {
-                    switch (ext.toLowerCase()) {
-                        case "yaml":
-                        case "yml":
-                            recipe = SerializerFactory.getRecipeSerializer()
-                                    .readValue(r.toFile(), ComponentRecipe.class);
-                            break;
-                        case "json":
-                            recipe = SerializerFactory.getRecipeSerializerJson()
-                                    .readValue(r.toFile(), ComponentRecipe.class);
-                            break;
-                        default:
-                            break;
-                    }
-                } catch (IOException e) {
-                    // Throw on error so that the user will receive this message and we will stop the deployment.
-                    // This is to fail fast while providing actionable feedback.
-                    throw new IOException(
-                            String.format("Unable to parse %s as a recipe due to: %s", r.toString(), e.getMessage()),
-                            e);
-                }
-                if (recipe == null) {
-                    logger.atInfo().log("Skipping file {} because it was not recognized as a recipe", r);
-                    continue;
-                }
-
-                // Write the recipe as YAML with the proper filename into the store
-                ComponentIdentifier componentIdentifier =
-                        new ComponentIdentifier(recipe.getComponentName(), recipe.getComponentVersion());
-
-                try {
-                    componentStore.savePackageRecipe(componentIdentifier,
-                            SerializerFactory.getRecipeSerializer().writeValueAsString(recipe));
-                } catch (PackageLoadingException e) {
-                    // Throw on error so that the user will receive this message and we will stop the deployment.
-                    // This is to fail fast while providing actionable feedback.
-                    throw new IOException(String.format("Unable to copy recipe for '%s' to component store due to: %s",
-                            componentIdentifier.toString(), e.getMessage()), e);
-                }
-            }
-        }
-    }
-
     class CreateLocalDeploymentHandler extends GeneratedAbstractCreateLocalDeploymentOperationHandler {
 
         private final Topics cliServiceConfig;
@@ -546,10 +407,25 @@ public class CLIEventStreamAgent {
                                 return configUpdateOption;
                             }));
                 }
+
+                if (!Utils.isEmpty(request.getArtifactsDirectoryPath())) {
+                    Path artifactsDirectoryPath = Paths.get(request.getArtifactsDirectoryPath());
+                    Path kernelArtifactsDirectoryPath = kernel.getNucleusPaths().componentStorePath()
+                            .resolve(ComponentStore.ARTIFACT_DIRECTORY);
+                    if (kernelArtifactsDirectoryPath.startsWith(artifactsDirectoryPath)) {
+                        String errorString = "Requested artifacts directory path is parent of kernel artifacts "
+                                + "directory path. Specify another path to avoid recursive copy";
+                        logger.atError().log(errorString);
+                        throw new InvalidArtifactsDirectoryPathError(errorString);
+                    }
+                }
+
                 LocalOverrideRequest localOverrideRequest = LocalOverrideRequest.builder().requestId(deploymentId)
                         .componentsToMerge(request.getRootComponentVersionsToAdd())
                         .componentsToRemove(request.getRootComponentsToRemove())
                         .componentToRunWithInfo(request.getComponentToRunWithInfo())
+                        .recipeDirectoryPath(request.getRecipeDirectoryPath())
+                        .artifactsDirectoryPath(request.getArtifactsDirectoryPath())
                         .requestTimestamp(System.currentTimeMillis()).groupName(
                                 request.getGroupName() == null || request.getGroupName().isEmpty()
                                         ? LOCAL_DEPLOYMENT_GROUP_NAME : request.getGroupName())

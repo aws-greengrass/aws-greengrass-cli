@@ -134,11 +134,6 @@ public class CLIEventStreamAgent {
         return new StopComponentHandler(context);
     }
 
-    //public UpdateRecipesAndArtifactsHandler getUpdateRecipesAndArtifactsHandler(
-    //        OperationContinuationHandlerContext context) {
-    //    return new UpdateRecipesAndArtifactsHandler(context);
-    //}
-
     public CreateLocalDeploymentHandler getCreateLocalDeploymentHandler(OperationContinuationHandlerContext context,
                                                                         Topics cliServiceConfig) {
         return new CreateLocalDeploymentHandler(context, cliServiceConfig);

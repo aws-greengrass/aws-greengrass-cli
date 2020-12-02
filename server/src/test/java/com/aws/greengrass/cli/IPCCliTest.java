@@ -58,6 +58,7 @@ import software.amazon.awssdk.eventstreamrpc.model.AccessDeniedException;
 import java.io.File;
 import java.io.IOException;
 import java.net.ConnectException;
+import java.net.URISyntaxException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
@@ -351,8 +352,40 @@ class IPCCliTest {
 
     @Test
     @Order(9)
-    void GIVEN_kernel_running_WHEN_multiple_deployments_scheduled_THEN_all_deployments_succeed(ExtensionContext context) {
+    void GIVEN_kernel_running_WHEN_multiple_deployments_scheduled_THEN_all_deployments_succeed(ExtensionContext context) throws Exception {
 
+
+        ignoreExceptionOfType(context, PackageDownloadException.class);
+        ignoreExceptionOfType(context, ComponentVersionNegotiationException.class);
+
+        Path recipesPath = Paths.get(this.getClass().getResource("recipes").toURI());
+        Path artifactsPath = Paths.get(this.getClass().getResource("artifacts").toURI());
+
+        CreateLocalDeploymentRequest createLocalDeploymentRequest = new CreateLocalDeploymentRequest();
+        createLocalDeploymentRequest.setGroupName("NewGroup");
+        createLocalDeploymentRequest.setRootComponentVersionsToAdd(Collections.singletonMap("Component1", "1.0.0"));
+        createLocalDeploymentRequest.setRecipeDirectoryPath(recipesPath.toAbsolutePath().toString());
+        createLocalDeploymentRequest.setArtifactsDirectoryPath(artifactsPath.toAbsolutePath().toString());
+
+        CreateLocalDeploymentResponse firstDeploymentResponse =
+                clientConnection.createLocalDeployment(createLocalDeploymentRequest, Optional.empty()).getResponse()
+                        .get(DEFAULT_TIMEOUT_IN_SEC, TimeUnit.SECONDS);
+        CountDownLatch waitForFirstDeployment = waitForDeploymentToBeSuccessful(firstDeploymentResponse.getDeploymentId(), kernel);
+
+        createLocalDeploymentRequest = new CreateLocalDeploymentRequest();
+        createLocalDeploymentRequest.setGroupName("NewGroup");
+        createLocalDeploymentRequest.setRootComponentVersionsToAdd(Collections.singletonMap("ServiceName", "1.0.1"));
+        createLocalDeploymentRequest.setRecipeDirectoryPath(recipesPath.toAbsolutePath().toString());
+        createLocalDeploymentRequest.setArtifactsDirectoryPath(artifactsPath.toAbsolutePath().toString());
+
+
+        CreateLocalDeploymentResponse secondDeploymentResponse =
+                clientConnection.createLocalDeployment(createLocalDeploymentRequest, Optional.empty()).getResponse()
+                        .get(DEFAULT_TIMEOUT_IN_SEC, TimeUnit.SECONDS);
+        CountDownLatch waitForSecondDeployment = waitForDeploymentToBeSuccessful(secondDeploymentResponse.getDeploymentId(), kernel);
+
+        assertTrue(waitForFirstDeployment.await(60, TimeUnit.SECONDS));
+        assertTrue(waitForSecondDeployment.await(60, TimeUnit.SECONDS));
     }
 
     @Test

@@ -107,7 +107,7 @@ public class CLIEventStreamAgent {
 
     private static final int DEBUG_PASSWORD_LENGTH_REQUIREMENT = 32;
     private static final String DEBUG_USERNAME = "debug";
-    private static final Duration DEBUG_PASSWORD_EXPIRATION = Duration.ofHours(4);
+    private static final Duration DEBUG_PASSWORD_EXPIRATION = Duration.ofHours(8);
 
     @Inject
     private Kernel kernel;

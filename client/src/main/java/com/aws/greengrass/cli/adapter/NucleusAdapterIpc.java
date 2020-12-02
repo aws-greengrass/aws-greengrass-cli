@@ -21,8 +21,6 @@ public interface NucleusAdapterIpc {
 
     void stopComponent(String componentName);
 
-    //void updateRecipesAndArtifacts(String recipesDirectoryPath, String artifactsDirectoryPath);
-
     LocalDeployment getLocalDeploymentStatus(String deploymentId);
 
     List<LocalDeployment> listLocalDeployments();

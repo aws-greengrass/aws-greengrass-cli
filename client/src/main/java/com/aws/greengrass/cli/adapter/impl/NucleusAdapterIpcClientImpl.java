@@ -125,21 +125,6 @@ public class NucleusAdapterIpcClientImpl implements NucleusAdapterIpc {
         }
     }
 
-//    @Override
-//    public void updateRecipesAndArtifacts(String recipesDirectoryPath, String artifactsDirectoryPath) {
-//
-//        try {
-//            UpdateRecipesAndArtifactsRequest request = new UpdateRecipesAndArtifactsRequest();
-//            request.setRecipeDirectoryPath(deTilde(recipesDirectoryPath));
-//            request.setArtifactsDirectoryPath(deTilde(artifactsDirectoryPath));
-//            getIpcClient().updateRecipesAndArtifacts(request, Optional.empty()).getResponse()
-//                    .get(DEFAULT_TIMEOUT_IN_SEC, TimeUnit.SECONDS);
-//        } catch (ExecutionException | TimeoutException | InterruptedException e) {
-//            //TODO: update when the sdk method signature includes exceptions
-//            throw new RuntimeException(e);
-//        }
-//    }
-
     @Override
     public LocalDeployment getLocalDeploymentStatus(String deploymentId) {
 

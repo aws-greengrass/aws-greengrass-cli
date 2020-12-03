@@ -5,11 +5,7 @@
 
 package com.aws.greengrass.cli;
 
-import com.amazon.aws.iot.greengrass.component.common.ComponentRecipe;
-import com.amazon.aws.iot.greengrass.component.common.RecipeFormatVersion;
-import com.amazon.aws.iot.greengrass.component.common.SerializerFactory;
 import com.aws.greengrass.componentmanager.ComponentStore;
-import com.aws.greengrass.componentmanager.models.ComponentIdentifier;
 import com.aws.greengrass.config.Topics;
 import com.aws.greengrass.dependency.Context;
 import com.aws.greengrass.dependency.State;
@@ -21,11 +17,9 @@ import com.aws.greengrass.lifecyclemanager.Kernel;
 import com.aws.greengrass.lifecyclemanager.exceptions.ServiceLoadException;
 import com.aws.greengrass.testcommons.testutilities.GGExtension;
 import com.aws.greengrass.util.Coerce;
-import com.aws.greengrass.util.NucleusPaths;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.DeserializationFeature;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.vdurmont.semver4j.Semver;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -45,7 +39,6 @@ import software.amazon.awssdk.aws.greengrass.model.GetComponentDetailsResponse;
 import software.amazon.awssdk.aws.greengrass.model.GetLocalDeploymentStatusRequest;
 import software.amazon.awssdk.aws.greengrass.model.GetLocalDeploymentStatusResponse;
 import software.amazon.awssdk.aws.greengrass.model.InvalidArgumentsError;
-import software.amazon.awssdk.aws.greengrass.model.InvalidArtifactsDirectoryPathError;
 import software.amazon.awssdk.aws.greengrass.model.LifecycleState;
 import software.amazon.awssdk.aws.greengrass.model.ListComponentsRequest;
 import software.amazon.awssdk.aws.greengrass.model.ListComponentsResponse;
@@ -56,14 +49,11 @@ import software.amazon.awssdk.aws.greengrass.model.RestartComponentRequest;
 import software.amazon.awssdk.aws.greengrass.model.ServiceError;
 import software.amazon.awssdk.aws.greengrass.model.StopComponentRequest;
 import software.amazon.awssdk.aws.greengrass.model.UnauthorizedError;
-import software.amazon.awssdk.aws.greengrass.model.UpdateRecipesAndArtifactsRequest;
 import software.amazon.awssdk.crt.eventstream.ServerConnectionContinuation;
 import software.amazon.awssdk.eventstreamrpc.OperationContinuationHandlerContext;
 import software.amazon.awssdk.utils.ImmutableMap;
 
 import java.io.IOException;
-import java.nio.file.Files;
-import java.nio.file.NoSuchFileException;
 import java.nio.file.Path;
 import java.util.Arrays;
 import java.util.HashMap;
@@ -78,18 +68,14 @@ import static com.aws.greengrass.deployment.DeploymentStatusKeeper.DEPLOYMENT_ST
 import static com.aws.greengrass.ipc.common.IPCErrorStrings.DEPLOYMENTS_QUEUE_NOT_INITIALIZED;
 import static com.aws.greengrass.testcommons.testutilities.ExceptionLogProtector.ignoreExceptionOfType;
 import static org.hamcrest.MatcherAssert.assertThat;
-import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.hasLength;
 import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.junit.jupiter.api.Assertions.fail;
 import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.only;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
@@ -254,88 +240,6 @@ class CLIEventStreamAgentTest {
         when(kernel.locate(TEST_SERVICE)).thenReturn(mockTestService);
         cliEventStreamAgent.getStopComponentsHandler(mockContext).handleRequest(stopComponentRequest);
         verify(mockTestService).requestStop();
-    }
-
-    @Test
-    void testUpdateRecipesAndArtifacts_empty_paths() {
-        UpdateRecipesAndArtifactsRequest request = new UpdateRecipesAndArtifactsRequest();
-        assertThrows(InvalidArgumentsError.class,
-                () -> cliEventStreamAgent.getUpdateRecipesAndArtifactsHandler(mockContext).handleRequest(request));
-    }
-
-    @Test
-    void testUpdateRecipesAndArtifacts_invalid_paths(ExtensionContext context) {
-        ignoreExceptionOfType(context, NoSuchFileException.class);
-        UpdateRecipesAndArtifactsRequest request = new UpdateRecipesAndArtifactsRequest();
-        request.setArtifactsDirectoryPath("/InvalidPath");
-        NucleusPaths nucleusPaths = mock(NucleusPaths.class);
-        when(kernel.getNucleusPaths()).thenReturn(nucleusPaths);
-        when(nucleusPaths.componentStorePath()).thenReturn(mockPath);
-        assertThrows(InvalidArtifactsDirectoryPathError.class,
-                () -> cliEventStreamAgent.getUpdateRecipesAndArtifactsHandler(mockContext).handleRequest(request));
-    }
-
-    @Test
-    void testUpdateRecipesAndArtifacts_successful_update(ExtensionContext context) throws Exception {
-        ignoreExceptionOfType(context, NoSuchFileException.class);
-        UpdateRecipesAndArtifactsRequest request = new UpdateRecipesAndArtifactsRequest();
-        Path mockArtifactsDirectoryPath = Files.createTempDirectory("mockArtifactsDirectoryPath");
-        request.setArtifactsDirectoryPath(mockArtifactsDirectoryPath.toString());
-        Path mockRecipesDirectoryPath = Files.createTempDirectory("mockRecipesDirectoryPath");
-        request.setRecipeDirectoryPath(mockRecipesDirectoryPath.toString());
-        Path componentPath = Files.createDirectories(mockRecipesDirectoryPath.resolve("SampleComponent-1.0.0"));
-        Path recipeFilePath = Files.createFile(componentPath.resolve("sampleRecipe.yml"));
-        ComponentRecipe componentRecipe =
-                ComponentRecipe.builder().componentName("SampleComponent").componentVersion(new Semver("1.0.0"))
-                        .recipeFormatVersion(RecipeFormatVersion.JAN_25_2020).build();
-        Files.write(recipeFilePath, OBJECT_MAPPER.writeValueAsBytes(componentRecipe));
-        Files.createFile(mockArtifactsDirectoryPath.resolve("artifact.zip"));
-        Files.createDirectories(mockPath.resolve(ComponentStore.RECIPE_DIRECTORY));
-        Files.createDirectories(mockPath.resolve(ComponentStore.ARTIFACT_DIRECTORY));
-        NucleusPaths nucleusPaths = mock(NucleusPaths.class);
-        when(kernel.getNucleusPaths()).thenReturn(nucleusPaths);
-        when(nucleusPaths.componentStorePath()).thenReturn(mockPath);
-        cliEventStreamAgent.getUpdateRecipesAndArtifactsHandler(mockContext).handleRequest(request);
-
-        ArgumentCaptor<String> recipeStringCaptor = ArgumentCaptor.forClass(String.class);
-        verify(componentStore, only())
-                .savePackageRecipe(eq(new ComponentIdentifier("SampleComponent", new Semver("1.0.0"))),
-                        recipeStringCaptor.capture());
-
-        ComponentRecipe actualRecipeSaved =
-                SerializerFactory.getRecipeSerializer().readValue(recipeStringCaptor.getValue(), ComponentRecipe.class);
-
-        assertThat(actualRecipeSaved, equalTo(componentRecipe));
-        assertTrue(Files.exists(mockPath.resolve(ComponentStore.ARTIFACT_DIRECTORY).resolve("artifact.zip")));
-    }
-
-    @Test
-    void testUpdateRecipesAndArtifacts_redundant_dir_path(ExtensionContext context) throws Exception {
-        ignoreExceptionOfType(context, NoSuchFileException.class);
-        UpdateRecipesAndArtifactsRequest request = new UpdateRecipesAndArtifactsRequest();
-        request.setArtifactsDirectoryPath(mockPath.toString());
-        request.setRecipeDirectoryPath(mockPath.toString());
-        Path recipeFilePath = Files.createFile(mockPath.resolve("sampleRecipe.yml"));
-        ComponentRecipe componentRecipe =
-                ComponentRecipe.builder().componentName("SampleComponent").componentVersion(new Semver("1.0.0"))
-                        .recipeFormatVersion(RecipeFormatVersion.JAN_25_2020).build();
-        Files.write(recipeFilePath, OBJECT_MAPPER.writeValueAsBytes(componentRecipe));
-        Files.createDirectories(mockPath.resolve(ComponentStore.RECIPE_DIRECTORY));
-        Files.createDirectories(mockPath.resolve(ComponentStore.ARTIFACT_DIRECTORY));
-        Files.createFile(mockPath.resolve("artifact.zip"));
-        NucleusPaths nucleusPaths = mock(NucleusPaths.class);
-        when(kernel.getNucleusPaths()).thenReturn(nucleusPaths);
-        when(nucleusPaths.componentStorePath()).thenReturn(mockPath);
-        assertThrows(InvalidArtifactsDirectoryPathError.class,
-                () -> cliEventStreamAgent.getUpdateRecipesAndArtifactsHandler(mockContext).handleRequest(request));
-        ArgumentCaptor<String> recipeStringCaptor = ArgumentCaptor.forClass(String.class);
-        verify(componentStore, only())
-                .savePackageRecipe(eq(new ComponentIdentifier("SampleComponent", new Semver("1.0.0"))),
-                        recipeStringCaptor.capture());
-
-        ComponentRecipe actualRecipeSaved =
-                SerializerFactory.getRecipeSerializer().readValue(recipeStringCaptor.getValue(), ComponentRecipe.class);
-        assertFalse(Files.exists(mockPath.resolve(ComponentStore.ARTIFACT_DIRECTORY).resolve("artifact.zip")));
     }
 
     @Test

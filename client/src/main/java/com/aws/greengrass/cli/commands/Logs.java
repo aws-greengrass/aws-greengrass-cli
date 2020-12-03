@@ -112,7 +112,7 @@ public class Logs extends BaseCommand {
                     .append(System.lineSeparator()).append("class=$str").toString());
             return;
         }
-        LogsUtil.getPrintStream().println(new StringBuilder("Suggested keywords for Greengrass log format: ")
+        LogsUtil.getPrintStream().println(new StringBuilder("Suggested keywords for Greengrass log format:")
                 .append(System.lineSeparator()).append("level=$str").append(System.lineSeparator())
                 .append("thread=$str").append(System.lineSeparator()).append("loggerName=$str")
                 .append(System.lineSeparator()).append("eventType=$str").append(System.lineSeparator())

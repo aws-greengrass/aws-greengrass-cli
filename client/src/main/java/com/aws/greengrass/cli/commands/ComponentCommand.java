@@ -49,7 +49,7 @@ public class ComponentCommand extends BaseCommand {
 
     // GG_NEEDS_REVIEW: TODO: input validation and better error handling https://sim.amazon.com/issues/P39478724
     @CommandLine.Command(name = "list", mixinStandardHelpOptions = true,
-            description = "Retrieve the names, component information, and runtime arguments for root-level components.")
+            description = "Retrieve the names, component information, and runtime arguments for components.")
     public int list() throws JsonProcessingException {
         List<ComponentDetails> componentDetails = nucleusAdapterIpc.listComponents();
         System.out.println("Components currently running in Greengrass:");

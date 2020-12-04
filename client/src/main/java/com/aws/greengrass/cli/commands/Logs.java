@@ -46,12 +46,14 @@ public class Logs extends BaseCommand {
                    @CommandLine.Option(names = {"-ld", "--log-dir"}, paramLabel = "Log directory") String[] logDirArray,
                    @CommandLine.Option(names = {"-t", "--time-window"}, paramLabel = "Time window") String[] timeWindow,
                    @CommandLine.Option(names = {"-f", "--filter"}, paramLabel = "Filter expression") String[] filterExpressions,
-                   @CommandLine.Option(names = {"-b", "--before"}, paramLabel = "Lines preceding", defaultValue = "0") int before,
-                   @CommandLine.Option(names = {"-a", "--after"}, paramLabel = "Lines following", defaultValue = "0") int after,
+                   @CommandLine.Option(names = {"-b", "--before"}, paramLabel = "Show N lines preceding matched line",
+                           defaultValue = "0") int before,
+                   @CommandLine.Option(names = {"-a", "--after"}, paramLabel = "Show N lines following matched line",
+                           defaultValue = "0") int after,
                    @CommandLine.Option(names = {"-m", "--max-log-queue-size"}, paramLabel = "Max log entries",
                            defaultValue = "100") int max,
                    @CommandLine.Option(names = {"-fol", "--follow"}, paramLabel = "Follow live updates") boolean follow,
-                   @CommandLine.Option(names = {"-nc", "--no-color"}, paramLabel = "Remove color from output") boolean noColor,
+                   @CommandLine.Option(names = {"-nc", "--no-color"}, paramLabel = "Output without any colors") boolean noColor,
                    @CommandLine.Option(names = {"-v", "--verbose"}, paramLabel = "Use verbose logging") boolean verbose,
                    @CommandLine.Option(names = {"-s", "--syslog"}, paramLabel = "Use syslog format") boolean syslog) {
         Runtime.getRuntime().addShutdownHook(new Thread(aggregation::close));

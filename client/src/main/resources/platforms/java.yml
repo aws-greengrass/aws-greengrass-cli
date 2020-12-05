@@ -6,14 +6,13 @@ ComponentVersion: $javaVersion.0.0
 ComponentDescription: The java platform
 ComponentPublisher: Amazon
 
-Manifests:
-  - Platform:
-      os: all
-    Lifecycle:
-      Install:
-          # Todo: check version
-        Skipif: onpath java 
-        Script:
-            debian: sudo apt install -y openjdk-${javaVersion}-jdk  
-            redhat: sudo yum install java-${javaVersion}-openjdk-devel
-            macos: brew install java${javaVersion}
+#include("platforms/standard.yml")
+
+Lifecycle:
+  Install:
+      # Todo: check version
+    Skipif: onpath java 
+    Script:
+        debian: sudo apt install -y openjdk-${javaVersion}-jdk  
+        redhat: sudo yum install java-${javaVersion}-openjdk-devel
+        macos: brew install java${javaVersion}

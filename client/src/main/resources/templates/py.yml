@@ -9,12 +9,9 @@ ComponentDependencies:
   variant.Python3:
     VersionRequirement: ^3.5
 
+#include("platforms/standard.yml")
 
-Manifests:
-  - Platform:
-## This should be os:posix, if only that were possible
-      os: all
-    Lifecycle:
-      Run:
-        posix: ln -f -s -t . {artifacts:path}/*; python3 $file
-        windows: whatever
+Lifecycle:
+  Run:
+    posix: ln -f -s -t . {artifacts:path}/*; python3 $file
+    windows: whatever

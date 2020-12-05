@@ -11,10 +11,9 @@ ComponentDependencies:
   java:
     VersionRequirement: ^$javaVersion.0.0
 
-Manifests:
-  - Platform:
-      os: all
-    Lifecycle:
-      Run:
-        posix: ln -f -s -t . {artifacts:path}/*; java -cp . -jar $file
-        windows: whatever
+#include("platforms/standard.yml")
+
+Lifecycle:
+  Run:
+    posix: ln -f -s -t . {artifacts:path}/*; java -cp . -jar $file
+    windows: whatever

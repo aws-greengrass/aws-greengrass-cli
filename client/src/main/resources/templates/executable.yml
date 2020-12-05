@@ -6,11 +6,9 @@ ComponentVersion: $version
 ComponentDescription: $description
 ComponentPublisher: $publisher
 
+#include("platforms/standard.yml")
 
-Manifests:
-  - Platform:
-      os: all
-    Lifecycle:
-      Run:
-        posix: ln -f -s -t . {artifacts:path}/*; exec $file
-        windows: whatever
+Lifecycle:
+  Run:
+    posix: ln -f -s -t . {artifacts:path}/*; exec $file
+    windows: whatever

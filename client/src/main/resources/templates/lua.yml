@@ -11,10 +11,8 @@ ComponentDependencies:
   lua:
     VersionRequirement: ^5.1.0
 
-Manifests:
-  - Platform:
-      os: all
-    Lifecycle:
-      Run:
-        posix: ln -f -s -t . {artifacts:path}/*; lua $file
-        windows: whatever
+#include("platforms/standard.yml")
+
+Lifecycle:
+  Run:
+    posix: ln -f -s -t . {artifacts:path}/*; lua $file

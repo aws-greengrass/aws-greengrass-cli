@@ -7,12 +7,17 @@ package com.aws.greengrass.cli.commands;
 import com.aws.greengrass.cli.CLI;
 import java.io.File;
 import java.io.IOException;
+import java.io.InputStream;
 import java.io.Writer;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.StandardOpenOption;
+import java.util.logging.Level;
+import java.util.logging.Logger;
+import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.Assertions;
+import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.io.TempDir;
 
 /**
@@ -22,6 +27,7 @@ import org.junit.jupiter.api.io.TempDir;
  * is wrong.
  */
 public class TemplateCommandTest {
+
     @TempDir
     static Path temp;
 
@@ -50,6 +56,8 @@ public class TemplateCommandTest {
         test_single_file("helloPerl", "#!/usr/bin/perl\n"
                 + "use warnings;\n"
                 + "print(\"Hello, World!\\n\");");
+        expect("helloPerl/recipes/helloPerl-0.0.0.yaml");
+        expect("helloPerl/artifacts/helloPerl/0.0.0/helloPerl");
     }
 
     @Test
@@ -57,6 +65,9 @@ public class TemplateCommandTest {
         String f = "/Users/jag/NetBeansProjects/HelloWorldForever/target/HelloWorldForever-1.0-SNAPSHOT.jar";
         if (new File(f).exists()) { // grotesque
             test_single_file(f);
+            expect("HelloWorldForever/recipes/java-11.0.0.yaml");
+            expect("HelloWorldForever/recipes/useless-0.0.0.yaml");
+            expect("HelloWorldForever/recipes/HelloWorldForever-1.0.yaml");
         }
     }
 
@@ -88,18 +99,53 @@ public class TemplateCommandTest {
 
     public void test_single_file(String name) {
         try {
-        System.out.println("Testing "+name);
-        Assertions.assertTrue(run("--ggcRootPath",
-                System.getProperty("user.home") + "/.greengrass",
-                "quick", "--dryrun", name) == 0);
-        } catch(Throwable t) {
+            System.out.println("Testing " + name);
+            Assertions.assertTrue(run("--ggcRootPath",
+                    System.getProperty("user.home") + "/.greengrass",
+                    "quick", "--dryrun",
+                    "-gtd", templates.toString(),
+                    name) == 0);
+        } catch (Throwable t) {
             t.printStackTrace(System.out);
             Assertions.fail(t.toString());
         }
     }
 
+    public void expect(String path) {
+        Path p = templates.resolve(path);
+        System.out.println("Expecting: " + p);
+        Assertions.assertTrue(Files.exists(p), p.toString());
+    }
+
     public int run(String... args) {
         return new CLI().runCommand(args);
+    }
+
+    static Path templates;
+
+    @BeforeAll
+    static public void setup() {
+        templates = temp.resolve("templates");
+    }
+
+    @AfterAll
+    static public void displayTree() {
+        try {
+            ProcessBuilder pb = new ProcessBuilder("sh", "-c", "tree", ".");
+            pb.redirectError(ProcessBuilder.Redirect.to(new File("/dev/null")));
+            pb.redirectInput(ProcessBuilder.Redirect.from(new File("/dev/null")));
+            pb.directory(templates.toFile());
+            Process p = pb.start();
+            try (InputStream in = p.getInputStream()) {
+                int c;
+                while ((c = in.read()) > 0) {
+                    System.out.write(c);
+                }
+            }
+            p.waitFor();
+        } catch (IOException | InterruptedException ex) {
+            Assertions.fail(ex);
+        }
     }
 
 }

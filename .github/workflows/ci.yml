@@ -94,26 +94,3 @@ jobs:
           aws s3 cp server/target/CliServer.jar s3://greengrass-artifacts-releases/${{github.repository}}-server/${{github.ref}}/greengrass-cli-server-${{github.sha}}.jar
           aws s3 cp client/target/cliclient-1.0-SNAPSHOT.zip s3://gg-evergreen-releases/${{github.repository}}/${{github.ref}}/evergreen-cli-${{github.sha}}.zip
           aws s3 cp server/target/CliServer.jar s3://gg-evergreen-releases/${{github.repository}}-server/${{github.ref}}/evergreen-cli-server-${{github.sha}}.jar
-      - run: mkdir -p target/artifacts && cp client/target/cliclient-1.0-SNAPSHOT.zip target/artifacts/aws.greengrass.cli.client.zip && cp server/target/CliServer.jar target/artifacts/aws.greengrass.Cli.jar
-      - uses: ./.github/actions/aws-greengrass-component-upload-action
-        name: Upload to GCS Gamma
-        env:
-          AWS_REGION: us-east-1
-        with:
-          recipePath: aws.greengrass.Cli.yaml
-          artifactDirectoryPath: target/artifacts
-          endpoint: https://evergreen-gamma.us-east-1.amazonaws.com
-          autoBumpVersion: true
-          publishAsPublic: true
-          additionalReplacements: '{"stage": "gamma"}'
-      - uses: ./.github/actions/aws-greengrass-component-upload-action
-        name: Upload to GCS Prod
-        env:
-          AWS_REGION: us-east-1
-        with:
-          recipePath: aws.greengrass.Cli.yaml
-          artifactDirectoryPath: target/artifacts
-          endpoint: https://evergreen.us-east-1.amazonaws.com
-          autoBumpVersion: true
-          publishAsPublic: false
-          additionalReplacements: '{"stage": "prod"}'

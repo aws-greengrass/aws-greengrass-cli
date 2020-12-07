@@ -42,18 +42,20 @@ public class Logs extends BaseCommand {
     }
 
     @Command(name = "get", mixinStandardHelpOptions = true)
-    public int get(@CommandLine.Option(names = {"-lf", "--log-file"}, paramLabel = "Log File Path") String[] logFileArray,
-                   @CommandLine.Option(names = {"-ld", "--log-dir"}, paramLabel = "Log Directory Path") String[] logDirArray,
-                   @CommandLine.Option(names = {"-t", "--time-window"}, paramLabel = "Time Window") String[] timeWindow,
-                   @CommandLine.Option(names = {"-f", "--filter"}, paramLabel = "Filter Expression") String[] filterExpressions,
-                   @CommandLine.Option(names = {"-b", "--before"}, paramLabel = "Before", defaultValue = "0") int before,
-                   @CommandLine.Option(names = {"-a", "--after"}, paramLabel = "After", defaultValue = "0") int after,
-                   @CommandLine.Option(names = {"-m", "--max-log-queue-size"}, paramLabel = "Max Number Of Log Entries",
+    public int get(@CommandLine.Option(names = {"-lf", "--log-file"}, paramLabel = "Log file") String[] logFileArray,
+                   @CommandLine.Option(names = {"-ld", "--log-dir"}, paramLabel = "Log directory") String[] logDirArray,
+                   @CommandLine.Option(names = {"-t", "--time-window"}, paramLabel = "Time window") String[] timeWindow,
+                   @CommandLine.Option(names = {"-f", "--filter"}, paramLabel = "Filter expression") String[] filterExpressions,
+                   @CommandLine.Option(names = {"-b", "--before"}, paramLabel = "Show N lines preceding matched line",
+                           defaultValue = "0") int before,
+                   @CommandLine.Option(names = {"-a", "--after"}, paramLabel = "Show N lines following matched line",
+                           defaultValue = "0") int after,
+                   @CommandLine.Option(names = {"-m", "--max-log-queue-size"}, paramLabel = "Max log entries",
                            defaultValue = "100") int max,
-                   @CommandLine.Option(names = {"-fol", "--follow"}, paramLabel = "Live Update Flag") boolean follow,
-                   @CommandLine.Option(names = {"-nc", "--no-color"}, paramLabel = "Remove Color") boolean noColor,
-                   @CommandLine.Option(names = {"-v", "--verbose"}, paramLabel = "Verbosity") boolean verbose,
-                   @CommandLine.Option(names = {"-s", "--syslog"}, paramLabel = "Syslog Flag") boolean syslog) {
+                   @CommandLine.Option(names = {"-fol", "--follow"}, paramLabel = "Follow live updates") boolean follow,
+                   @CommandLine.Option(names = {"-nc", "--no-color"}, paramLabel = "Output without any colors") boolean noColor,
+                   @CommandLine.Option(names = {"-v", "--verbose"}, paramLabel = "Use verbose logging") boolean verbose,
+                   @CommandLine.Option(names = {"-s", "--syslog"}, paramLabel = "Use syslog format") boolean syslog) {
         Runtime.getRuntime().addShutdownHook(new Thread(aggregation::close));
         LogsUtil.setSyslog(syslog);
         if (syslog && verbose) {
@@ -90,7 +92,7 @@ public class Logs extends BaseCommand {
     }
 
     @Command(name = "list-log-files", mixinStandardHelpOptions = true)
-    public void listLogFiles(@CommandLine.Option(names = {"-ld", "--log-dir"}, paramLabel = "Log Directory Path")
+    public void listLogFiles(@CommandLine.Option(names = {"-ld", "--log-dir"}, paramLabel = "Log directory")
                                  String[] logDir) {
         Set<File> logFileSet = aggregation.listLog(logDir);
         if (!logFileSet.isEmpty()) {
@@ -104,15 +106,15 @@ public class Logs extends BaseCommand {
     }
 
     @Command(name = "list-keywords", mixinStandardHelpOptions = true)
-    public void listKeywords(@CommandLine.Option(names = {"-s", "--syslog"}, paramLabel = "Syslog Flag") boolean syslog) {
+    public void listKeywords(@CommandLine.Option(names = {"-s", "--syslog"}, paramLabel = "Use syslog format") boolean syslog) {
         if (syslog) {
-            LogsUtil.getPrintStream().println(new StringBuilder("Here is a list of suggested keywords for syslog: ")
+            LogsUtil.getPrintStream().println(new StringBuilder("Suggested keywords for syslog format:")
                     .append(System.lineSeparator()).append("priority=$int").append(System.lineSeparator())
                     .append("host=$str").append(System.lineSeparator()).append("logger=$str")
                     .append(System.lineSeparator()).append("class=$str").toString());
             return;
         }
-        LogsUtil.getPrintStream().println(new StringBuilder("Here is a list of suggested keywords for Greengrass log: ")
+        LogsUtil.getPrintStream().println(new StringBuilder("Suggested keywords for Greengrass log format:")
                 .append(System.lineSeparator()).append("level=$str").append(System.lineSeparator())
                 .append("thread=$str").append(System.lineSeparator()).append("loggerName=$str")
                 .append(System.lineSeparator()).append("eventType=$str").append(System.lineSeparator())

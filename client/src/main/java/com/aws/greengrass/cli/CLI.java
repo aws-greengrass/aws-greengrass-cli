@@ -24,7 +24,7 @@ import java.util.ResourceBundle;
 /**
  * Main entry point into the command line.
  */
-@Command(name = "cli",
+@Command(name = "greengrass-cli",
         subcommands = {HelpCommand.class, ComponentCommand.class, DeploymentCommand.class, Logs.class,
                 PasswordCommand.class},
         resourceBundle = "com.aws.greengrass.cli.CLI_messages")

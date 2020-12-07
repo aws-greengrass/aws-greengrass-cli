@@ -76,9 +76,9 @@ public class LogsTest {
         runCommandLine("logs", "list-keywords");
         runCommandLine("logs", "list-keywords", "--syslog");
         assertThat(TestUtil.byteArrayOutputStreamToString(byteArrayOutputStream),
-                containsString("Here is a list of suggested keywords for syslog: "));
+                containsString("Suggested keywords for syslog format:"));
         assertThat(TestUtil.byteArrayOutputStreamToString(byteArrayOutputStream),
-                containsString("Here is a list of suggested keywords for Greengrass log: "));
+                containsString("Suggested keywords for Greengrass log format:"));
         LogsUtil.setSyslog(false);
     }
 

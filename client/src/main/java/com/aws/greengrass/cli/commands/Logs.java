@@ -23,7 +23,7 @@ import javax.inject.Inject;
 import static com.aws.greengrass.cli.adapter.impl.NucleusAdapterIpcClientImpl.deTilde;
 
 @Command(name = "logs", resourceBundle = "com.aws.greengrass.cli.CLI_messages", subcommands = HelpCommand.class,
-        mixinStandardHelpOptions = true)
+        mixinStandardHelpOptions = true, versionProvider = com.aws.greengrass.cli.module.VersionProvider.class)
 public class Logs extends BaseCommand {
 
     private final Aggregation aggregation;
@@ -41,7 +41,8 @@ public class Logs extends BaseCommand {
         this.visualization = visualization;
     }
 
-    @Command(name = "get", mixinStandardHelpOptions = true)
+    @Command(name = "get", mixinStandardHelpOptions = true,
+            versionProvider = com.aws.greengrass.cli.module.VersionProvider.class)
     public int get(@CommandLine.Option(names = {"-lf", "--log-file"}, paramLabel = "Log file") String[] logFileArray,
                    @CommandLine.Option(names = {"-ld", "--log-dir"}, paramLabel = "Log directory") String[] logDirArray,
                    @CommandLine.Option(names = {"-t", "--time-window"}, paramLabel = "Time window") String[] timeWindow,
@@ -91,7 +92,8 @@ public class Logs extends BaseCommand {
         return arr;
     }
 
-    @Command(name = "list-log-files", mixinStandardHelpOptions = true)
+    @Command(name = "list-log-files", mixinStandardHelpOptions = true,
+            versionProvider = com.aws.greengrass.cli.module.VersionProvider.class)
     public void listLogFiles(@CommandLine.Option(names = {"-ld", "--log-dir"}, paramLabel = "Log directory")
                                  String[] logDir) {
         Set<File> logFileSet = aggregation.listLog(logDir);
@@ -99,13 +101,14 @@ public class Logs extends BaseCommand {
             for (File file : logFileSet) {
                 LogsUtil.getPrintStream().println(file.getPath());
             }
-            LogsUtil.getPrintStream().format("Total %d files found.", logFileSet.size());
+            LogsUtil.getPrintStream().format("Total %d files found.%n", logFileSet.size());
             return;
         }
         LogsUtil.getPrintStream().println("No log file found.");
     }
 
-    @Command(name = "list-keywords", mixinStandardHelpOptions = true)
+    @Command(name = "list-keywords", mixinStandardHelpOptions = true,
+            versionProvider = com.aws.greengrass.cli.module.VersionProvider.class)
     public void listKeywords(@CommandLine.Option(names = {"-s", "--syslog"}, paramLabel = "Use syslog format") boolean syslog) {
         if (syslog) {
             LogsUtil.getPrintStream().println(new StringBuilder("Suggested keywords for syslog format:")

@@ -25,9 +25,11 @@ import java.util.ResourceBundle;
  * Main entry point into the command line.
  */
 @Command(name = "greengrass-cli",
+        mixinStandardHelpOptions = true,
         subcommands = {HelpCommand.class, ComponentCommand.class, DeploymentCommand.class, Logs.class,
                 PasswordCommand.class},
-        resourceBundle = "com.aws.greengrass.cli.CLI_messages")
+        resourceBundle = "com.aws.greengrass.cli.CLI_messages",
+        versionProvider = com.aws.greengrass.cli.module.VersionProvider.class)
 public class CLI implements Runnable {
 
     @CommandLine.Option(names = "--ggcRootPath", description = "The path to the root directory of Greengrass")

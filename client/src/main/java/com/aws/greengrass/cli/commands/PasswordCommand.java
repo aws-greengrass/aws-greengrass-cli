@@ -14,7 +14,8 @@ import java.time.format.DateTimeFormatter;
 import javax.inject.Inject;
 
 @CommandLine.Command(name = "get-debug-password", resourceBundle = "com.aws.greengrass.cli.CLI_messages",
-        subcommands = CommandLine.HelpCommand.class, mixinStandardHelpOptions = true)
+        subcommands = CommandLine.HelpCommand.class, mixinStandardHelpOptions = true,
+        versionProvider = com.aws.greengrass.cli.module.VersionProvider.class)
 public class PasswordCommand extends BaseCommand {
 
     private final NucleusAdapterIpc nucleusAdapterIpc;

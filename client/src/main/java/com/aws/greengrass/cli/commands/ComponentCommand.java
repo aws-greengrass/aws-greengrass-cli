@@ -15,7 +15,8 @@ import java.util.List;
 import javax.inject.Inject;
 
 @CommandLine.Command(name = "component", resourceBundle = "com.aws.greengrass.cli.CLI_messages",
-        subcommands = CommandLine.HelpCommand.class, mixinStandardHelpOptions = true)
+        subcommands = CommandLine.HelpCommand.class, mixinStandardHelpOptions = true,
+        versionProvider = com.aws.greengrass.cli.module.VersionProvider.class)
 public class ComponentCommand extends BaseCommand {
 
     private final ObjectMapper mapper = new ObjectMapper();
@@ -27,29 +28,28 @@ public class ComponentCommand extends BaseCommand {
     }
 
 
-    @CommandLine.Command(name = "restart", mixinStandardHelpOptions = true)
+    @CommandLine.Command(name = "restart", mixinStandardHelpOptions = true,
+            versionProvider = com.aws.greengrass.cli.module.VersionProvider.class)
     public int restart(@CommandLine.Option(names = {"-n", "--names"}, paramLabel = "The names of the target components, separated with commas.", descriptionKey = "names", required = true) String names) {
         String[] componentNames = names.split(" *[&,]+ *");
-        for (String componentName : componentNames) {
-            nucleusAdapterIpc.restartComponent(componentName);
-        }
+        nucleusAdapterIpc.restartComponent(componentNames);
         return 0;
     }
 
 
-    @CommandLine.Command(name = "stop", mixinStandardHelpOptions = true)
+    @CommandLine.Command(name = "stop", mixinStandardHelpOptions = true,
+            versionProvider = com.aws.greengrass.cli.module.VersionProvider.class)
     public int stop(@CommandLine.Option(names = {"-n", "--names"}, paramLabel = "The names of the target components, separated with commas.", descriptionKey = "names", required = true) String names) {
         String[] componentNames = names.split(" *[&,]+ *");
-        for (String componentName : componentNames) {
-            nucleusAdapterIpc.stopComponent(componentName);
-        }
+        nucleusAdapterIpc.stopComponent(componentNames);
         return 0;
     }
 
 
     // GG_NEEDS_REVIEW: TODO: input validation and better error handling https://sim.amazon.com/issues/P39478724
     @CommandLine.Command(name = "list", mixinStandardHelpOptions = true,
-            description = "Retrieve the names, component information, and runtime arguments for components.")
+            description = "Retrieve the names, component information, and runtime arguments for components.",
+            versionProvider = com.aws.greengrass.cli.module.VersionProvider.class)
     public int list() throws JsonProcessingException {
         List<ComponentDetails> componentDetails = nucleusAdapterIpc.listComponents();
         System.out.println("Components currently running in Greengrass:");
@@ -60,7 +60,8 @@ public class ComponentCommand extends BaseCommand {
     }
 
     // GG_NEEDS_REVIEW: TODO: input validation and better error handling https://sim.amazon.com/issues/P39478724
-    @CommandLine.Command(name = "details", mixinStandardHelpOptions = true)
+    @CommandLine.Command(name = "details", mixinStandardHelpOptions = true,
+            versionProvider = com.aws.greengrass.cli.module.VersionProvider.class)
     public int details(@CommandLine.Option(names = {"-n", "--name"}, paramLabel = "Component name", descriptionKey =
             "The name of the component.", required = true) String componentName)
             throws JsonProcessingException {

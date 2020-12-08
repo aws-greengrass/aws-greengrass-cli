@@ -13,7 +13,6 @@ import com.aws.greengrass.dependency.State;
 import com.aws.greengrass.deployment.DeviceConfiguration;
 import com.aws.greengrass.integrationtests.BaseITCase;
 import com.aws.greengrass.integrationtests.ipc.IPCTestUtils;
-import com.aws.greengrass.ipc.exceptions.UnauthenticatedException;
 import com.aws.greengrass.lifecyclemanager.GlobalStateChangeListener;
 import com.aws.greengrass.lifecyclemanager.Kernel;
 import com.aws.greengrass.lifecyclemanager.exceptions.ServiceLoadException;
@@ -36,13 +35,11 @@ import org.junit.jupiter.api.condition.DisabledOnOs;
 import org.junit.jupiter.api.condition.OS;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.junit.jupiter.api.extension.ExtensionContext;
-import software.amazon.awssdk.aws.greengrass.GetComponentDetailsResponseHandler;
 import software.amazon.awssdk.aws.greengrass.GreengrassCoreIPCClient;
 import software.amazon.awssdk.aws.greengrass.model.ComponentDetails;
 import software.amazon.awssdk.aws.greengrass.model.CreateLocalDeploymentRequest;
 import software.amazon.awssdk.aws.greengrass.model.CreateLocalDeploymentResponse;
 import software.amazon.awssdk.aws.greengrass.model.GetComponentDetailsRequest;
-import software.amazon.awssdk.aws.greengrass.model.GetComponentDetailsResponse;
 import software.amazon.awssdk.aws.greengrass.model.InvalidArgumentsError;
 import software.amazon.awssdk.aws.greengrass.model.LifecycleState;
 import software.amazon.awssdk.aws.greengrass.model.ListComponentsRequest;
@@ -52,13 +49,13 @@ import software.amazon.awssdk.aws.greengrass.model.ListLocalDeploymentsResponse;
 import software.amazon.awssdk.aws.greengrass.model.ResourceNotFoundError;
 import software.amazon.awssdk.aws.greengrass.model.RestartComponentRequest;
 import software.amazon.awssdk.aws.greengrass.model.RunWithInfo;
+import software.amazon.awssdk.core.exception.SdkClientException;
 import software.amazon.awssdk.eventstreamrpc.EventStreamRPCConnection;
 import software.amazon.awssdk.eventstreamrpc.model.AccessDeniedException;
 
 import java.io.File;
 import java.io.IOException;
 import java.net.ConnectException;
-import java.net.URISyntaxException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
@@ -303,6 +300,7 @@ class IPCCliTest {
     void GIVEN_kernel_running_WHEN_change_configuration_and_deployment_THEN_kernel_copies_artifacts_correctly(ExtensionContext context)
             throws Exception {
 
+        ignoreExceptionOfType(context, SdkClientException.class);
         ignoreExceptionOfType(context, PackageDownloadException.class);
         ignoreExceptionOfType(context, ComponentVersionNegotiationException.class);
 
@@ -354,7 +352,7 @@ class IPCCliTest {
     @Order(9)
     void GIVEN_kernel_running_WHEN_multiple_deployments_scheduled_THEN_all_deployments_succeed(ExtensionContext context) throws Exception {
 
-
+        ignoreExceptionOfType(context, SdkClientException.class);
         ignoreExceptionOfType(context, PackageDownloadException.class);
         ignoreExceptionOfType(context, ComponentVersionNegotiationException.class);
 

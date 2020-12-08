@@ -24,6 +24,16 @@
         </repository>
     </repositories>
     <build>
+        <resources>
+            <resource>
+                <directory>${basedir}/..</directory>
+                <includes>
+                    <include>LICENSE</include>
+                    <include>NOTICE</include>
+                    <include>THIRD-PARTY-LICENSES</include>
+                </includes>
+            </resource>
+        </resources>
         <plugins>
             <plugin>
                 <groupId>org.jacoco</groupId>

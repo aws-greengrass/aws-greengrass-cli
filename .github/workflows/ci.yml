@@ -86,5 +86,3 @@ jobs:
         run: |
           aws s3 cp client/target/cliclient-1.0-SNAPSHOT.zip s3://greengrass-artifacts-releases/${{github.repository}}/${{github.ref}}/greengrass-cli-${{github.sha}}.zip
           aws s3 cp server/target/CliServer.jar s3://greengrass-artifacts-releases/${{github.repository}}-server/${{github.ref}}/greengrass-cli-server-${{github.sha}}.jar
-          aws s3 cp client/target/cliclient-1.0-SNAPSHOT.zip s3://gg-evergreen-releases/${{github.repository}}/${{github.ref}}/evergreen-cli-${{github.sha}}.zip
-          aws s3 cp server/target/CliServer.jar s3://gg-evergreen-releases/${{github.repository}}-server/${{github.ref}}/evergreen-cli-server-${{github.sha}}.jar

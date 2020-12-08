@@ -26,7 +26,8 @@ import javax.inject.Inject;
 import static com.aws.greengrass.cli.adapter.impl.NucleusAdapterIpcClientImpl.deTilde;
 
 @CommandLine.Command(name = "deployment", resourceBundle = "com.aws.greengrass.cli.CLI_messages",
-        subcommands = CommandLine.HelpCommand.class, mixinStandardHelpOptions = true)
+        subcommands = CommandLine.HelpCommand.class, mixinStandardHelpOptions = true,
+        versionProvider = com.aws.greengrass.cli.module.VersionProvider.class)
 public class DeploymentCommand extends BaseCommand {
 
     private final String RUN_WITH_OPTION_POSIX_USER = "posixUser";
@@ -41,7 +42,8 @@ public class DeploymentCommand extends BaseCommand {
     // GG_NEEDS_REVIEW: TODO: input validation and better error handling https://sim.amazon.com/issues/P39478724
     @CommandLine.Command(name = "create",
             description = "Create local deployment with provided recipes, artifacts, and runtime parameters",
-            mixinStandardHelpOptions = true)
+            mixinStandardHelpOptions = true,
+            versionProvider = com.aws.greengrass.cli.module.VersionProvider.class)
     public int create
     (@CommandLine.Option(names = {"-m", "--merge"}, paramLabel = "Component and version") Map<String, String> componentsToMerge,
      @CommandLine.Option(names = {"--remove"}, paramLabel = "Component Names") List<String> componentsToRemove,
@@ -92,18 +94,19 @@ public class DeploymentCommand extends BaseCommand {
 
     // GG_NEEDS_REVIEW: TODO: input validation and better error handling https://sim.amazon.com/issues/P39478724
     @CommandLine.Command(name = "status",
-            description = "Retrieve the status of a specific deployment", mixinStandardHelpOptions = true)
+            description = "Retrieve the status of a specific deployment", mixinStandardHelpOptions = true,
+            versionProvider = com.aws.greengrass.cli.module.VersionProvider.class)
     public int status(@CommandLine.Option(names = {"-i", "--deploymentId"}, paramLabel = "Deployment ID",
             required = true) String deploymentId) {
 
         LocalDeployment status = nucleusAdapterIpc.getLocalDeploymentStatus(deploymentId);
-        System.out.printf("%s: %s", status.getDeploymentId(), status.getStatus());
+        System.out.printf("%s: %s%n", status.getDeploymentId(), status.getStatus());
         return 0;
     }
 
     // GG_NEEDS_REVIEW: TODO: input validation and better error handling https://sim.amazon.com/issues/P39478724
     @CommandLine.Command(name = "list", description = "Retrieve the status of local deployments",
-            mixinStandardHelpOptions = true)
+            mixinStandardHelpOptions = true, versionProvider = com.aws.greengrass.cli.module.VersionProvider.class)
     public int list() {
         List<LocalDeployment> localDeployments = nucleusAdapterIpc.listLocalDeployments();
         localDeployments.forEach((status) -> System.out.println(status.getDeploymentId() + ": " + status.getStatus()));

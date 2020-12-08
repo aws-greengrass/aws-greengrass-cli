@@ -10,7 +10,7 @@ findGreengrassCLIHome() {
     (cd -P "$(dirname "$source")/.." && pwd)
 }
 
-CLI_HOME="$(findGreengrassCLIHome)"
+export CLI_HOME="$(findGreengrassCLIHome)"
 
 if [ -z "$JAVA_HOME" ] ; then
   JAVACMD=`which java`

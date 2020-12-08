@@ -96,12 +96,14 @@ public class NucleusAdapterIpcClientImpl implements NucleusAdapterIpc {
     }
 
     @Override
-    public void restartComponent(String componentName) {
+    public void restartComponent(String... componentNames) {
         try {
-            RestartComponentRequest request = new RestartComponentRequest();
-            request.setComponentName(componentName);
-            getIpcClient().restartComponent(request, Optional.empty()).getResponse()
-                    .get(DEFAULT_TIMEOUT_IN_SEC, TimeUnit.SECONDS);
+            for (String componentName : componentNames) {
+                RestartComponentRequest request = new RestartComponentRequest();
+                request.setComponentName(componentName);
+                getIpcClient().restartComponent(request, Optional.empty()).getResponse()
+                        .get(DEFAULT_TIMEOUT_IN_SEC, TimeUnit.SECONDS);
+            }
         } catch (ExecutionException | TimeoutException | InterruptedException e) {
             //TODO: update when the sdk method signature includes exceptions
             throw new RuntimeException(e);
@@ -111,12 +113,14 @@ public class NucleusAdapterIpcClientImpl implements NucleusAdapterIpc {
     }
 
     @Override
-    public void stopComponent(String componentName) {
+    public void stopComponent(String... componentNames) {
         try {
-            StopComponentRequest request = new StopComponentRequest();
-            request.setComponentName(componentName);
-            getIpcClient().stopComponent(request, Optional.empty()).getResponse()
-                    .get(DEFAULT_TIMEOUT_IN_SEC, TimeUnit.SECONDS);
+            for (String componentName : componentNames) {
+                StopComponentRequest request = new StopComponentRequest();
+                request.setComponentName(componentName);
+                getIpcClient().stopComponent(request, Optional.empty()).getResponse()
+                        .get(DEFAULT_TIMEOUT_IN_SEC, TimeUnit.SECONDS);
+            }
         } catch (ExecutionException | TimeoutException | InterruptedException e) {
             //TODO: update when the sdk method signature includes exceptions
             throw new RuntimeException(e);

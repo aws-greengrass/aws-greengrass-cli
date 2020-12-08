@@ -1,3 +1,4 @@
 **/target/
 /nbproject/
 **/*.iml
+**/.DS_Store

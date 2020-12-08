@@ -1,22 +1,23 @@
 ## Template recipe for Lua platform install
 ---
-RecipeFormatVersion: 2020-01-25
-ComponentName: lua
-ComponentVersion: 5.3.0
-ComponentDescription: The lua platform
-ComponentPublisher: Amazon
+recipeFormatVersion: 2020-01-25
+componentName: lua
+componentVersion: 5.3.0
+componentDescription: The lua platform
+componentPublisher: Amazon
 
 #include("platforms/standard.yml")
 
-Lifecycle:
-  Install:
-    Skipif: onpath lua 
-    Script:
-        # Once the ability to distinguish variations of linux is reinstated,
-        # this will get cleaner
+lifecycle:
+  install:
+    skipif: onpath lua5.3
+    script:
         posix: |
-            if which apt-get; then sudo apt-get install -y lua5.3 
-            elif which yum; then sudo yum install epel-release && yum install lua	#RHEL/CentOS systems
-            else echo No popport for this flavor of linux; exit 1; fi
+            if which apt-get;
+                then sudo apt-get install -y lua5.3 
+            elif which yum;
+                then sudo yum install epel-release && yum install lua
+            else echo No support for this flavor of linux; exit 1;
+            fi
         macos: brew install lua
         windows: head explodes!

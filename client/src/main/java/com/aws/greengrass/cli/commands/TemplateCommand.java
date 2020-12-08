@@ -437,14 +437,11 @@ public class TemplateCommand extends BaseCommand {
         return f;
     }
     
-    public static String removeRubbish(String version) {
-        System.out.println("*****Cleaning version "+version);
+    public static String cleanVersion(String version) {
         if(isEmpty(version)) version = "0.0.0";
         if (version.endsWith("-SNAPSHOT")) {
             version = version.substring(0,version.length() - 9);
-            System.out.println("\tbecame "+version);
         }
-        else System.out.println("\tOK "+version);
         return version;
     }
 
@@ -475,7 +472,7 @@ public class TemplateCommand extends BaseCommand {
             }
             body = b;
             componentName = getPart("name", p1);
-            componentVersion = removeRubbish(getPart("version", p2));
+            componentVersion = cleanVersion(getPart("version", p2));
             componentDescription = getPart("description", null);
             componentPublisher = getPart("publisher", null);
             group = getPart("Group", null);

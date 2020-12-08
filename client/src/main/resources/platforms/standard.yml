@@ -1,15 +1,15 @@
 ## A Manifest section with all the usual Platforms
-Manifests:
-  - Platform:
+manifests:
+  - platform:
       os: windows
-    Name: "Windows"
-    Selections: [windows]
-  - Platform:
+    name: "Windows"
+    selections: [windows]
+  - platform:
       os: darwin
-    Name: "MacOS"
-    Selections: [macos,posix]
+    name: "MacOS"
+    selections: [macos,posix]
 # differentiating versions of linux is currently incomplete
-  - Platform:
+  - platform:
       os: all
-    Name: "Posix"
-    Selections: [posix]
+    name: "Posix"
+    selections: [posix]

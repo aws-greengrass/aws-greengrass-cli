@@ -2,17 +2,17 @@
 
 # $ctx.platform("lua-5.3.0.yml")
 ---
-RecipeFormatVersion: 2020-01-25
-ComponentName: $name
-ComponentVersion: $version
-ComponentDescription: $description
-ComponentPublisher: $publisher
-ComponentDependencies:
+recipeFormatVersion: 2020-01-25
+componentName: $name
+componentVersion: $version
+componentDescription: $description
+componentPublisher: $publisher
+componentDependencies:
   lua:
-    VersionRequirement: ^5.1.0
+    versionRequirement: 5.3.0
 
 #include("platforms/standard.yml")
 
-Lifecycle:
-  Run:
-    posix: ln -f -s -t . {artifacts:path}/*; lua $file
+lifecycle:
+  run:
+    posix: ln -f -s -t . {artifacts:path}/*; lua5.3 $file

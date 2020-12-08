@@ -11,6 +11,7 @@ import java.io.InputStream;
 import java.io.Writer;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.nio.file.StandardOpenOption;
 import java.util.logging.Level;
 import java.util.logging.Logger;
@@ -30,6 +31,14 @@ public class TemplateCommandTest {
 
     @TempDir
     static Path temp;
+//    static {
+//        temp = Paths.get(System.getProperty("user.home", "/tmp")).resolve("gg2Templates");
+//        try {
+//            Files.createDirectories(temp);
+//        } catch (IOException ex) {
+//            Assertions.fail(ex);
+//        }
+//    }
 
     @Test
     public void test_single_file_lua() {
@@ -101,7 +110,7 @@ public class TemplateCommandTest {
         try {
             System.out.println("Testing " + name);
             Assertions.assertTrue(run("--ggcRootPath",
-                    System.getProperty("user.home") + "/.greengrass",
+                    "/opt/GGv2",
                     "quick", "--dryrun",
                     "-gtd", templates.toString(),
                     name) == 0);

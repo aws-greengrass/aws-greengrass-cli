@@ -1,14 +1,14 @@
 ## Template recipe for shell projects
 ---
-RecipeFormatVersion: 2020-01-25
-ComponentName: $name
-ComponentVersion: $version
-ComponentDescription: $description
-ComponentPublisher: $publisher
+recipeFormatVersion: 2020-01-25
+componentName: $name
+componentVersion: $version
+componentDescription: $description
+componentPublisher: $publisher
 
 #include("platforms/standard.yml")
 
-Lifecycle:
-  Run:
+lifecycle:
+  run:
     posix: ln -f -s -t . {artifacts:path}/*; sh $file
     windows: whatever

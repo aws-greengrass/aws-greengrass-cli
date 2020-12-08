@@ -1,18 +1,18 @@
 ## Template recipe for Java 11 platform install
 ---
-RecipeFormatVersion: 2020-01-25
-ComponentName: java # should really have many flavors (jre, headless, ...)
-ComponentVersion: $javaVersion.0.0
-ComponentDescription: The java platform
-ComponentPublisher: Amazon
+recipeFormatVersion: 2020-01-25
+componentName: java # should really have many flavors (jre, headless, ...)
+componentVersion: $javaVersion.0.0
+componentDescription: The java platform
+componentPublisher: Amazon
 
 #include("platforms/standard.yml")
 
-Lifecycle:
-  Install:
+lifecycle:
+  install:
       # Todo: check version
-    Skipif: onpath java 
-    Script:
+    skipif: onpath java 
+    script:
         debian: sudo apt install -y openjdk-${javaVersion}-jdk  
         redhat: sudo yum install java-${javaVersion}-openjdk-devel
         macos: brew install java${javaVersion}

@@ -2,18 +2,18 @@
 
 # $ctx.platform("java.yml")
 ---
-RecipeFormatVersion: 2020-01-25
-ComponentName: $name
-ComponentVersion: $version
-ComponentDescription: $description
-ComponentPublisher: $publisher
-ComponentDependencies:
+recipeFormatVersion: 2020-01-25
+componentName: $name
+componentVersion: $version
+componentDescription: $description
+componentPublisher: $publisher
+componentDependencies:
   java:
     VersionRequirement: ^$javaVersion.0.0
 
 #include("platforms/standard.yml")
 
-Lifecycle:
-  Run:
+lifecycle:
+  run:
     posix: ln -f -s -t . {artifacts:path}/*; java -cp . -jar $file
     windows: whatever

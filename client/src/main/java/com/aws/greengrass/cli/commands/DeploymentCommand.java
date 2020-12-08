@@ -45,11 +45,11 @@ public class DeploymentCommand extends BaseCommand {
     public int create
     (@CommandLine.Option(names = {"-m", "--merge"}, paramLabel = "Component and version") Map<String, String> componentsToMerge,
      @CommandLine.Option(names = {"--remove"}, paramLabel = "Component Names") List<String> componentsToRemove,
-     @CommandLine.Option(names = {"-g", "--groupId"}, paramLabel = "group Id") String groupId,
-     @CommandLine.Option(names = {"-r", "--recipeDir"}, paramLabel = "Recipe Folder Path") String recipeDir,
-     @CommandLine.Option(names = {"-a", "--artifactDir"}, paramLabel = "Artifacts Folder Path") String artifactDir,
-     @CommandLine.Option(names = {"--runWith"}, paramLabel = "Component Run With Info") Map<String, String> runWithOptions,
-     @CommandLine.Option(names = {"-c", "--update-config"}, paramLabel = "Update configuration") String configUpdate)
+     @CommandLine.Option(names = {"-g", "--groupId"}, paramLabel = "Thing group ID") String groupId,
+     @CommandLine.Option(names = {"-r", "--recipeDir"}, paramLabel = "Recipe directory") String recipeDir,
+     @CommandLine.Option(names = {"-a", "--artifactDir"}, paramLabel = "Artifacts directory") String artifactDir,
+     @CommandLine.Option(names = {"--runWith"}, paramLabel = "Component user and/or group") Map<String, String> runWithOptions,
+     @CommandLine.Option(names = {"-c", "--update-config"}, paramLabel = "Component configuration") String configUpdate)
             throws IOException {
         // GG_NEEDS_REVIEW: TODO Validate folder exists and folder structure
 
@@ -86,14 +86,15 @@ public class DeploymentCommand extends BaseCommand {
         createLocalDeploymentRequest.setRecipeDirectoryPath(deTilde(recipeDir));
         createLocalDeploymentRequest.setArtifactsDirectoryPath(deTilde(artifactDir));
         String deploymentId = nucleusAdapterIpc.createLocalDeployment(createLocalDeploymentRequest);
-        System.out.println("Local deployment has been submitted! Deployment Id: " + deploymentId);
+        System.out.println("Local deployment submitted! Deployment Id: " + deploymentId);
         return 0;
     }
 
     // GG_NEEDS_REVIEW: TODO: input validation and better error handling https://sim.amazon.com/issues/P39478724
     @CommandLine.Command(name = "status",
-            description = "Retrieve the status of a deployment", mixinStandardHelpOptions = true)
-    public int status(@CommandLine.Option(names = {"-i", "--deploymentId"}, paramLabel = "Deployment Id", required = true) String deploymentId) {
+            description = "Retrieve the status of a specific deployment", mixinStandardHelpOptions = true)
+    public int status(@CommandLine.Option(names = {"-i", "--deploymentId"}, paramLabel = "Deployment ID",
+            required = true) String deploymentId) {
 
         LocalDeployment status = nucleusAdapterIpc.getLocalDeploymentStatus(deploymentId);
         System.out.printf("%s: %s", status.getDeploymentId(), status.getStatus());
@@ -119,7 +120,7 @@ public class DeploymentCommand extends BaseCommand {
             String componentNameAndRunWithOption = entry.getKey();
             String[] parts = componentNameAndRunWithOption.split(":");
             if (parts.length != 2) {
-                throw new IllegalArgumentException("--runWith is not in the format <ComponentName>:<RunWithOption>=<value> ");
+                throw new IllegalArgumentException("--runWith must be in the following format <component>:posixUser=<user>[:<group>] ");
             }
             String componentName = parts[0];
             String runWithOption = parts[1];
@@ -129,7 +130,7 @@ public class DeploymentCommand extends BaseCommand {
                     runWithInfo.setPosixUser(entry.getValue());
                     break;
                 default:
-                    throw new IllegalArgumentException("Invalid run with option: " + runWithOption);
+                    throw new IllegalArgumentException("Invalid --runWith option: " + runWithOption);
             }
             componentToRunWithInfo.put(componentName, runWithInfo);
         }

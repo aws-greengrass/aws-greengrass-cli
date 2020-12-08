@@ -23,7 +23,7 @@ public abstract class BaseCommand implements Runnable {
     @Override
     public void run() {
         System.out.println(spec.commandLine().getColorScheme()
-                .errorText("No subcommand provided, please invoke a subcommand"));
+                .errorText("A subcommand is required."));
         spec.commandLine().usage(System.out);
     }
 

@@ -17,9 +17,9 @@ public interface NucleusAdapterIpc {
 
     ComponentDetails getComponentDetails(String componentName);
 
-    void restartComponent(String componentName);
+    void restartComponent(String... componentNames);
 
-    void stopComponent(String componentName);
+    void stopComponent(String... componentNames);
 
     LocalDeployment getLocalDeploymentStatus(String deploymentId);
 

@@ -41,8 +41,8 @@ $ greengrass-cli logs get --log-dir ~/.greengrass
 $ greengrass-cli logs get --log-file ~/.greengrass/greengrass.log
 
 # multiple options work in association
-# collect log from greengrass.log_1, greengrass.log_2, and ~/.greengrass
-$ greengrass-cli logs get --log-file greengrass.log_1 --log-file greengrass.log_2 --log-dir ~/.greengrass
+# collect log from log files and/or log directory
+$ greengrass-cli logs get --log-file greengrass.log --log-file greengrassComponent.log --log-dir ~/.greengrass
 ```
 
 For reading directories, the log tool will check all files under the given directory and only files whose name contain

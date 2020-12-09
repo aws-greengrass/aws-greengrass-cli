@@ -139,15 +139,15 @@ class AggregationImplTest {
     void testReadLogMultipleFile() throws IOException, InterruptedException {
         writer.println(logEntry);
 
-        File logFile2 = logDir.resolve("greengrass2.log").toFile();
+        File logFile2 = logDir.resolve("greengrass_2020_12_01_00_0.log").toFile();
         writer = TestUtil.createPrintStreamFromOutputStream(new FileOutputStream(logFile2));
         writer.println(logEntry2);
 
-        File logFile3 = logDir.resolve("greengrass.log_2000-01-01_03_1").toFile();
+        File logFile3 = logDir.resolve("aws.greengrass.Nucleus_2020_12_01_00_0.log").toFile();
         writer = TestUtil.createPrintStreamFromOutputStream(new FileOutputStream(logFile3));
         writer.println(logEntry3);
 
-        File logFile4 = logDir.resolve("greengrass.log_2000-01-01_03-15_2").toFile();
+        File logFile4 = logDir.resolve("aws.greengrass.Nucleus_2020_12_01_02_0.log").toFile();
         writer = TestUtil.createPrintStreamFromOutputStream(new FileOutputStream(logFile4));
         writer.println(logEntry4);
 
@@ -187,23 +187,23 @@ class AggregationImplTest {
 
     @Test
     void testReadLogInvalidFileRotationPattern() throws InterruptedException {
-        File logFile2 = logDir.resolve("greengrass.log_2020-02-00_03_01").toFile();
+        File logFile2 = logDir.resolve("greengrass_2020_02_00_13_01.log").toFile();
         String[] logFilePath = {logFile2.getPath()};
         aggregation.readLog(logFilePath, null);
         while (aggregation.isAlive()) {
             sleep(1);
         }
         assertThat(TestUtil.byteArrayOutputStreamToString(errOutputStream),
-                containsString("Unable to parse timestamp from file name: greengrass.log_2020-02-00_03_01"));
+                containsString("Unable to parse timestamp from file name:"));
 
-        logFile2 = logDir.resolve("/greengrass.log_2020-02-01_03-00_11111111111111").toFile();
+        logFile2 = logDir.resolve("/greengrass_2020_12_08_13_11111111111111.log").toFile();
         String[] logFilePath2 = {logFile2.getPath()};
         aggregation.readLog(logFilePath2, null);
         while (aggregation.isAlive()) {
             sleep(1);
         }
         assertThat(TestUtil.byteArrayOutputStreamToString(errOutputStream),
-                containsString("Unable to parse file index from file name: greengrass.log_2020-02-01_03-00_11111111111111"));
+                containsString("Unable to parse file index from file name:"));
 
     }
 

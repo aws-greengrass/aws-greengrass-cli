@@ -29,12 +29,11 @@ import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 public class AggregationImpl implements Aggregation {
-    // Log file name is assumed to be one of patterns {}.log_yyyy-MM-dd_HH_index or {}.log_yyyy-MM-dd_HH-mm_index.
-    // Greengrass currently rotate log files every hour, but it likely will change to rotate by 15 minutes in future iteration.
-    // We support both patterns now and we can remove one of the patterns in future.
-    // GG_NEEDS_REVIEW: TODO: remove unused file name pattern
-    private static final Pattern fileNamePatternByHour = Pattern.compile("(\\w+)\\.log(_([0-9]+-[0-9]+-[0-9]+_[0-9]+)_([0-9]+))?$");
-    private static final Pattern fileNamePatternByMin = Pattern.compile("(\\w+)\\.log(_([0-9]+-[0-9]+-[0-9]+_[0-9]+-[0-9]+)_([0-9]+))?$");
+    // Log file name has pattern ComponentName_yyyy_MM_dd_HH_index.log or ComponentName.log
+    // Greengrass currently rotate log files every hour
+    private static final Pattern fileNamePatternByHour = Pattern.compile(
+            "([a-zA-Z0-9-_.]+)(_([0-9]{4}_[0-9]{2}_[0-9]{2}_[0-9]{2})_([0-9]+))\\.log$");
+    private static final Pattern fileNamePatternCurrent = Pattern.compile("([a-zA-Z0-9-_.]+)\\.log$");
 
     private final ExecutorService executorService = Executors.newCachedThreadPool();
     @Getter
@@ -165,24 +164,33 @@ public class AggregationImpl implements Aggregation {
         if (LogsUtil.isSyslog()) {
             logGroupMap.put("syslog", new ArrayList<>());
             for (File file : logFileSet) {
-                logGroupMap.get("syslog").add(new LogFile(file, null, null, false));
+                logGroupMap.get("syslog").add(new LogFile(file, null, null));
             }
             return logGroupMap;
         }
 
         for (File file : logFileSet) {
-            boolean patternByHour = fileNamePatternByHour.matcher(file.getName()).matches();
-            Matcher fileNameMatcher = patternByHour ? fileNamePatternByHour.matcher(file.getName())
-                    : fileNamePatternByMin.matcher(file.getName());
-            if (!fileNameMatcher.matches()) {
-                LogsUtil.getErrorStream().println("Unable to parse file name: " + file.getName());
-                continue;
+            Matcher fileNameMatcher = fileNamePatternByHour.matcher(file.getName());
+            boolean patternByHour = fileNameMatcher.matches();
+            String logGroupName;
+            String timestamp = "";
+            String index = "";
+            if (patternByHour) {
+                // group(1) = logGroupName, group2 = timestamp + index, group(3) = timestamp, group(4) = index.
+                logGroupName = fileNameMatcher.group(1);
+                timestamp = fileNameMatcher.group(3);
+                index = fileNameMatcher.group(4);
+            } else {
+                fileNameMatcher = fileNamePatternCurrent.matcher(file.getName());
+                if (!fileNameMatcher.matches()) {
+                    LogsUtil.getErrorStream().println("Unable to parse file name: " + file.getName());
+                    continue;
+                }
+                logGroupName = fileNameMatcher.group(1);
             }
 
-            //group(1) = logGroupName, group2 = timestamp + index, group(3) = timestamp, group(4) = index.
-            String logGroupName = fileNameMatcher.group(1);
             try {
-                LogFile logFile = new LogFile(file, fileNameMatcher.group(3), fileNameMatcher.group(4), patternByHour);
+                LogFile logFile = new LogFile(file, timestamp, index);
                 logGroupMap.putIfAbsent(logGroupName, new ArrayList<>());
                 logGroupMap.get(logGroupName).add(logFile);
             } catch (DateTimeParseException e) {

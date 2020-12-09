@@ -8,14 +8,19 @@
         <groupId>com.aws.greengrass</groupId>
         <version>1.0-SNAPSHOT</version>
     </parent>
+    <licenses>
+      <license>
+        <name>Apache License, Version 2.0</name>
+        <url>https://www.apache.org/licenses/LICENSE-2.0.txt</url>
+      </license>
+    </licenses>
 
     <artifactId>cliclient</artifactId>
     <repositories>
         <repository>
-            <id>greengrass-ipc-java-sdk</id>
-            <name>greengrass Ipc Java Sdk</name>
-            <!-- cloud front url fronting the greengrass Ipc Java Sdk artifact in S3-->
-            <!-- GG_NEEDS_REVIEW: S3: How are we distributing this post re:Invent? -->
+            <id>greengrass-common</id>
+            <name>greengrass common</name>
+            <!-- CloudFront url fronting the device sdk,logging library and component common in S3-->
             <url>https://d10d248laylpoq.cloudfront.net/</url>
         </repository>
     </repositories>
@@ -87,6 +92,19 @@
         </dependency>
     </dependencies>
     <build>
+        <resources>
+            <resource>
+                <directory>${project.basedir}/..</directory>
+                <includes>
+                    <include>LICENSE</include>
+                    <include>NOTICE</include>
+                    <include>THIRD-PARTY-LICENSES</include>
+                </includes>
+            </resource>
+            <resource>
+                <directory>${project.basedir}/src/main/resources</directory>
+            </resource>
+        </resources>
         <plugins>
             <plugin>
                 <artifactId>maven-surefire-plugin</artifactId>

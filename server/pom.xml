@@ -8,16 +8,36 @@
         <version>1.0-SNAPSHOT</version>
     </parent>
     <modelVersion>4.0.0</modelVersion>
+    <licenses>
+      <license>
+        <name>Apache License, Version 2.0</name>
+        <url>https://www.apache.org/licenses/LICENSE-2.0.txt</url>
+      </license>
+    </licenses>
 
     <artifactId>cliserver</artifactId>
     <repositories>
         <repository>
-            <id>greengrass-dev-snapshot</id>
-            <name>Dev Snapshot</name>
-            <url>https://d10d248laylpoq.cloudfront.net</url>
+            <id>greengrass-common</id>
+            <name>greengrass common</name>
+            <!-- CloudFront url fronting the device sdk,logging library and component common in S3-->
+            <url>https://d10d248laylpoq.cloudfront.net/</url>
         </repository>
     </repositories>
     <build>
+        <resources>
+            <resource>
+                <directory>${project.basedir}/..</directory>
+                <includes>
+                    <include>LICENSE</include>
+                    <include>NOTICE</include>
+                    <include>THIRD-PARTY-LICENSES</include>
+                </includes>
+            </resource>
+            <resource>
+                <directory>${project.basedir}/src/main/resources</directory>
+            </resource>
+        </resources>
         <plugins>
             <plugin>
                 <groupId>org.jacoco</groupId>

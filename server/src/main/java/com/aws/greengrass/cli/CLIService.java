@@ -137,11 +137,11 @@ public class CLIService extends PluginService {
         greengrassCoreIPCService.setStopComponentHandler((context)
                 -> cliEventStreamAgent.getStopComponentsHandler(context));
         greengrassCoreIPCService.setCreateLocalDeploymentHandler((context)
-                -> cliEventStreamAgent.getCreateLocalDeploymentHandler(context, config));
+                -> cliEventStreamAgent.getCreateLocalDeploymentHandler(context, this.getRuntimeConfig()));
         greengrassCoreIPCService.setGetLocalDeploymentStatusHandler((context)
-                -> cliEventStreamAgent.getGetLocalDeploymentStatusHandler(context, config));
+                -> cliEventStreamAgent.getGetLocalDeploymentStatusHandler(context, this.getRuntimeConfig()));
         greengrassCoreIPCService.setListLocalDeploymentsHandler((context)
-                -> cliEventStreamAgent.getListLocalDeploymentsHandler(context, config));
+                -> cliEventStreamAgent.getListLocalDeploymentsHandler(context, this.getRuntimeConfig()));
         greengrassCoreIPCService.setCreateDebugPasswordHandler((context)
                 -> cliEventStreamAgent.getCreateDebugPasswordHandler(context, config.getRoot()));
     }
@@ -341,7 +341,7 @@ public class CLIService extends PluginService {
 
     @SuppressWarnings("PMD.EmptyIfStmt")
     protected Boolean deploymentStatusChanged(Map<String, Object> deploymentDetails) {
-        cliEventStreamAgent.persistLocalDeployment(config, deploymentDetails);
+        cliEventStreamAgent.persistLocalDeployment(this.getRuntimeConfig(), deploymentDetails);
         return true;
     }
 }

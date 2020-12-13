@@ -44,6 +44,7 @@ import static com.aws.greengrass.cli.CLIService.AUTHORIZED_POSIX_GROUPS;
 import static com.aws.greengrass.componentmanager.KernelConfigResolver.CONFIGURATION_CONFIG_KEY;
 import static com.aws.greengrass.ipc.IPCEventStreamService.NUCLEUS_DOMAIN_SOCKET_FILEPATH;
 import static com.aws.greengrass.lifecyclemanager.GreengrassService.PRIVATE_STORE_NAMESPACE_TOPIC;
+import static com.aws.greengrass.lifecyclemanager.GreengrassService.RUNTIME_STORE_NAMESPACE_TOPIC;
 import static com.aws.greengrass.lifecyclemanager.GreengrassService.SERVICES_NAMESPACE_TOPIC;
 import static com.aws.greengrass.lifecyclemanager.GreengrassService.SETENV_CONFIG_NAMESPACE;
 import static com.aws.greengrass.testcommons.testutilities.ExceptionLogProtector.ignoreExceptionOfType;
@@ -89,6 +90,7 @@ class CLIServiceTest extends GGServiceTestUtil {
     private Topics serviceConfigSpy;
     private Topics cliConfigSpy;
     private Topics privateConfigSpy;
+    private Topics runtimeConfigSpy;
 
     @BeforeEach
     void setup() {
@@ -98,6 +100,7 @@ class CLIServiceTest extends GGServiceTestUtil {
         serviceConfigSpy = spy(Topics.of(context, SERVICES_NAMESPACE_TOPIC, null));
         cliConfigSpy = spy(Topics.of(context, CLI_SERVICE, serviceConfigSpy));
         privateConfigSpy = spy(Topics.of(context, PRIVATE_STORE_NAMESPACE_TOPIC, cliConfigSpy));
+        runtimeConfigSpy = cliConfigSpy.lookupTopics(RUNTIME_STORE_NAMESPACE_TOPIC);
 
         cliService = new CLIService(cliConfigSpy, privateConfigSpy, cliEventStreamAgent,
                 deploymentStatusKeeper, authenticationHandler, kernel, greengrassCoreIPCService);
@@ -224,6 +227,6 @@ class CLIServiceTest extends GGServiceTestUtil {
     void testDeploymentStatusChanged_calls() {
         Map<String, Object> deploymentDetails = new HashMap<>();
         cliService.deploymentStatusChanged(deploymentDetails);
-        verify(cliEventStreamAgent).persistLocalDeployment(cliConfigSpy, deploymentDetails);
+        verify(cliEventStreamAgent).persistLocalDeployment(runtimeConfigSpy, deploymentDetails);
     }
 }

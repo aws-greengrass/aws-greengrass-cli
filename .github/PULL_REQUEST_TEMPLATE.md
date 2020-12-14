@@ -1,6 +1,6 @@
-*Issue #, if available:*
+**Issue #, if available:**
 
-*Description of changes:*
+**Description of changes:**
 
 **Why is this change necessary:**
 

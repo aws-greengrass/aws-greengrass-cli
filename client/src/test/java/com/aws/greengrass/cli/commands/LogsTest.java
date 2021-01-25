@@ -22,6 +22,7 @@ import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
 import java.io.PrintStream;
 import java.nio.file.Path;
+import java.util.Calendar;
 
 import static com.aws.greengrass.cli.TestUtil.deleteDir;
 import static com.aws.greengrass.cli.util.logs.impl.VisualizationImpl.ANSI_HIGHLIGHT;
@@ -53,6 +54,8 @@ public class LogsTest {
 
     private static final String syslogEntry3 = "Sep  3 20:42:55 ip-172-31-48-70 systemd[1]: "
             + "Started Load Kernel Modules.";
+
+    private static final String YEAR = String.valueOf(Calendar.getInstance().get(Calendar.YEAR));
 
     @TempDir
     Path logDir;
@@ -197,7 +200,7 @@ public class LogsTest {
         fileWriter.println(syslogEntry1);
         fileWriter.println(syslogEntry2);
         Thread thread = new Thread(() -> runCommandLine("logs", "get", "--log-file", logFile.toString(),
-                "--syslog", "--time-window", "2020-08-30,2020-09-05", "--filter", "apple,systemd"));
+                "--syslog", "--time-window", YEAR + "-08-30," + YEAR + "-09-05", "--filter", "apple,systemd"));
         thread.start();
         thread.join();
         assertThat(TestUtil.byteArrayOutputStreamToString(byteArrayOutputStream), containsString("Sep  4 11:33:46 3c22fb9c16f9 com."
@@ -213,12 +216,13 @@ public class LogsTest {
     void testGetSyslogFollowHappyCase() throws InterruptedException {
         fileWriter.println(syslogEntry1);
         Thread thread = new Thread(() -> runCommandLine("logs", "get", "--log-file", logFile.toString(),
-                "--time-window", "2020-08-30,+1s", "--follow", "--syslog", "--no-color"));
+                "--time-window", YEAR + "-08-30,+365d", "--follow", "--syslog", "--no-color"));
         thread.start();
-        // we wait for 500ms to write more entries to the file to test the follow option.
+        // we wait for 2000ms to write more entries to the file to test the follow option.
         fileWriter.println(syslogEntry2);
         fileWriter.println(syslogEntry3);
-        thread.join();
+        thread.join(2_000);
+        thread.interrupt();
 
         assertThat(TestUtil.byteArrayOutputStreamToString(byteArrayOutputStream), containsString(syslogEntry1));
         assertThat(TestUtil.byteArrayOutputStreamToString(byteArrayOutputStream), containsString(syslogEntry2));

@@ -138,18 +138,22 @@ class AggregationImplTest {
     @Test
     void testReadLogMultipleFile() throws IOException, InterruptedException {
         writer.println(logEntry);
+        writer.close();
 
         File logFile2 = logDir.resolve("greengrass_2020_12_01_00_0.log").toFile();
         writer = TestUtil.createPrintStreamFromOutputStream(new FileOutputStream(logFile2));
         writer.println(logEntry2);
+        writer.close();
 
         File logFile3 = logDir.resolve("aws.greengrass.Nucleus_2020_12_01_00_0.log").toFile();
         writer = TestUtil.createPrintStreamFromOutputStream(new FileOutputStream(logFile3));
         writer.println(logEntry3);
+        writer.close();
 
         File logFile4 = logDir.resolve("aws.greengrass.Nucleus_2020_12_01_02_0.log").toFile();
         writer = TestUtil.createPrintStreamFromOutputStream(new FileOutputStream(logFile4));
         writer.println(logEntry4);
+        writer.close();
 
         String[] logFilePath = {logFile.getPath(), logFile2.getPath(), logFile3.getPath(), logFile4.getPath()};
 
@@ -267,8 +271,8 @@ class AggregationImplTest {
     @AfterEach
     void cleanup() {
         aggregation.close();
-        deleteDir(logDir.toFile());
         writer.close();
         errorStream.close();
+        deleteDir(logDir.toFile());
     }
 }

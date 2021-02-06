@@ -140,16 +140,19 @@ class AggregationImplTest {
         writer.println(logEntry);
 
         File logFile2 = logDir.resolve("greengrass_2020_12_01_00_0.log").toFile();
-        writer = TestUtil.createPrintStreamFromOutputStream(new FileOutputStream(logFile2));
-        writer.println(logEntry2);
+        try (PrintStream writer = TestUtil.createPrintStreamFromOutputStream(new FileOutputStream(logFile2))) {
+            writer.println(logEntry2);
+        }
 
         File logFile3 = logDir.resolve("aws.greengrass.Nucleus_2020_12_01_00_0.log").toFile();
-        writer = TestUtil.createPrintStreamFromOutputStream(new FileOutputStream(logFile3));
-        writer.println(logEntry3);
+        try (PrintStream writer = TestUtil.createPrintStreamFromOutputStream(new FileOutputStream(logFile3))) {
+            writer.println(logEntry3);
+        }
 
         File logFile4 = logDir.resolve("aws.greengrass.Nucleus_2020_12_01_02_0.log").toFile();
-        writer = TestUtil.createPrintStreamFromOutputStream(new FileOutputStream(logFile4));
-        writer.println(logEntry4);
+        try (PrintStream writer = TestUtil.createPrintStreamFromOutputStream(new FileOutputStream(logFile4))) {
+            writer.println(logEntry4);
+        }
 
         String[] logFilePath = {logFile.getPath(), logFile2.getPath(), logFile3.getPath(), logFile4.getPath()};
 
@@ -267,8 +270,8 @@ class AggregationImplTest {
     @AfterEach
     void cleanup() {
         aggregation.close();
-        deleteDir(logDir.toFile());
         writer.close();
         errorStream.close();
+        deleteDir(logDir.toFile());
     }
 }

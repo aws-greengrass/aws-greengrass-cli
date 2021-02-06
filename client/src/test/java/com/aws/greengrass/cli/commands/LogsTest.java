@@ -246,9 +246,9 @@ public class LogsTest {
 
     @AfterEach
     void cleanup() {
-        deleteDir(logDir.toFile());
         printStream.close();
         fileWriter.close();
+        deleteDir(logDir.toFile());
     }
 
     private void runCommandLine(String... args) {

@@ -71,6 +71,7 @@ import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.hasLength;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.junit.jupiter.api.Assertions.fail;
@@ -402,6 +403,12 @@ class CLIEventStreamAgentTest {
             assertNotNull(topics.findTopics("_debugPassword", "debug", response.getPassword()));
             assertEquals(response.getPasswordExpiration().toEpochMilli(),
                     Coerce.toLong(topics.find("_debugPassword", "debug", response.getPassword(), "expiration")));
+            assertNull(response.getCertificateSignature());
+
+            topics.lookup("_certificateFingerprint").withValue("ABCD");
+            response =
+                    cliEventStreamAgent.getCreateDebugPasswordHandler(mockContext, topics).handleRequest(request);
+            assertEquals("ABCD", response.getCertificateSignature());
         }
     }
 }

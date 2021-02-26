@@ -597,6 +597,7 @@ public class CLIEventStreamAgent {
                 ((Topics) config.lookupTopics("_debugPassword").withParentNeedsToKnow(false))
                         .lookup(DEBUG_USERNAME, password, "expiration").withValue(expiration.toEpochMilli());
 
+                response.setCertificateSignature(Coerce.toString(config.find("_certificateFingerprint")));
                 response.setPassword(password);
                 response.setPasswordExpiration(expiration);
                 response.setUsername(DEBUG_USERNAME);

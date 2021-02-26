@@ -33,5 +33,13 @@ public class PasswordCommand extends BaseCommand {
         System.out.println("Password will expire at: " +
                 DateTimeFormatter.ISO_OFFSET_DATE_TIME.withZone(ZoneId.systemDefault())
                         .format(response.getPasswordExpiration()));
+        if (response.getCertificateSignature() != null && !response.getCertificateSignature().isEmpty()) {
+            System.out.println(); // Newline to separate the TLS information + warning
+            System.out.println("Local debug console is configured to use TLS security. Since the certificate is "
+                    + "self-signed you will need to bypass any warnings from your web browser.");
+            System.out.println("Before bypassing the security alerts, verify the certificate SHA256 fingerprint "
+                    + "matches: ");
+            System.out.println(response.getCertificateSignature());
+        }
     }
 }

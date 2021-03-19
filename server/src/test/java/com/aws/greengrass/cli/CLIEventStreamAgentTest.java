@@ -403,12 +403,15 @@ class CLIEventStreamAgentTest {
             assertNotNull(topics.findTopics("_debugPassword", "debug", response.getPassword()));
             assertEquals(response.getPasswordExpiration().toEpochMilli(),
                     Coerce.toLong(topics.find("_debugPassword", "debug", response.getPassword(), "expiration")));
-            assertNull(response.getCertificateSignature());
+            assertNull(response.getCertificateSHA256Hash());
+            assertNull(response.getCertificateSHA1Hash());
 
-            topics.lookup("_certificateFingerprint").withValue("ABCD");
+            topics.lookup("_certificateFingerprint", "SHA-1").withValue("ABCD");
+            topics.lookup("_certificateFingerprint", "SHA-256").withValue("ABCDE");
             response =
                     cliEventStreamAgent.getCreateDebugPasswordHandler(mockContext, topics).handleRequest(request);
-            assertEquals("ABCD", response.getCertificateSignature());
+            assertEquals("ABCD", response.getCertificateSHA1Hash());
+            assertEquals("ABCDE", response.getCertificateSHA256Hash());
         }
     }
 }

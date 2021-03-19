@@ -30,16 +30,21 @@ public class PasswordCommand extends BaseCommand {
         CreateDebugPasswordResponse response = nucleusAdapterIpc.createDebugPassword();
         System.out.println("Username: " + response.getUsername());
         System.out.println("Password: " + response.getPassword());
-        System.out.println("Password will expire at: " +
+        System.out.println("Password expires at: " +
                 DateTimeFormatter.ISO_OFFSET_DATE_TIME.withZone(ZoneId.systemDefault())
                         .format(response.getPasswordExpiration()));
-        if (response.getCertificateSignature() != null && !response.getCertificateSignature().isEmpty()) {
+        if (response.getCertificateSHA1Hash() != null || response.getCertificateSHA256Hash() != null) {
             System.out.println(); // Newline to separate the TLS information + warning
-            System.out.println("Local debug console is configured to use TLS security. Since the certificate is "
-                    + "self-signed you will need to bypass any warnings from your web browser.");
-            System.out.println("Before bypassing the security alerts, verify the certificate SHA256 fingerprint "
-                    + "matches: ");
-            System.out.println(response.getCertificateSignature());
+            System.out.println("The local debug console is configured to use TLS security. The certificate is "
+                    + "self-signed so you will need to bypass your web browser's security warnings to open the console.");
+            System.out.println("Before you bypass the security warning, verify that the certificate fingerprint "
+                    + "matches one of the following fingerprints.");
+            if (response.getCertificateSHA256Hash() != null) {
+                System.out.println("SHA-256: " + response.getCertificateSHA256Hash());
+            }
+            if (response.getCertificateSHA1Hash() != null) {
+                System.out.println("SHA-1: " + response.getCertificateSHA1Hash());
+            }
         }
     }
 }

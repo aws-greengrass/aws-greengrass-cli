@@ -108,6 +108,7 @@ public class CLIEventStreamAgent {
     private static final int DEBUG_PASSWORD_LENGTH_REQUIREMENT = 32;
     private static final String DEBUG_USERNAME = "debug";
     private static final Duration DEBUG_PASSWORD_EXPIRATION = Duration.ofHours(8);
+    protected static final String CERT_FINGERPRINT_NAMESPACE = "_certificateFingerprint";
 
     @Inject
     private Kernel kernel;
@@ -597,7 +598,8 @@ public class CLIEventStreamAgent {
                 ((Topics) config.lookupTopics("_debugPassword").withParentNeedsToKnow(false))
                         .lookup(DEBUG_USERNAME, password, "expiration").withValue(expiration.toEpochMilli());
 
-                response.setCertificateSignature(Coerce.toString(config.find("_certificateFingerprint")));
+                response.setCertificateSHA1Hash(Coerce.toString(config.find(CERT_FINGERPRINT_NAMESPACE, "SHA-1")));
+                response.setCertificateSHA256Hash(Coerce.toString(config.find(CERT_FINGERPRINT_NAMESPACE, "SHA-256")));
                 response.setPassword(password);
                 response.setPasswordExpiration(expiration);
                 response.setUsername(DEBUG_USERNAME);

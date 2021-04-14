@@ -22,46 +22,6 @@ jobs:
         run: |
           python3 ./.github/scripts/cover2cover.py client/target/jacoco-report/jacoco.xml src/main/java > client/target/jacoco-report/cobertura.xml
           python3 ./.github/scripts/cover2cover.py server/target/jacoco-report/jacoco.xml src/main/java > server/target/jacoco-report/cobertura.xml
-      - name: cobertura-report-client
-        uses: shaguptashaikh/cobertura-action@master
-        continue-on-error: true
-        with:
-          # The GITHUB_TOKEN for this repo
-          repo_token: ${{ github.token }}
-          # Path to the cobertura file.
-          path: client/target/jacoco-report/cobertura.xml
-          # If files with 100% should be skipped from report.
-          skip_covered: false
-          # Minimum allowed coverage percentage as an integer.
-          minimum_coverage: 60
-          # Show line rate as specific column.
-          show_line: true
-          # Show branch rate as specific column.
-          show_branch: true
-          # Use class names instead of the filename
-          show_class_names: true
-          # Use a unique name for the report and comment
-          report_name: Client Coverage Report
-      - name: cobertura-report-server
-        uses: shaguptashaikh/cobertura-action@master
-        continue-on-error: true
-        with:
-          # The GITHUB_TOKEN for this repo
-          repo_token: ${{ github.token }}
-          # Path to the cobertura file.
-          path: server/target/jacoco-report/cobertura.xml
-          # If files with 100% should be skipped from report.
-          skip_covered: false
-          # Minimum allowed coverage percentage as an integer.
-          minimum_coverage: 60
-          # Show line rate as specific column.
-          show_line: true
-          # Show branch rate as specific column.
-          show_branch: true
-          # Use class names instead of the filename
-          show_class_names: true
-          # Use a unique name for the report and comment
-          report_name: Server Coverage Report
       - name: Upload Client Coverage
         uses: actions/upload-artifact@v1.0.0
         with:
@@ -72,3 +32,19 @@ jobs:
         with:
           name: Server Coverage Report
           path: server/target/jacoco-report
+      - name: Save PR number
+        run: |
+          mkdir -p ./pr/client/jacoco-report
+          mkdir -p ./pr/server/jacoco-report
+          echo ${{ github.event.number }} > ./pr/NR
+          echo ${{ github.event.pull_request.head.sha }} > ./pr/SHA
+
+          cp client/target/jacoco-report/cobertura.xml ./pr/client/jacoco-report/cobertura.xml
+          cp server/target/jacoco-report/cobertura.xml ./pr/server/jacoco-report/cobertura.xml
+        if: github.event_name == 'pull_request'
+      - name: Upload files
+        uses: actions/upload-artifact@v2
+        with:
+          name: pr
+          path: pr/
+        if: github.event_name == 'pull_request'

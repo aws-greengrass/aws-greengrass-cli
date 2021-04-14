@@ -72,8 +72,9 @@ public class ComponentCommand extends BaseCommand {
 
     private void printComponentDetails(ComponentDetails component) throws JsonProcessingException {
         System.out.println("Component Name: " + component.getComponentName());
-        System.out.println("Version: " + component.getVersion());
-        System.out.println("State: " + component.getState());
-        System.out.println("Configuration: " + mapper.writeValueAsString(component.getConfiguration()));
+        // Indent following lines to make the components more easily readable
+        System.out.println("    Version: " + component.getVersion());
+        System.out.println("    State: " + component.getState());
+        System.out.println("    Configuration: " + mapper.writeValueAsString(component.getConfiguration()));
     }
 }

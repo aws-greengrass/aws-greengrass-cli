@@ -32,5 +32,9 @@
             <source>${project.basedir}/install.sh</source>
             <outputDirectory>/</outputDirectory>
         </file>
+        <file>
+            <source>${project.basedir}/install.cmd</source>
+            <outputDirectory>/</outputDirectory>
+        </file>
     </files>
 </assembly>

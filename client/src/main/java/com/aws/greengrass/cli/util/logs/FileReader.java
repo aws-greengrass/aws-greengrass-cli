@@ -94,7 +94,7 @@ public class FileReader implements Runnable {
                     }
                 }
             } catch (FileNotFoundException e) {
-                LogsUtil.getErrorStream().println("Can not find file: " + file);
+                LogsUtil.getErrorStream().println("Cannot find file: " + file);
             } catch (IOException e) {
                 LogsUtil.getErrorStream().println(file + "readLine() failed.");
                 LogsUtil.getErrorStream().println(e.getMessage());

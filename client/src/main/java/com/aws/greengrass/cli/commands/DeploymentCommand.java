@@ -21,6 +21,7 @@ import java.nio.file.Paths;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import javax.inject.Inject;
 
 import static com.aws.greengrass.cli.adapter.impl.NucleusAdapterIpcClientImpl.deTilde;
@@ -60,9 +61,9 @@ public class DeploymentCommand extends BaseCommand {
             try {
                 // Try to read JSON from a file if it is a path and the file exists
                 try {
-                    Path filePath = Paths.get(deTilde(configUpdate));
-                    if (Files.exists(filePath)) {
-                        configurationUpdate = mapper.readValue(filePath.toFile(), Map.class);
+                    Optional<Path> filePath = deTilde(configUpdate);
+                    if (filePath.isPresent() && Files.exists(filePath.get())) {
+                        configurationUpdate = mapper.readValue(filePath.get().toFile(), Map.class);
                     }
                 } catch (InvalidPathException ignored) {
                 }
@@ -85,8 +86,12 @@ public class DeploymentCommand extends BaseCommand {
         createLocalDeploymentRequest.setRootComponentVersionsToAdd(componentsToMerge);
         createLocalDeploymentRequest.setRootComponentsToRemove(componentsToRemove);
         createLocalDeploymentRequest.setComponentToRunWithInfo(getComponentToRunWithInfo(runWithOptions));
-        createLocalDeploymentRequest.setRecipeDirectoryPath(deTilde(recipeDir));
-        createLocalDeploymentRequest.setArtifactsDirectoryPath(deTilde(artifactDir));
+        Optional<Path> recipeDirPath = deTilde(recipeDir);
+        createLocalDeploymentRequest.setRecipeDirectoryPath(recipeDirPath.isPresent() ? recipeDirPath.get().toString() :
+                null);
+        Optional<Path> artifactDirPath = deTilde(artifactDir);
+        createLocalDeploymentRequest.setArtifactsDirectoryPath(artifactDirPath.isPresent() ?
+                artifactDirPath.get().toString() : null);
         String deploymentId = nucleusAdapterIpc.createLocalDeployment(createLocalDeploymentRequest);
         System.out.println("Local deployment submitted! Deployment Id: " + deploymentId);
         return 0;

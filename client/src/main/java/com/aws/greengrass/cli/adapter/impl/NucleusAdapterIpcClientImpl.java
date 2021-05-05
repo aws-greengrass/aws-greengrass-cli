@@ -300,22 +300,19 @@ public class NucleusAdapterIpcClientImpl implements NucleusAdapterIpc {
 
     }
 
-    public static String deTilde(String path) {
-        if (path == null) {
-            return path;
-        }
-        if (path.isEmpty()) {
-            return path;
+    public static Optional<Path> deTilde(String path) {
+        if (path == null || path.isEmpty()) {
+            return Optional.empty();
         }
         if (path.startsWith(HOME_DIR_PREFIX)) {
-            return Paths.get(System.getProperty("user.home")).resolve(path.substring(HOME_DIR_PREFIX.length()))
-                    .toAbsolutePath().toString();
+            return Optional.of(Paths.get(System.getProperty("user.home")).resolve(path.substring(HOME_DIR_PREFIX.length()))
+                    .toAbsolutePath());
         }
-        return Paths.get(path).toAbsolutePath().toString();
+        return Optional.of(Paths.get(path).toAbsolutePath());
     }
 
     private byte[] loadCliIpcInfo(String ggcRootPath) throws IOException {
-        Path directory = Paths.get(deTilde(ggcRootPath)).resolve(CLI_IPC_INFO_DIRECTORY).normalize();
+        Path directory = deTilde(ggcRootPath).orElse(Paths.get("")).resolve(CLI_IPC_INFO_DIRECTORY).normalize();
 
         IOException e = new IOException("Not able to find auth information in directory: " + directory +
                 ". Please run CLI as authorized user or group.");

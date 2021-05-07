@@ -45,14 +45,14 @@ public class LogsTest {
             + "\"eventType\":\"null\",\"message\":\"Closing connections idle longer than 70000 MILLISECONDS\","
             + "\"timestamp\":1594836028090,\"cause\":null}";
 
-    private static final String syslogEntry1 = "Sep  4 11:33:46 3c22fb9c16f9 com.apple.xpc.launchd[1] "
+    private static final String syslogEntry1 = "Jan  1 00:00:01 3c22fb9c16f9 com.apple.xpc.launchd[1] "
             + "(com.apple.mdworker.shared.0A000000-0000-0000-0000-000000000000[83373]): "
             + "Service exited due to SIGKILL | sent by mds[142]";
 
-    private static final String syslogEntry2 = "Aug 30 08:30:01 ip-172-31-55-139 systemd: "
+    private static final String syslogEntry2 = "Jan  1 00:00:02 ip-172-31-55-139 systemd: "
             + "Created slice User Slice of root.";
 
-    private static final String syslogEntry3 = "Sep  3 20:42:55 ip-172-31-48-70 systemd[1]: "
+    private static final String syslogEntry3 = "Jan  1 00:00:03 ip-172-31-48-70 systemd[1]: "
             + "Started Load Kernel Modules.";
 
     private static final String YEAR = String.valueOf(Calendar.getInstance().get(Calendar.YEAR));
@@ -157,8 +157,9 @@ public class LogsTest {
         thread.start();
         fileWriter.println(logEntry1);
 
-        PrintStream fileWriter2 = TestUtil.createPrintStreamFromOutputStream(new FileOutputStream(logFile2.toFile()));
-        fileWriter2.println(logEntry2);
+        try (PrintStream fileWriter2 = TestUtil.createPrintStreamFromOutputStream(new FileOutputStream(logFile2.toFile()))) {
+            fileWriter2.println(logEntry2);
+        }
         thread.join();
 
         assertThat(TestUtil.byteArrayOutputStreamToString(byteArrayOutputStream), containsString("[DEBUG] "
@@ -200,14 +201,14 @@ public class LogsTest {
         fileWriter.println(syslogEntry1);
         fileWriter.println(syslogEntry2);
         Thread thread = new Thread(() -> runCommandLine("logs", "get", "--log-file", logFile.toString(),
-                "--syslog", "--time-window", YEAR + "-08-30," + YEAR + "-09-05", "--filter", "apple,systemd"));
+                "--syslog", "--time-window", YEAR + "-01-01," + YEAR + "-01-02", "--filter", "apple,systemd"));
         thread.start();
         thread.join();
-        assertThat(TestUtil.byteArrayOutputStreamToString(byteArrayOutputStream), containsString("Sep  4 11:33:46 3c22fb9c16f9 com."
+        assertThat(TestUtil.byteArrayOutputStreamToString(byteArrayOutputStream), containsString("Jan  1 00:00:01 3c22fb9c16f9 com."
                 + ANSI_HIGHLIGHT + "apple" + ANSI_HIGHLIGHT_RESET + ".xpc.launchd[1] (com."
                 + ANSI_HIGHLIGHT + "apple" + ANSI_HIGHLIGHT_RESET + ".mdworker.shared.0A000000-0000-0000-0000-000000000000[83373]): "
                 + "Service exited due to SIGKILL | sent by mds[142]"));
-        assertThat(TestUtil.byteArrayOutputStreamToString(byteArrayOutputStream), containsString("Aug 30 08:30:01 ip-172-31-55-139 "
+        assertThat(TestUtil.byteArrayOutputStreamToString(byteArrayOutputStream), containsString("Jan  1 00:00:02 ip-172-31-55-139 "
                 + ANSI_HIGHLIGHT + "systemd" + ANSI_HIGHLIGHT_RESET + ": Created slice User Slice of root."));
         LogsUtil.setSyslog(false);
     }
@@ -216,13 +217,15 @@ public class LogsTest {
     void testGetSyslogFollowHappyCase() throws InterruptedException {
         fileWriter.println(syslogEntry1);
         Thread thread = new Thread(() -> runCommandLine("logs", "get", "--log-file", logFile.toString(),
-                "--time-window", YEAR + "-08-30,+365d", "--follow", "--syslog", "--no-color"));
+                "--time-window", YEAR + "-01-01,+5s", "--follow", "--syslog", "--no-color"));
         thread.start();
-        // we wait for 2000ms to write more entries to the file to test the follow option.
+
         fileWriter.println(syslogEntry2);
         fileWriter.println(syslogEntry3);
-        thread.join(2_000);
-        thread.interrupt();
+
+        // The thread should exit in 5 seconds. See the `--time-window` `+5s` argument. But we wait here for at most
+        // 10 seconds just in case.
+        thread.join(10_000);
 
         assertThat(TestUtil.byteArrayOutputStreamToString(byteArrayOutputStream), containsString(syslogEntry1));
         assertThat(TestUtil.byteArrayOutputStreamToString(byteArrayOutputStream), containsString(syslogEntry2));

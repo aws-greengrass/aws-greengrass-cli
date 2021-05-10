@@ -72,7 +72,7 @@ class AggregationImplTest {
         errOutputStream = new ByteArrayOutputStream();
         errorStream = TestUtil.createPrintStreamFromOutputStream(errOutputStream);
         LogsUtil.setErrorStream(errorStream);
-        logFile = new File (logDir.resolve("greengrass.log").toString());
+        logFile = logDir.resolve("greengrass.log").toFile();
         writer = TestUtil.createPrintStreamFromOutputStream(new FileOutputStream(logFile));
     }
 

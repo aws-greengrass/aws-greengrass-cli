@@ -14,8 +14,11 @@ import com.aws.greengrass.cli.util.logs.LogsUtil;
 import lombok.Getter;
 
 import java.io.File;
+import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.time.format.DateTimeParseException;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -49,36 +52,39 @@ public class AggregationImpl implements Aggregation {
     /*
      * Read log files from input commands.
      *
-     * @param logFileArray an array of file paths
-     * @param logDirArray an array of file directories
+     * @param logFileList a list of file paths
+     * @param logDirList a list of file directories
      * @return a PriorityBlockingQueue containing log entries. Log entries from multiple files
      *  will read into this queue concurrently ordered by their timestamps.
      */
     @Override
-    public LogQueue readLog(String[] logFileArray, String[] logDirArray) {
+    public LogQueue readLog(List<Path> logFileList, List<Path> logDirList) {
         if (LogsUtil.isSyslog()) {
-            if (logDirArray != null) {
+            if (logDirList != null && !logDirList.isEmpty()) {
                 LogsUtil.getErrorStream().println("Syslog does not support directory input!");
-                logDirArray = null;
+                logDirList = null;
             }
-            if (logFileArray == null) {
+            if (logFileList == null || logFileList.isEmpty()) {
                 // These three locations are most likely the default location of syslog in Linux or Unix
-                logFileArray = new String[]{"/var/log/system.log", "/var/log/syslog", "/var/log/messages"};
+                logFileList = Arrays.asList(
+                        Paths.get("/var/log/system.log"),
+                        Paths.get("/var/log/syslog"),
+                        Paths.get("/var/log/messages"));
             }
         }
-        if (logFileArray == null && logDirArray == null) {
+        if ((logFileList == null || logFileList.isEmpty()) && (logDirList == null || logDirList.isEmpty())) {
             throw new RuntimeException("No valid log input. Please provide a log file or directory.");
         }
 
-        Set<File> logFileSet = listLog(logDirArray);
-        if (logFileArray != null) {
-            for (String filePath : logFileArray) {
-                File file = new File(filePath);
+        Set<File> logFileSet = listLog(logDirList);
+        if (logFileList != null) {
+            for (Path filePath : logFileList) {
+                File file = filePath.toFile();
                 logFileSet.add(file);
             }
         }
 
-        if (logFileSet.isEmpty() && logDirArray != null) {
+        if (logFileSet.isEmpty() && (logDirList != null && !logDirList.isEmpty())) {
             throw new RuntimeException("Log directory provided contains no valid log files.");
         }
 
@@ -103,17 +109,17 @@ public class AggregationImpl implements Aggregation {
     /*
      * List available log files from given directories.
      *
-     * @param logDirArray an array of file directories
+     * @param logDirList a list of file directories
      * @return a list of Path to each found log files
      */
     @Override
-    public Set<File> listLog(String[] logDirArray) {
+    public Set<File> listLog(List<Path> logDirList) {
         Set<File> logFileSet = new HashSet<>();
-        if (logDirArray == null) {
+        if (logDirList == null) {
             return logFileSet;
         }
-        for (String dir : logDirArray) {
-            File[] files = new File(dir).listFiles();
+        for (Path dir : logDirList) {
+            File[] files = dir.toFile().listFiles();
             if (files == null) {
                 LogsUtil.getErrorStream().println("Log dir provided invalid: " + dir);
                 continue;

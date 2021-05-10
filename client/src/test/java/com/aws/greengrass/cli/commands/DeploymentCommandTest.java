@@ -56,7 +56,7 @@ class DeploymentCommandTest {
     void GIVEN_WHEN_artifact_dir_is_provided_THEN_request_contains_provided_artifact_dir() {
         int exitCode = runCommandLine("deployment", "create", "--artifactDir", ARTIFACT_FOLDER_PATH_STR);
         CreateLocalDeploymentRequest request = new CreateLocalDeploymentRequest();
-        request.setArtifactsDirectoryPath(deTilde(ARTIFACT_FOLDER_PATH_STR));
+        request.setArtifactsDirectoryPath(deTilde(ARTIFACT_FOLDER_PATH_STR).get().toString());
         verify(nucleusAdapteripc).createLocalDeployment(request);
         assertThat(exitCode, is(0));
     }
@@ -66,7 +66,7 @@ class DeploymentCommandTest {
         int exitCode = runCommandLine("deployment", "create", "-a", ARTIFACT_FOLDER_PATH_STR);
 
         CreateLocalDeploymentRequest request = new CreateLocalDeploymentRequest();
-        request.setArtifactsDirectoryPath(deTilde(ARTIFACT_FOLDER_PATH_STR));
+        request.setArtifactsDirectoryPath(deTilde(ARTIFACT_FOLDER_PATH_STR).get().toString());
         verify(nucleusAdapteripc).createLocalDeployment(request);
         assertThat(exitCode, is(0));
     }
@@ -84,7 +84,7 @@ class DeploymentCommandTest {
     void GIVEN_WHEN_recipe_dir_is_provided_THEN_request_contains_provided_recipe_dir() {
         int exitCode = runCommandLine("deployment", "create", "--recipeDir", RECIPE_FOLDER_PATH_STR);
         CreateLocalDeploymentRequest request = new CreateLocalDeploymentRequest();
-        request.setRecipeDirectoryPath(deTilde(RECIPE_FOLDER_PATH_STR));
+        request.setRecipeDirectoryPath(deTilde(RECIPE_FOLDER_PATH_STR).get().toString());
         verify(nucleusAdapteripc).createLocalDeployment(request);
         assertThat(exitCode, is(0));
     }
@@ -93,7 +93,7 @@ class DeploymentCommandTest {
     void GIVEN_WHEN_recipe_dir_is_provided_with_short_name_THEN_request_contains_provided_recipe_dir() {
         int exitCode = runCommandLine("deployment", "create", "-r", RECIPE_FOLDER_PATH_STR);
         CreateLocalDeploymentRequest request = new CreateLocalDeploymentRequest();
-        request.setRecipeDirectoryPath(deTilde(RECIPE_FOLDER_PATH_STR));
+        request.setRecipeDirectoryPath(deTilde(RECIPE_FOLDER_PATH_STR).get().toString());
         verify(nucleusAdapteripc).createLocalDeployment(request);
         assertThat(exitCode, is(0));
     }

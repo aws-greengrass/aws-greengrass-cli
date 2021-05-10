@@ -16,8 +16,14 @@ import picocli.CommandLine.Command;
 import picocli.CommandLine.HelpCommand;
 
 import java.io.File;
+import java.nio.file.Path;
+import java.nio.file.Paths;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.List;
 import java.util.Set;
 import java.util.concurrent.TimeUnit;
+import java.util.stream.Collectors;
 import javax.inject.Inject;
 
 import static com.aws.greengrass.cli.adapter.impl.NucleusAdapterIpcClientImpl.deTilde;
@@ -62,11 +68,11 @@ public class Logs extends BaseCommand {
         if (syslog && verbose) {
             LogsUtil.getErrorStream().println("Syslog does not support verbosity!");
         }
-        logFileArray = deTildeArray(logFileArray);
-        logDirArray = deTildeArray(logDirArray);
+        List<Path> logFileList = deTildeArray(logFileArray);
+        List<Path> logDirList = deTildeArray(logDirArray);
         filter.composeRule(timeWindow, filterExpressions);
         aggregation.configure(follow, filter, before, after, max);
-        LogQueue logQueue = aggregation.readLog(logFileArray, logDirArray);
+        LogQueue logQueue = aggregation.readLog(logFileList, logDirList);
         while (!logQueue.isEmpty() || aggregation.isAlive()) {
             try {
                 // GG_NEEDS_REVIEW: TODO: remove busy polling.
@@ -81,22 +87,24 @@ public class Logs extends BaseCommand {
         return 0;
     }
 
-    private String[] deTildeArray(String[] arr) {
+    private List<Path> deTildeArray(String[] arr) {
         if (arr == null) {
-            return arr;
+            return null;
         }
+        List<Path> paths = new ArrayList<>();
         for (int i = 0; i < arr.length; i++) {
             String s = arr[i];
-            arr[i] = deTilde(s);
+            paths.add(deTilde(s).orElse(Paths.get("")));
         }
-        return arr;
+        return paths;
     }
 
     @Command(name = "list-log-files", mixinStandardHelpOptions = true,
             versionProvider = com.aws.greengrass.cli.module.VersionProvider.class)
     public void listLogFiles(@CommandLine.Option(names = {"-ld", "--log-dir"}, paramLabel = "Log directory")
                                  String[] logDir) {
-        Set<File> logFileSet = aggregation.listLog(logDir);
+        List<Path> logDirList = Arrays.stream(logDir).map(d -> Paths.get(d)).collect(Collectors.toList());
+        Set<File> logFileSet = aggregation.listLog(logDirList);
         if (!logFileSet.isEmpty()) {
             for (File file : logFileSet) {
                 LogsUtil.getPrintStream().println(file.getPath());

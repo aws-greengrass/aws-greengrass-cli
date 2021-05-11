@@ -153,7 +153,7 @@ public class AggregationImpl implements Aggregation {
     @Override
     public void close() {
         try {
-            executorService.awaitTermination(10, TimeUnit.SECONDS);
+            executorService.awaitTermination(5, TimeUnit.SECONDS);
         } catch (InterruptedException e) {
             e.printStackTrace();
         }

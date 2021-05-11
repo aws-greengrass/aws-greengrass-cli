@@ -41,13 +41,18 @@ public class FileReader implements Runnable {
         // and we assumed that only the most recent file is updating,
         // hence there won't be any busy polling until the last file.
         for (LogFile logFile : filesToRead) {
+            if (Thread.currentThread().isInterrupted()) {
+                return;
+            }
+
             File file = logFile.getFile();
             boolean isFollowing = config.isFollow() && logFile.isUpdate();
             try (BufferedReader reader = new BufferedReader(new InputStreamReader(new FileInputStream(file),
                     LogsUtil.DEFAULT_CHARSETS))) {
                 String line;
                 // if the current time is after time window given, we break the loop and stop the thread.
-                while ((line = reader.readLine()) != null || (isFollowing && config.getFilterInterface().reachedEndTime())) {
+                while (!Thread.currentThread().isInterrupted()
+                        && ((line = reader.readLine()) != null || (isFollowing && config.getFilterInterface().reachedEndTime()))) {
                     if (line == null) {
                         // GG_NEEDS_REVIEW: TODO: remove busy polling by adding a WatcherService to track and notify file changes.
                         try {

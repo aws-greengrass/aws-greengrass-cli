@@ -155,8 +155,8 @@ public class AggregationImpl implements Aggregation {
         try {
             executorService.shutdownNow();
             executorService.awaitTermination(5, TimeUnit.SECONDS);
-        } catch (InterruptedException e) {
-            e.printStackTrace();
+        } catch (InterruptedException ignore) {
+            // We are exiting anyway.
         }
     }
 

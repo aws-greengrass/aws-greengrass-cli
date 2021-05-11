@@ -28,6 +28,7 @@ import java.util.Set;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
+import java.util.concurrent.TimeUnit;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -151,7 +152,12 @@ public class AggregationImpl implements Aggregation {
      */
     @Override
     public void close() {
-        executorService.shutdownNow();
+        try {
+            executorService.shutdownNow();
+            executorService.awaitTermination(5, TimeUnit.SECONDS);
+        } catch (InterruptedException ignore) {
+            // We are exiting anyway.
+        }
     }
 
     /*

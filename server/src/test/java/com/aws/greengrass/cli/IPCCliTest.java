@@ -31,8 +31,6 @@ import org.junit.jupiter.api.MethodOrderer;
 import org.junit.jupiter.api.Order;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.TestMethodOrder;
-import org.junit.jupiter.api.condition.DisabledOnOs;
-import org.junit.jupiter.api.condition.OS;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.junit.jupiter.api.extension.ExtensionContext;
 import software.amazon.awssdk.aws.greengrass.GreengrassCoreIPCClient;
@@ -96,7 +94,6 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 
 @ExtendWith({GGExtension.class, UniqueRootPathExtension.class})
 @TestMethodOrder(MethodOrderer.OrderAnnotation.class)
-@DisabledOnOs(OS.WINDOWS)
 class IPCCliTest {
 
     private static final int LOCAL_DEPLOYMENT_TIMEOUT_SECONDS = 15;

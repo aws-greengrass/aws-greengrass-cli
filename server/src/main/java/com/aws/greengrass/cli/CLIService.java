@@ -52,7 +52,7 @@ public class CLIService extends PluginService {
     public static final String CLI_SERVICE = "aws.greengrass.Cli";
     public static final String CLI_CLIENT_ARTIFACT = "aws.greengrass.cli.client";
     public static final String CLI_CLIENT_BINARY = "greengrass-cli";
-    public static final String CLI_CLIENT_DIRECTORY = "cliclient-2.1.0-SNAPSHOT";
+    public static final String CLI_CLIENT_DIRECTORY = "cliclient-2.2.0-SNAPSHOT";
     public static final String CLI_CLIENT_BIN = "bin";
     public static final String CLI_CLIENT_LIB = "lib";
     public static final String CLI_AUTH_TOKEN = "cli_auth_token";

@@ -11,11 +11,10 @@
     <groupId>com.aws.greengrass</groupId>
     <artifactId>cli</artifactId>
     <name>greengrass-cli</name>
-    <version>2.1.0-SNAPSHOT</version>
+    <version>2.2.0-SNAPSHOT</version>
     <modules>
         <module>server</module>
         <module>client</module>
     </modules>
     <packaging>pom</packaging>
 </project>
-

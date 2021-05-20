@@ -8,6 +8,7 @@ package com.aws.greengrass.cli.util.logs;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import lombok.Getter;
 
+import java.time.Instant;
 import java.time.LocalDateTime;
 import java.time.ZoneId;
 import java.time.format.DateTimeFormatter;
@@ -27,11 +28,11 @@ import java.util.regex.Pattern;
  */
 @Getter
 public class LogEntry implements Comparable<LogEntry> {
-    private String line;
+    private final String line;
     private Map<String, Object> map;
     private long timestamp;
 
-    private List<String> matchedKeywords = new ArrayList<>();
+    private final List<String> matchedKeywords = new ArrayList<>();
 
     // Pattern to match for syslog format defined by RFC 3164 https://tools.ietf.org/html/rfc3164#section-4.1
     // "<$Priority>$Timestamp $Host $Logger ($Class): $Message"
@@ -54,14 +55,22 @@ public class LogEntry implements Comparable<LogEntry> {
      * @param line a line of log entry
      * We throw an IOException to the outside to handle failed parsing.
      */
-    public LogEntry(String line) throws JsonProcessingException {
+    public LogEntry(String line) {
         this.line = line;
         if (LogsUtil.isSyslog()) {
             parseSyslogFromString(line);
             return;
         }
-        //We handle parsing first so that if JsonProcessingException is thrown we won't change the fields of this class.
-        this.map = parseJSONFromString(line);
+
+        try {
+            this.map = parseJSONFromString(line);
+        } catch (JsonProcessingException e) {
+            // If the log line isn't JSON, then just treat the whole thing as the message value
+            this.map = new HashMap<>();
+            this.map.put("message", line);
+            this.timestamp = Instant.now().toEpochMilli();
+            return;
+        }
         if (map.get("timestamp") instanceof Long) {
             this.timestamp = (long) map.get("timestamp");
             return;

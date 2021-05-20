@@ -13,8 +13,8 @@ import java.util.concurrent.TimeUnit;
  * Bounded blocking queue of LogEntry.
  */
 public class LogQueue {
-    private BlockingQueue<LogEntry> queue;
-    private int capacity;
+    private final BlockingQueue<LogEntry> queue;
+    private final int capacity;
     private Semaphore sem;
 
     public LogQueue(BlockingQueue<LogEntry> queue, int capacity) {

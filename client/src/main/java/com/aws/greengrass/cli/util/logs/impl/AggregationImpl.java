@@ -95,7 +95,6 @@ public class AggregationImpl implements Aggregation {
         // We initialize the queue here to save overhead for when no log file is provided.
         config.initialize();
 
-
         for (Map.Entry<String, List<LogFile>> entry : logGroupMap.entrySet()) {
             // Here we sort all files in a log group by ascending order of their timestamps and indexes.
             if (!LogsUtil.isSyslog()) {

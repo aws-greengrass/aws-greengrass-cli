@@ -30,6 +30,7 @@ import static com.aws.greengrass.cli.TestUtil.deleteDir;
 import static java.lang.Thread.sleep;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.containsString;
+import static org.hamcrest.Matchers.is;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
@@ -61,17 +62,22 @@ class AggregationImplTest {
     private AggregationImpl aggregation;
     private ByteArrayOutputStream errOutputStream;
     private PrintStream errorStream;
+    private ByteArrayOutputStream stdOutputStream;
+    private PrintStream outStream;
     private PrintStream writer;
     private LogQueue logQueue;
-    private Filter filterInterface = new FilterImpl();
+    private final Filter filterInterface = new FilterImpl();
 
     @BeforeEach
     void init() throws FileNotFoundException {
         aggregation = new AggregationImpl();
         aggregation.configure(false, filterInterface, 0, 0, 100);
         errOutputStream = new ByteArrayOutputStream();
+        stdOutputStream = new ByteArrayOutputStream();
         errorStream = TestUtil.createPrintStreamFromOutputStream(errOutputStream);
+        outStream = TestUtil.createPrintStreamFromOutputStream(stdOutputStream);
         LogsUtil.setErrorStream(errorStream);
+        LogsUtil.setPrintStream(outStream);
         logFile = logDir.resolve("greengrass.log").toFile();
         writer = TestUtil.createPrintStreamFromOutputStream(new FileOutputStream(logFile));
     }
@@ -109,8 +115,9 @@ class AggregationImplTest {
         while (aggregation.isAlive()) {
             sleep(1);
         }
-        assertThat(TestUtil.byteArrayOutputStreamToString(errOutputStream),
-                containsString("Failed to deserialize as JSON map: " + invalidLogEntry));
+        assertThat(TestUtil.byteArrayOutputStreamToString(errOutputStream), is(""));
+        assertThat(logQueue.size(), is(1));
+        assertThat(logQueue.take().getLine(), is(invalidLogEntry));
     }
 
     @Test
@@ -123,8 +130,9 @@ class AggregationImplTest {
         while (aggregation.isAlive()) {
             sleep(1);
         }
-        assertThat(TestUtil.byteArrayOutputStreamToString(errOutputStream),
-                containsString("Failed to deserialize as JSON map: "));
+        assertThat(TestUtil.byteArrayOutputStreamToString(errOutputStream), is(""));
+        assertThat(TestUtil.byteArrayOutputStreamToString(stdOutputStream), is(""));
+        assertThat(logQueue.size(), is(0));
     }
 
     @Test

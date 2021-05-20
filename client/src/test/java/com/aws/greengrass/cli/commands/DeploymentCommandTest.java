@@ -12,6 +12,7 @@ import com.aws.greengrass.cli.module.AdapterModule;
 import com.aws.greengrass.cli.module.DaggerCommandsComponent;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.type.MapType;
 import com.google.common.collect.ImmutableMap;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -20,7 +21,10 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import picocli.CommandLine;
 import software.amazon.awssdk.aws.greengrass.model.CreateLocalDeploymentRequest;
 import software.amazon.awssdk.aws.greengrass.model.RunWithInfo;
+import software.amazon.awssdk.aws.greengrass.model.SystemResourceLimits;
 
+import java.net.URL;
+import java.nio.file.Paths;
 import java.util.Arrays;
 
 import java.util.HashMap;
@@ -39,10 +43,8 @@ class DeploymentCommandTest {
     private static final String ARTIFACT_FOLDER_PATH_STR = "artifactFolderPath";
     private static final String NEW_COMPONENT_1 = "newComponent1";
     private static final String NEW_COMPONENT_2 = "newComponent2";
-    private static final String NEW_COMPONENT_3 = "aws.greengrass.componentname";
     private static final String NEW_COMPONENT_1_WITH_VERSION = "newComponent1=1.0.0";
     private static final String NEW_COMPONENT_2_WITH_VERSION = "newComponent2=2.0.0";
-
 
     private static final Map<String, String> ROOT_COMPONENTS =
             ImmutableMap.of(NEW_COMPONENT_1, "1.0.0", NEW_COMPONENT_2, "2.0.0");
@@ -98,7 +100,6 @@ class DeploymentCommandTest {
         assertThat(exitCode, is(0));
     }
 
-
     @Test
     void GIVEN_WHEN_recipe_dir_is_provided_more_than_once_THEN_invalid_request_is_returned() {
         int exitCode =
@@ -143,15 +144,22 @@ class DeploymentCommandTest {
         assertThat(exitCode, is(0));
     }
 
-
     @Test
-    void GIVEN_WHEN_components_runwith_provided_THEN_request_contains_the_info() {
+    void GIVEN_WHEN_components_runwith_provided_THEN_request_contains_the_info() throws Exception {
         int exitCode = runCommandLine("deployment", "create", "--runWith" , "Component1:posixUser=foo:bar",
-                "--runWith" , "Component2:posixUser=1234");
+                "--runWith" , "Component2:posixUser=1234", "--systemLimits",
+                Paths.get(this.getClass().getResource("resource_limits.json").toURI()).toString());
 
         Map<String, RunWithInfo> componentToRunWithInfo = new HashMap<>();
         RunWithInfo runWithInfo = new RunWithInfo();
         runWithInfo.setPosixUser("foo:bar");
+
+        MapType mapType = mapper.getTypeFactory().constructMapType(HashMap.class, String.class,
+                SystemResourceLimits.class);
+        Map<String, SystemResourceLimits> systemResourceLimits
+                = mapper.readValue(getClass().getResource("resource_limits.json"), mapType);
+        runWithInfo.setSystemResourceLimits(systemResourceLimits.get("Component1"));
+
         componentToRunWithInfo.put("Component1", runWithInfo);
 
         runWithInfo = new RunWithInfo();

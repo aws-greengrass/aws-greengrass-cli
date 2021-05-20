@@ -8,10 +8,13 @@ package com.aws.greengrass.cli.commands;
 import com.aws.greengrass.cli.adapter.NucleusAdapterIpc;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.type.MapType;
+import com.fasterxml.jackson.databind.type.TypeFactory;
 import picocli.CommandLine;
 import software.amazon.awssdk.aws.greengrass.model.CreateLocalDeploymentRequest;
 import software.amazon.awssdk.aws.greengrass.model.LocalDeployment;
 import software.amazon.awssdk.aws.greengrass.model.RunWithInfo;
+import software.amazon.awssdk.aws.greengrass.model.SystemResourceLimits;
 
 import java.io.IOException;
 import java.nio.file.Files;
@@ -52,6 +55,7 @@ public class DeploymentCommand extends BaseCommand {
      @CommandLine.Option(names = {"-r", "--recipeDir"}, paramLabel = "Recipe directory") String recipeDir,
      @CommandLine.Option(names = {"-a", "--artifactDir"}, paramLabel = "Artifacts directory") String artifactDir,
      @CommandLine.Option(names = {"--runWith"}, paramLabel = "Component user and/or group") Map<String, String> runWithOptions,
+     @CommandLine.Option(names = {"--systemLimits"}, paramLabel = "Component system resource limits") String systemLimits,
      @CommandLine.Option(names = {"-c", "--update-config"}, paramLabel = "Component configuration") String configUpdate)
             throws IOException {
         // GG_NEEDS_REVIEW: TODO Validate folder exists and folder structure
@@ -66,7 +70,9 @@ public class DeploymentCommand extends BaseCommand {
                         configurationUpdate = mapper.readValue(filePath.get().toFile(), Map.class);
                     }
                 } catch (InvalidPathException ignored) {
+                    // If the input is a JSON, InvalidPathException is thrown from deTilde and needs to be ignored
                 }
+
                 // If it wasn't a file or a path, then try reading it as a JSON string
                 if (configurationUpdate == null) {
                     configurationUpdate = mapper.readValue(configUpdate, Map.class);
@@ -80,12 +86,40 @@ public class DeploymentCommand extends BaseCommand {
             }
         }
 
+        MapType mapType = mapper.getTypeFactory().constructMapType(HashMap.class, String.class,
+                SystemResourceLimits.class);
+        Map<String, SystemResourceLimits> systemResourceLimits = new HashMap<>();
+        if (systemLimits != null && !systemLimits.isEmpty()) {
+            try {
+                // Try to read JSON from a file if it is a path and the file exists
+                try {
+                    Optional<Path> filePath = deTilde(systemLimits);
+                    if (filePath.isPresent() && Files.exists(filePath.get())) {
+                        systemResourceLimits = mapper.readValue(filePath.get().toFile(), mapType);
+                    }
+                } catch (InvalidPathException ignored) {
+                    // If the input is a JSON, InvalidPathException is thrown from deTilde and needs to be ignored
+                }
+
+                // If it wasn't a file or a path, then try reading it as a JSON string
+                if (systemResourceLimits.isEmpty()) {
+                    systemResourceLimits = mapper.readValue(systemLimits, mapType);
+                }
+            } catch (JsonProcessingException e) {
+                System.err.println(spec.commandLine().getColorScheme()
+                        .errorText("systemLimits parameter file is not a properly formatted JSON"));
+                System.err.println(spec.commandLine().getColorScheme().errorText(e.getMessage()));
+                return 1;
+            }
+        }
+
         CreateLocalDeploymentRequest createLocalDeploymentRequest = new CreateLocalDeploymentRequest();
         createLocalDeploymentRequest.setGroupName(groupId);
         createLocalDeploymentRequest.setComponentToConfiguration(configurationUpdate);
         createLocalDeploymentRequest.setRootComponentVersionsToAdd(componentsToMerge);
         createLocalDeploymentRequest.setRootComponentsToRemove(componentsToRemove);
-        createLocalDeploymentRequest.setComponentToRunWithInfo(getComponentToRunWithInfo(runWithOptions));
+        createLocalDeploymentRequest.setComponentToRunWithInfo(getComponentToRunWithInfo(runWithOptions,
+                systemResourceLimits));
         Optional<Path> recipeDirPath = deTilde(recipeDir);
         createLocalDeploymentRequest.setRecipeDirectoryPath(recipeDirPath.isPresent() ? recipeDirPath.get().toString() :
                 null);
@@ -118,13 +152,13 @@ public class DeploymentCommand extends BaseCommand {
         return 0;
     }
 
-    private Map<String, RunWithInfo> getComponentToRunWithInfo(Map<String, String> runWithOptions) {
+    private Map<String, RunWithInfo> getComponentToRunWithInfo(Map<String, String> runWithOptions,
+            Map<String, SystemResourceLimits> systemLimits) {
         if (runWithOptions == null || runWithOptions.size() == 0) {
             return null;
         }
         Map<String, RunWithInfo> componentToRunWithInfo = new HashMap<>();
         for (Map.Entry<String, String> entry : runWithOptions.entrySet()) {
-
             String componentNameAndRunWithOption = entry.getKey();
             String[] parts = componentNameAndRunWithOption.split(":");
             if (parts.length != 2) {
@@ -142,7 +176,18 @@ public class DeploymentCommand extends BaseCommand {
             }
             componentToRunWithInfo.put(componentName, runWithInfo);
         }
+
+        for (Map.Entry<String, SystemResourceLimits> mapEntry : systemLimits.entrySet()) {
+            String componentName = mapEntry.getKey();
+            componentToRunWithInfo.compute(componentName, (k, v) -> {
+                if (v == null) {
+                    v = new RunWithInfo();
+                }
+                v.setSystemResourceLimits(mapEntry.getValue());
+                return v;
+            });
+        }
+
         return componentToRunWithInfo;
     }
-
 }

@@ -1,4 +1,7 @@
 # Changelog
+## v2.3.0
+
+Version updated to 2.3.0 for Greengrass nucleus version 2.3.0 release.
 
 ## v2.2.0
 

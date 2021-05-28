@@ -154,9 +154,10 @@ public class DeploymentCommand extends BaseCommand {
 
     private Map<String, RunWithInfo> getComponentToRunWithInfo(Map<String, String> runWithOptions,
             Map<String, SystemResourceLimits> systemLimits) {
-        if (runWithOptions == null || runWithOptions.size() == 0) {
-            return null;
+        if (runWithOptions == null) {
+            runWithOptions = new HashMap<>();
         }
+
         Map<String, RunWithInfo> componentToRunWithInfo = new HashMap<>();
         for (Map.Entry<String, String> entry : runWithOptions.entrySet()) {
             String componentNameAndRunWithOption = entry.getKey();
@@ -187,7 +188,6 @@ public class DeploymentCommand extends BaseCommand {
                 return v;
             });
         }
-
-        return componentToRunWithInfo;
+        return componentToRunWithInfo.isEmpty() ? null : componentToRunWithInfo;
     }
 }

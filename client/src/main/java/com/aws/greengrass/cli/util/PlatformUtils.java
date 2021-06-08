@@ -28,13 +28,12 @@ public final class PlatformUtils {
         StringBuilder sb = new StringBuilder();
         InputStream is = process.getInputStream();
         InputStream es = process.getErrorStream();
-        BufferedReader reader = new BufferedReader(new InputStreamReader(is));
-
-        String line;
-        while ((line = reader.readLine()) != null) {
-            sb.append(line);
+        try (BufferedReader reader = new BufferedReader(new InputStreamReader(is))) {
+            String line;
+            while ((line = reader.readLine()) != null) {
+                sb.append(line);
+            }
+            return sb.toString().trim();
         }
-
-        return sb.toString().trim();
     }
 }

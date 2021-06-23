@@ -1,8 +1,6 @@
 {
   "Component1": {
-      "linux": {
-        "memory": 102400,
-        "cpu": 1.5
-      }
+    "memory": 102400,
+    "cpu": 1.5
   }
 }

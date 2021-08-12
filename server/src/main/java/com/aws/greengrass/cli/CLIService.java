@@ -19,6 +19,7 @@ import com.aws.greengrass.lifecyclemanager.PluginService;
 import com.aws.greengrass.util.Coerce;
 import com.aws.greengrass.util.Exec;
 import com.aws.greengrass.util.FileSystemPermission;
+import com.aws.greengrass.util.Utils;
 import com.aws.greengrass.util.platforms.Platform;
 import com.aws.greengrass.util.platforms.UserPlatform;
 import com.fasterxml.jackson.databind.DeserializationFeature;
@@ -57,6 +58,7 @@ public class CLIService extends PluginService {
     public static final String CLI_CLIENT_LIB = "lib";
     public static final String CLI_AUTH_TOKEN = "cli_auth_token";
     public static final String AUTHORIZED_POSIX_GROUPS = "AuthorizedPosixGroups";
+    public static final String AUTHORIZED_WINDOWS_GROUPS = "AuthorizedWindowsGroups";
 
     static final String USER_CLIENT_ID_PREFIX = "user-";
     static final String GROUP_CLIENT_ID_PREFIX = "group-";
@@ -123,6 +125,9 @@ public class CLIService extends PluginService {
 
 
         config.lookup(CONFIGURATION_CONFIG_KEY, AUTHORIZED_POSIX_GROUPS).subscribe((why, newv) -> {
+            requestReinstall();
+        });
+        config.lookup(CONFIGURATION_CONFIG_KEY, AUTHORIZED_WINDOWS_GROUPS).subscribe((why, newv) -> {
             requestReinstall();
         });
     }
@@ -221,32 +226,24 @@ public class CLIService extends PluginService {
         Path authTokenDir = kernel.getNucleusPaths().cliIpcInfoPath();
         revokeOutdatedAuthTokens(authTokenDir);
 
-        // [P41372857]: Support Windows group permissions
-        if (Exec.isWindows) {
+        Topic authorizedGroups = config.find(CONFIGURATION_CONFIG_KEY,
+                Exec.isWindows ? AUTHORIZED_WINDOWS_GROUPS : AUTHORIZED_POSIX_GROUPS);
+        String groups = Coerce.toString(authorizedGroups);
+        if (Utils.isEmpty(groups)) {
             generateCliIpcInfoForEffectiveUser(authTokenDir);
             return;
         }
 
-        Topic authorizedPosixGroups = config.find(CONFIGURATION_CONFIG_KEY, AUTHORIZED_POSIX_GROUPS);
-        if (authorizedPosixGroups == null) {
-            generateCliIpcInfoForEffectiveUser(authTokenDir);
-            return;
-        }
-        String posixGroups = Coerce.toString(authorizedPosixGroups);
-        if (posixGroups == null || posixGroups.length() == 0) {
-            generateCliIpcInfoForEffectiveUser(authTokenDir);
-            return;
-        }
-        for (String posixGroup : posixGroups.split(",")) {
-            posixGroup = posixGroup.trim();
-            UserPlatform.BasicAttributes group;
+        for (String group : groups.split(",")) {
+            group = group.trim();
+            UserPlatform.BasicAttributes groupAttributes;
             try {
-                group = getGroup(posixGroup);
+                groupAttributes = getGroup(group);
             } catch (NumberFormatException | IOException e) {
-                logger.atError().kv("posixGroup", posixGroup).log("Failed to get group ID", e);
+                logger.atError().kv("group", group).log("Failed to get group ID", e);
                 continue;
             }
-            generateCliIpcInfoForPosixGroup(group, authTokenDir);
+            generateCliIpcInfoForGroup(groupAttributes, authTokenDir);
         }
     }
 
@@ -263,7 +260,7 @@ public class CLIService extends PluginService {
         Platform.getInstance().setPermissions(DEFAULT_FILE_PERMISSION, ipcInfoFile);
     }
 
-    private synchronized void generateCliIpcInfoForPosixGroup(UserPlatform.BasicAttributes group, Path directory)
+    private synchronized void generateCliIpcInfoForGroup(UserPlatform.BasicAttributes group, Path directory)
             throws UnauthenticatedException, IOException {
         Path ipcInfoFile = generateCliIpcInfoForClient(getClientIdForGroup(group.getPrincipalIdentifier()), directory);
         if (ipcInfoFile == null) {
@@ -273,7 +270,7 @@ public class CLIService extends PluginService {
         FileSystemPermission filePermission = null;
         try {
             filePermission = FileSystemPermission.builder().ownerUser(
-                    Platform.getInstance().lookupCurrentUser().getPrincipalIdentifier())
+                    Platform.getInstance().lookupCurrentUser().getPrincipalName())
                     .ownerGroup(group.getPrincipalName()).ownerRead(true).ownerWrite(true).groupRead(true).build();
             Platform.getInstance().setPermissions(filePermission, ipcInfoFile);
         } catch (IOException e) {

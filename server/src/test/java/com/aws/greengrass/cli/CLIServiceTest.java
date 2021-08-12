@@ -36,6 +36,7 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.function.Function;
 
+import static com.aws.greengrass.cli.CLIService.AUTHORIZED_WINDOWS_GROUPS;
 import static com.aws.greengrass.cli.CLIService.CLI_AUTH_TOKEN;
 import static com.aws.greengrass.cli.CLIService.CLI_SERVICE;
 import static com.aws.greengrass.cli.CLIService.DOMAIN_SOCKET_PATH;
@@ -112,6 +113,7 @@ class CLIServiceTest extends GGServiceTestUtil {
         verify(deploymentStatusKeeper).registerDeploymentStatusConsumer(eq(Deployment.DeploymentType.LOCAL), any(),
                 eq(CLIService.class.getName()));
         verify(cliConfigSpy).lookup(CONFIGURATION_CONFIG_KEY, AUTHORIZED_POSIX_GROUPS);
+        verify(cliConfigSpy).lookup(CONFIGURATION_CONFIG_KEY, AUTHORIZED_WINDOWS_GROUPS);
     }
 
     @Test

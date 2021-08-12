@@ -19,6 +19,7 @@ import com.aws.greengrass.lifecyclemanager.PluginService;
 import com.aws.greengrass.util.Coerce;
 import com.aws.greengrass.util.Exec;
 import com.aws.greengrass.util.FileSystemPermission;
+import com.aws.greengrass.util.Utils;
 import com.aws.greengrass.util.platforms.Platform;
 import com.aws.greengrass.util.platforms.UserPlatform;
 import com.fasterxml.jackson.databind.DeserializationFeature;
@@ -227,16 +228,12 @@ public class CLIService extends PluginService {
 
         Topic authorizedGroups = config.find(CONFIGURATION_CONFIG_KEY,
                 Exec.isWindows ? AUTHORIZED_WINDOWS_GROUPS : AUTHORIZED_POSIX_GROUPS);
-        if (authorizedGroups == null) {
+        String groups = Coerce.toString(authorizedGroups);
+        if (Utils.isEmpty(groups)) {
             generateCliIpcInfoForEffectiveUser(authTokenDir);
             return;
         }
 
-        String groups = Coerce.toString(authorizedGroups);
-        if (groups == null || groups.length() == 0) {
-            generateCliIpcInfoForEffectiveUser(authTokenDir);
-            return;
-        }
         for (String group : groups.split(",")) {
             group = group.trim();
             UserPlatform.BasicAttributes groupAttributes;

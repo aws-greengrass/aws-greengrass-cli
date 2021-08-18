@@ -8,6 +8,7 @@ package com.aws.greengrass.cli;
 import com.aws.greengrass.componentmanager.ComponentStore;
 import com.aws.greengrass.componentmanager.exceptions.ComponentVersionNegotiationException;
 import com.aws.greengrass.componentmanager.exceptions.PackageDownloadException;
+import com.aws.greengrass.config.PlatformResolver;
 import com.aws.greengrass.config.Topic;
 import com.aws.greengrass.dependency.State;
 import com.aws.greengrass.deployment.DeviceConfiguration;
@@ -395,7 +396,7 @@ class IPCCliTest {
         kernel.getContext().addGlobalStateChangeListener(listener);
 
         String validGid;
-        if (Exec.isWindows) {
+        if (PlatformResolver.isWindows) {
             // GG_NEEDS_REVIEW: TODO support windows
             validGid = "0";
         } else {

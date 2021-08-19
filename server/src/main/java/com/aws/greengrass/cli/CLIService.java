@@ -6,6 +6,7 @@
 package com.aws.greengrass.cli;
 
 import com.aws.greengrass.componentmanager.models.ComponentIdentifier;
+import com.aws.greengrass.config.PlatformResolver;
 import com.aws.greengrass.config.Topic;
 import com.aws.greengrass.config.Topics;
 import com.aws.greengrass.dependency.ImplementsService;
@@ -17,7 +18,6 @@ import com.aws.greengrass.ipc.exceptions.UnauthenticatedException;
 import com.aws.greengrass.lifecyclemanager.Kernel;
 import com.aws.greengrass.lifecyclemanager.PluginService;
 import com.aws.greengrass.util.Coerce;
-import com.aws.greengrass.util.Exec;
 import com.aws.greengrass.util.FileSystemPermission;
 import com.aws.greengrass.util.Utils;
 import com.aws.greengrass.util.platforms.Platform;
@@ -227,7 +227,7 @@ public class CLIService extends PluginService {
         revokeOutdatedAuthTokens(authTokenDir);
 
         Topic authorizedGroups = config.find(CONFIGURATION_CONFIG_KEY,
-                Exec.isWindows ? AUTHORIZED_WINDOWS_GROUPS : AUTHORIZED_POSIX_GROUPS);
+                PlatformResolver.isWindows ? AUTHORIZED_WINDOWS_GROUPS : AUTHORIZED_POSIX_GROUPS);
         String groups = Coerce.toString(authorizedGroups);
         if (Utils.isEmpty(groups)) {
             generateCliIpcInfoForEffectiveUser(authTokenDir);

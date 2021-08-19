@@ -5,6 +5,7 @@
 
 package com.aws.greengrass.cli;
 
+import com.aws.greengrass.config.PlatformResolver;
 import com.aws.greengrass.config.Topic;
 import com.aws.greengrass.config.Topics;
 import com.aws.greengrass.deployment.DeploymentStatusKeeper;
@@ -13,7 +14,6 @@ import com.aws.greengrass.ipc.AuthenticationHandler;
 import com.aws.greengrass.lifecyclemanager.Kernel;
 import com.aws.greengrass.testcommons.testutilities.GGExtension;
 import com.aws.greengrass.testcommons.testutilities.GGServiceTestUtil;
-import com.aws.greengrass.util.Exec;
 import com.aws.greengrass.util.NucleusPaths;
 import com.aws.greengrass.util.platforms.unix.UnixGroupAttributes;
 import org.junit.jupiter.api.BeforeEach;
@@ -36,12 +36,12 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.function.Function;
 
+import static com.aws.greengrass.cli.CLIService.AUTHORIZED_POSIX_GROUPS;
 import static com.aws.greengrass.cli.CLIService.AUTHORIZED_WINDOWS_GROUPS;
 import static com.aws.greengrass.cli.CLIService.CLI_AUTH_TOKEN;
 import static com.aws.greengrass.cli.CLIService.CLI_SERVICE;
 import static com.aws.greengrass.cli.CLIService.DOMAIN_SOCKET_PATH;
 import static com.aws.greengrass.cli.CLIService.OBJECT_MAPPER;
-import static com.aws.greengrass.cli.CLIService.AUTHORIZED_POSIX_GROUPS;
 import static com.aws.greengrass.componentmanager.KernelConfigResolver.CONFIGURATION_CONFIG_KEY;
 import static com.aws.greengrass.ipc.IPCEventStreamService.NUCLEUS_DOMAIN_SOCKET_FILEPATH;
 import static com.aws.greengrass.lifecyclemanager.GreengrassService.PRIVATE_STORE_NAMESPACE_TOPIC;
@@ -144,7 +144,7 @@ class CLIServiceTest extends GGServiceTestUtil {
 
     @Test
     void testStartup_group_auth(ExtensionContext context) throws Exception {
-        if (Exec.isWindows) {
+        if (PlatformResolver.isWindows) {
             // GG_NEEDS_REVIEW: TODO support group auth on Windows
             return;
         }

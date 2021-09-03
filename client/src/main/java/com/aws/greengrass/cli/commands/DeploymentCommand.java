@@ -35,6 +35,7 @@ import static com.aws.greengrass.cli.adapter.impl.NucleusAdapterIpcClientImpl.de
 public class DeploymentCommand extends BaseCommand {
 
     private final String RUN_WITH_OPTION_POSIX_USER = "posixUser";
+    private final String RUN_WITH_OPTION_WINDOWS_USER = "windowsUser";
     private final ObjectMapper mapper = new ObjectMapper();
     private NucleusAdapterIpc nucleusAdapterIpc;
 
@@ -171,6 +172,9 @@ public class DeploymentCommand extends BaseCommand {
             switch (runWithOption) {
                 case RUN_WITH_OPTION_POSIX_USER:
                     runWithInfo.setPosixUser(entry.getValue());
+                    break;
+                case RUN_WITH_OPTION_WINDOWS_USER:
+                    runWithInfo.setWindowsUser(entry.getValue());
                     break;
                 default:
                     throw new IllegalArgumentException("Invalid --runWith option: " + runWithOption);

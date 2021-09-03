@@ -431,7 +431,7 @@ class IPCCliTest {
     }
 
     private String selectAValidGid() throws IOException, InterruptedException {
-        String groups = Exec.cmd("groups");
+        String groups = Platform.getInstance().createNewProcessRunner().cmd("groups");
         for (String group : groups.split(" ")) {
             long gid;
             try {

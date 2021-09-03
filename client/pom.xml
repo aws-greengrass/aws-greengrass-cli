@@ -86,7 +86,7 @@
         <dependency>
             <groupId>software.amazon.awssdk.iotdevicesdk</groupId>
             <artifactId>aws-iot-device-sdk</artifactId>
-            <version>1.4.3</version>
+            <version>1.5.1-WINDOWS-SNAPSHOT</version>
         </dependency>
     </dependencies>
     <build>

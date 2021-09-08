@@ -52,7 +52,7 @@ public class CLIService extends PluginService {
     public static final String GREENGRASS_CLI_CLIENT_ID_FMT = GREENGRASS_CLI_CLIENT_ID_PREFIX + "%s";
     public static final String CLI_SERVICE = "aws.greengrass.Cli";
     public static final String CLI_CLIENT_ARTIFACT = "aws.greengrass.cli.client";
-    public static final String CLI_CLIENT_BINARY = "greengrass-cli";
+    public static final String[] CLI_CLIENT_BINARIES = {"greengrass-cli", "greengrass-cli.cmd"};
     public static final String CLI_CLIENT_DIRECTORY = "cliclient";
     public static final String CLI_CLIENT_BIN = "bin";
     public static final String CLI_CLIENT_LIB = "lib";
@@ -164,21 +164,25 @@ public class CLIService extends PluginService {
             Path unpackDir = clientArtifact.resolve(CLI_CLIENT_DIRECTORY);
             setCliClientPermission(unpackDir);
 
-            Path binary = unpackDir.resolve(CLI_CLIENT_BIN).resolve(CLI_CLIENT_BINARY);
-            Path link = kernel.getNucleusPaths().binPath().resolve(CLI_CLIENT_BINARY);
-            Files.deleteIfExists(link);
-            Files.createSymbolicLink(link, binary);
-            logger.atInfo().kv("binary", binary).kv("link", link).log("Set up symlink to CLI binary");
+            for (String bin : CLI_CLIENT_BINARIES) {
+                Path binary = unpackDir.resolve(CLI_CLIENT_BIN).resolve(bin);
+                Path link = kernel.getNucleusPaths().binPath().resolve(bin);
+                Files.deleteIfExists(link);
+                Files.createSymbolicLink(link, binary);
+                logger.atInfo().kv("binary", binary).kv("link", link).log("Set up symlink to CLI binary");
+            }
         } catch (IOException | SemverException e) {
             logger.atError().log("Failed to set up symlink to CLI binary", e);
         }
     }
 
     private void setCliClientPermission(Path clientDir) {
-        Path binary = clientDir.resolve(CLI_CLIENT_BIN).resolve(CLI_CLIENT_BINARY);
-        binary.toFile().setExecutable(true, false);
-        binary.toFile().setReadable(true, false);
-        binary.toFile().setWritable(true);
+        for (String bin : CLI_CLIENT_BINARIES) {
+            Path binary = clientDir.resolve(CLI_CLIENT_BIN).resolve(bin);
+            binary.toFile().setExecutable(true, false);
+            binary.toFile().setReadable(true, false);
+            binary.toFile().setWritable(true);
+        }
 
         File[] libraries = clientDir.resolve(CLI_CLIENT_LIB).toFile().listFiles();
         if (libraries != null) {

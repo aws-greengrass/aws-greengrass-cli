@@ -20,7 +20,6 @@ import com.aws.greengrass.lifecyclemanager.exceptions.ServiceLoadException;
 import com.aws.greengrass.testcommons.testutilities.GGExtension;
 import com.aws.greengrass.testcommons.testutilities.TestUtils;
 import com.aws.greengrass.testcommons.testutilities.UniqueRootPathExtension;
-import com.aws.greengrass.util.Exec;
 import com.aws.greengrass.util.platforms.Platform;
 import com.aws.greengrass.util.platforms.unix.UnixPlatform;
 import com.fasterxml.jackson.databind.DeserializationFeature;
@@ -95,7 +94,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 
 @ExtendWith({GGExtension.class, UniqueRootPathExtension.class})
 @TestMethodOrder(MethodOrderer.OrderAnnotation.class)
-class IPCCliTest {
+class IPCCliTest extends BaseITCase {
 
     private static final int LOCAL_DEPLOYMENT_TIMEOUT_SECONDS = 15;
     private static final int SERVICE_STATE_CHECK_TIMEOUT_SECONDS = 30;

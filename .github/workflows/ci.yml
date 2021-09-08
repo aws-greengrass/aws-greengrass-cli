@@ -21,7 +21,9 @@ jobs:
         with:
           java-version: 1.8
       - name: Build with Maven (Windows)
-        run: mvn -U -ntp clean verify
+        env:
+          TEMP: "C:\\Temp"
+        run: "mvn -U -ntp clean verify -Djava.io.tmpdir=C:\\Temp"
         shell: cmd
         if: matrix.os == 'windows-latest'
       - name: Build with Maven (not Windows)

@@ -9,7 +9,6 @@ import com.aws.greengrass.cli.adapter.NucleusAdapterIpc;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.type.MapType;
-import com.fasterxml.jackson.databind.type.TypeFactory;
 import picocli.CommandLine;
 import software.amazon.awssdk.aws.greengrass.model.CreateLocalDeploymentRequest;
 import software.amazon.awssdk.aws.greengrass.model.LocalDeployment;
@@ -20,7 +19,6 @@ import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.InvalidPathException;
 import java.nio.file.Path;
-import java.nio.file.Paths;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -164,11 +162,12 @@ public class DeploymentCommand extends BaseCommand {
             String componentNameAndRunWithOption = entry.getKey();
             String[] parts = componentNameAndRunWithOption.split(":");
             if (parts.length != 2) {
-                throw new IllegalArgumentException("--runWith must be in the following format <component>:posixUser=<user>[:<group>] ");
+                throw new IllegalArgumentException("--runWith must be in the following format "
+                        + "<component>:{posixUser|windowsUser}=<user>[:<group>] ");
             }
             String componentName = parts[0];
             String runWithOption = parts[1];
-            RunWithInfo runWithInfo = new RunWithInfo();
+            RunWithInfo runWithInfo = componentToRunWithInfo.computeIfAbsent(componentName, k -> new RunWithInfo());
             switch (runWithOption) {
                 case RUN_WITH_OPTION_POSIX_USER:
                     runWithInfo.setPosixUser(entry.getValue());
@@ -179,7 +178,6 @@ public class DeploymentCommand extends BaseCommand {
                 default:
                     throw new IllegalArgumentException("Invalid --runWith option: " + runWithOption);
             }
-            componentToRunWithInfo.put(componentName, runWithInfo);
         }
 
         for (Map.Entry<String, SystemResourceLimits> mapEntry : systemLimits.entrySet()) {

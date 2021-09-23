@@ -23,7 +23,6 @@ import software.amazon.awssdk.aws.greengrass.model.CreateLocalDeploymentRequest;
 import software.amazon.awssdk.aws.greengrass.model.RunWithInfo;
 import software.amazon.awssdk.aws.greengrass.model.SystemResourceLimits;
 
-import java.net.URL;
 import java.nio.file.Paths;
 import java.util.Arrays;
 
@@ -146,13 +145,14 @@ class DeploymentCommandTest {
 
     @Test
     void GIVEN_WHEN_components_runwith_provided_THEN_request_contains_the_info() throws Exception {
-        int exitCode = runCommandLine("deployment", "create", "--runWith" , "Component1:windowsUser=foo:bar",
-                "--runWith" , "Component2:posixUser=1234", "--systemLimits",
+        int exitCode = runCommandLine("deployment", "create",
+                "--runWith", "Component1:windowsUser=foobar", "--runWith", "Component2:windowsUser=foobar",
+                "--runWith", "Component2:posixUser=1234", "--systemLimits",
                 Paths.get(this.getClass().getResource("resource_limits.json").toURI()).toString());
 
         Map<String, RunWithInfo> componentToRunWithInfo = new HashMap<>();
         RunWithInfo runWithInfo = new RunWithInfo();
-        runWithInfo.setWindowsUser("foo:bar");
+        runWithInfo.setWindowsUser("foobar");
 
         MapType mapType = mapper.getTypeFactory().constructMapType(HashMap.class, String.class,
                 SystemResourceLimits.class);
@@ -164,6 +164,7 @@ class DeploymentCommandTest {
 
         runWithInfo = new RunWithInfo();
         runWithInfo.setPosixUser("1234");
+        runWithInfo.setWindowsUser("foobar");
         componentToRunWithInfo.put("Component2", runWithInfo);
 
         CreateLocalDeploymentRequest request = new CreateLocalDeploymentRequest();

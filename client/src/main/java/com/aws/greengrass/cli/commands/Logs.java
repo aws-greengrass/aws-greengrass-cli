@@ -92,8 +92,7 @@ public class Logs extends BaseCommand {
             return null;
         }
         List<Path> paths = new ArrayList<>();
-        for (int i = 0; i < arr.length; i++) {
-            String s = arr[i];
+        for (String s : arr) {
             paths.add(deTilde(s).orElse(Paths.get("")));
         }
         return paths;
@@ -101,9 +100,9 @@ public class Logs extends BaseCommand {
 
     @Command(name = "list-log-files", mixinStandardHelpOptions = true,
             versionProvider = com.aws.greengrass.cli.module.VersionProvider.class)
-    public void listLogFiles(@CommandLine.Option(names = {"-ld", "--log-dir"}, paramLabel = "Log directory")
-                                 String[] logDir) {
-        List<Path> logDirList = Arrays.stream(logDir).map(d -> Paths.get(d)).collect(Collectors.toList());
+    public void listLogFiles(@CommandLine.Option(names = {"-ld", "--log-dir"}, paramLabel = "Log directory",
+            required = true) String[] logDir) {
+        List<Path> logDirList = Arrays.stream(logDir).map(Paths::get).collect(Collectors.toList());
         Set<File> logFileSet = aggregation.listLog(logDirList);
         if (!logFileSet.isEmpty()) {
             for (File file : logFileSet) {

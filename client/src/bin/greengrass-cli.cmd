@@ -5,7 +5,7 @@ SETLOCAL
 set SCRIPT_PATH=%~dp0
 
 @REM Trace symlink to real path if we were launched from a symlink
-for /f "tokens=2 delims=[]" %%H in  ('dir /al %SCRIPT_PATH* ^| findstr /i /c:"%~nx0"') do (
+for /f "tokens=2 delims=[]" %%H in  ('dir /al %SCRIPT_PATH%* ^| findstr /i /c:"%~nx0"') do (
     set SCRIPT_PATH=%%~dpH
 )
 

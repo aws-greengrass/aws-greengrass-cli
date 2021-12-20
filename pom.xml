@@ -17,4 +17,7 @@
         <module>client</module>
     </modules>
     <packaging>pom</packaging>
+    <properties>
+        <maven.compiler.useIncrementalCompilation>false</maven.compiler.useIncrementalCompilation>
+    </properties>
 </project>

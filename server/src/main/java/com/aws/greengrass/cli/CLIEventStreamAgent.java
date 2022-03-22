@@ -9,6 +9,7 @@ import com.aws.greengrass.authorization.AuthorizationHandler;
 import com.aws.greengrass.authorization.Permission;
 import com.aws.greengrass.authorization.exceptions.AuthorizationException;
 import com.aws.greengrass.componentmanager.ComponentStore;
+import com.aws.greengrass.config.Node;
 import com.aws.greengrass.config.Topics;
 import com.aws.greengrass.deployment.DeploymentQueue;
 import com.aws.greengrass.deployment.model.ConfigurationUpdateOperation;
@@ -78,7 +79,9 @@ import java.time.Instant;
 import java.util.ArrayList;
 import java.util.Base64;
 import java.util.Collection;
+import java.util.Comparator;
 import java.util.HashMap;
+import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
@@ -590,7 +593,15 @@ public class CLIEventStreamAgent {
 
         @Override
         protected void onStreamClosed() {
+        }
 
+        public List<Node> sortDeploymentsByTime(Iterator<Node> deploymentsIterator, Comparator<Node> comparator) {
+            List<Node> list = new ArrayList<>();
+            while (deploymentsIterator.hasNext()) {
+                list.add(deploymentsIterator.next());
+            }
+            list.sort(comparator);
+            return list;
         }
 
         @Override
@@ -603,20 +614,36 @@ public class CLIEventStreamAgent {
                         .build());
                 List<LocalDeployment> persistedDeployments = new ArrayList<>();
                 Topics localDeployments = cliServiceConfig.findTopics(PERSISTENT_LOCAL_DEPLOYMENTS);
-                if (localDeployments != null) {
-                    localDeployments.forEach(topic -> {
-                        Topics topics = (Topics) topic;
-                        LocalDeployment localDeployment = new LocalDeployment();
-                        localDeployment.setDeploymentId(topics.getName());
-                        localDeployment.setStatus(
-                                deploymentStatusFromString(Coerce.toString(topics.find(DEPLOYMENT_STATUS_KEY_NAME))));
-                        persistedDeployments.add(localDeployment);
+                List<Node> deploymentsByTime = sortDeploymentsByTime(localDeployments.iterator(),
+                        new DeploymentTimeComparator());
+                if (deploymentsByTime != null) {
+                    deploymentsByTime.forEach(node -> {
+                        if (node instanceof Topics) {
+                            Topics topics = (Topics) node;
+                            LocalDeployment localDeployment = new LocalDeployment();
+                            localDeployment.setDeploymentId(topics.getName());
+                            localDeployment.setStatus(deploymentStatusFromString(
+                                    Coerce.toString(topics.find(DEPLOYMENT_STATUS_KEY_NAME))));
+                            persistedDeployments.add(localDeployment);
+                        }
                     });
                 }
                 ListLocalDeploymentsResponse response = new ListLocalDeploymentsResponse();
                 response.setLocalDeployments(persistedDeployments);
                 return response;
             });
+        }
+
+        private class DeploymentTimeComparator implements Comparator<Node> {
+            @Override
+            public int compare(Node n1, Node n2) {
+                if (n1.getModtime() < n2.getModtime()) {
+                    return 1;
+                } else if (n1.getModtime() > n2.getModtime()) {
+                    return -1;
+                }
+                return 0;
+            }
         }
 
         @Override

@@ -108,6 +108,8 @@ class IPCCliTest extends BaseITCase {
 
     @BeforeAll
     static void beforeAll() throws Exception {
+        // Set this property for kernel to scan its own classpath to find plugins
+        System.setProperty("aws.greengrass.scanSelfClasspath", "true");
         kernel = prepareKernelFromConfigFile("ipc.yaml", IPCCliTest.class, CLI_SERVICE, TEST_SERVICE_NAME);
         BaseITCase.setDeviceConfig(kernel, DeviceConfiguration.DEPLOYMENT_POLLING_FREQUENCY_SECONDS, 1L);
         eventStreamRpcConnection = getEventStreamRpcConnection(kernel, CLI_SERVICE);

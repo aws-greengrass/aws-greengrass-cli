@@ -5,6 +5,9 @@
 
 package com.aws.greengrass.cli;
 
+import com.aws.greengrass.authorization.AuthorizationHandler;
+import com.aws.greengrass.authorization.Permission;
+import com.aws.greengrass.authorization.exceptions.AuthorizationException;
 import com.aws.greengrass.componentmanager.ComponentStore;
 import com.aws.greengrass.config.Topics;
 import com.aws.greengrass.deployment.DeploymentQueue;
@@ -93,6 +96,14 @@ import static com.aws.greengrass.deployment.DeploymentStatusKeeper.DEPLOYMENT_TY
 import static com.aws.greengrass.ipc.common.ExceptionUtil.translateExceptions;
 import static com.aws.greengrass.ipc.common.IPCErrorStrings.DEPLOYMENTS_QUEUE_FULL;
 import static com.aws.greengrass.ipc.common.IPCErrorStrings.DEPLOYMENTS_QUEUE_NOT_INITIALIZED;
+import static software.amazon.awssdk.aws.greengrass.GreengrassCoreIPCServiceModel.CREATE_DEBUG_PASSWORD;
+import static software.amazon.awssdk.aws.greengrass.GreengrassCoreIPCServiceModel.CREATE_LOCAL_DEPLOYMENT;
+import static software.amazon.awssdk.aws.greengrass.GreengrassCoreIPCServiceModel.GET_COMPONENT_DETAILS;
+import static software.amazon.awssdk.aws.greengrass.GreengrassCoreIPCServiceModel.GET_LOCAL_DEPLOYMENT_STATUS;
+import static software.amazon.awssdk.aws.greengrass.GreengrassCoreIPCServiceModel.LIST_COMPONENTS;
+import static software.amazon.awssdk.aws.greengrass.GreengrassCoreIPCServiceModel.LIST_LOCAL_DEPLOYMENTS;
+import static software.amazon.awssdk.aws.greengrass.GreengrassCoreIPCServiceModel.RESTART_COMPONENT;
+import static software.amazon.awssdk.aws.greengrass.GreengrassCoreIPCServiceModel.STOP_COMPONENT;
 
 @SuppressWarnings("PMD.CouplingBetweenObjects")
 public class CLIEventStreamAgent {
@@ -115,6 +126,9 @@ public class CLIEventStreamAgent {
     @Inject
     @Setter(AccessLevel.PACKAGE)
     private DeploymentQueue deploymentQueue;
+
+    @Inject
+    private AuthorizationHandler authHandler;
 
     private final SecureRandom random = new SecureRandom();
 
@@ -187,8 +201,12 @@ public class CLIEventStreamAgent {
         @SuppressWarnings("PMD.PreserveStackTrace")
         public GetComponentDetailsResponse handleRequest(GetComponentDetailsRequest request) {
             return translateExceptions(() -> {
-                authorizeRequest(componentName);
                 validateGetComponentDetailsRequest(request);
+                authorizeRequest(Permission.builder()
+                        .principal(componentName)
+                        .resource(request.getComponentName())
+                        .operation(GET_COMPONENT_DETAILS)
+                        .build());
                 String componentName = request.getComponentName();
                 GreengrassService service;
                 try {
@@ -216,10 +234,22 @@ public class CLIEventStreamAgent {
         }
     }
 
-    private void authorizeRequest(String componentName) {
-        if (Utils.isEmpty(componentName) || !componentName.startsWith(GREENGRASS_CLI_CLIENT_ID_PREFIX) && !CLI_SERVICE
-                .equals(componentName)) {
+    private void authorizeRequest(Permission permission) {
+        if (Utils.isEmpty(permission.getPrincipal())) {
             throw new UnauthorizedError("Component is not authorized to call CLI APIs");
+        }
+        // Allow CLI and CLI clients to call anything
+        if (permission.getPrincipal().startsWith(GREENGRASS_CLI_CLIENT_ID_PREFIX)
+                || CLI_SERVICE.equals(permission.getPrincipal())) {
+            return;
+        }
+        // Check for authorization for all other components
+        try {
+            authHandler.isAuthorized(CLI_SERVICE, permission);
+        } catch (AuthorizationException e) {
+            logger.atWarn().kv("error", e.getMessage()).kv("componentName", permission.getPrincipal())
+                    .log("Not Authorized");
+            throw new UnauthorizedError(e.getMessage());
         }
     }
 
@@ -256,7 +286,11 @@ public class CLIEventStreamAgent {
         @Override
         public ListComponentsResponse handleRequest(ListComponentsRequest request) {
             return translateExceptions(() -> {
-                authorizeRequest(componentName);
+                authorizeRequest(Permission.builder()
+                        .principal(componentName)
+                        .resource(AuthorizationHandler.ANY_REGEX)
+                        .operation(LIST_COMPONENTS)
+                        .build());
                 Collection<GreengrassService> services = kernel.orderedDependencies();
                 List<ComponentDetails> listOfComponents =
                         services.stream().filter(service -> service != kernel.getMain())
@@ -292,8 +326,12 @@ public class CLIEventStreamAgent {
         @SuppressWarnings("PMD.PreserveStackTrace")
         public RestartComponentResponse handleRequest(RestartComponentRequest request) {
             return translateExceptions(() -> {
-                authorizeRequest(componentName);
                 validateRestartComponentRequest(request);
+                authorizeRequest(Permission.builder()
+                        .principal(componentName)
+                        .resource(request.getComponentName())
+                        .operation(RESTART_COMPONENT)
+                        .build());
                 String componentName = request.getComponentName();
                 RestartComponentResponse response = new RestartComponentResponse();
                 response.setRestartStatus(RequestStatus.SUCCEEDED);
@@ -343,8 +381,12 @@ public class CLIEventStreamAgent {
         @SuppressWarnings("PMD.PreserveStackTrace")
         public StopComponentResponse handleRequest(StopComponentRequest request) {
             return translateExceptions(() -> {
-                authorizeRequest(componentName);
                 validateStopComponentRequest(request);
+                authorizeRequest(Permission.builder()
+                        .principal(componentName)
+                        .resource(request.getComponentName())
+                        .operation(STOP_COMPONENT)
+                        .build());
                 String componentName = request.getComponentName();
                 try {
                     GreengrassService service = kernel.locate(componentName);
@@ -393,7 +435,11 @@ public class CLIEventStreamAgent {
         @SuppressWarnings({"PMD.PreserveStackTrace", "PMD.AvoidCatchingGenericException"})
         public CreateLocalDeploymentResponse handleRequest(CreateLocalDeploymentRequest request) {
             return translateExceptions(() -> {
-                authorizeRequest(componentName);
+                authorizeRequest(Permission.builder()
+                        .principal(componentName)
+                        .resource(AuthorizationHandler.ANY_REGEX)
+                        .operation(CREATE_LOCAL_DEPLOYMENT)
+                        .build());
                 String deploymentId = UUID.randomUUID().toString();
                 //All inputs are valid. If all inputs are empty, then user might just want to retrigger the deployment
                 // with new recipes set using the updateRecipesAndArtifacts API.
@@ -489,8 +535,12 @@ public class CLIEventStreamAgent {
         @Override
         public GetLocalDeploymentStatusResponse handleRequest(GetLocalDeploymentStatusRequest request) {
             return translateExceptions(() -> {
-                authorizeRequest(componentName);
                 validateGetLocalDeploymentStatusRequest(request);
+                authorizeRequest(Permission.builder()
+                        .principal(componentName)
+                        .resource(request.getDeploymentId())
+                        .operation(GET_LOCAL_DEPLOYMENT_STATUS)
+                        .build());
                 Topics localDeployments = cliServiceConfig.findTopics(PERSISTENT_LOCAL_DEPLOYMENTS);
                 if (localDeployments == null || localDeployments.findTopics(request.getDeploymentId()) == null) {
                     ResourceNotFoundError rnf = new ResourceNotFoundError();
@@ -546,7 +596,11 @@ public class CLIEventStreamAgent {
         @Override
         public ListLocalDeploymentsResponse handleRequest(ListLocalDeploymentsRequest request) {
             return translateExceptions(() -> {
-                authorizeRequest(componentName);
+                authorizeRequest(Permission.builder()
+                        .principal(componentName)
+                        .resource(AuthorizationHandler.ANY_REGEX)
+                        .operation(LIST_LOCAL_DEPLOYMENTS)
+                        .build());
                 List<LocalDeployment> persistedDeployments = new ArrayList<>();
                 Topics localDeployments = cliServiceConfig.findTopics(PERSISTENT_LOCAL_DEPLOYMENTS);
                 if (localDeployments != null) {
@@ -588,7 +642,11 @@ public class CLIEventStreamAgent {
         @Override
         public CreateDebugPasswordResponse handleRequest(CreateDebugPasswordRequest request) {
             return translateExceptions(() -> {
-                authorizeRequest(componentName);
+                authorizeRequest(Permission.builder()
+                        .principal(componentName)
+                        .resource(AuthorizationHandler.ANY_REGEX)
+                        .operation(CREATE_DEBUG_PASSWORD)
+                        .build());
                 CreateDebugPasswordResponse response = new CreateDebugPasswordResponse();
 
                 String password = generatePassword(DEBUG_PASSWORD_LENGTH_REQUIREMENT);

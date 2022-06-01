@@ -14,10 +14,12 @@ import com.aws.greengrass.dependency.State;
 import com.aws.greengrass.deployment.DeviceConfiguration;
 import com.aws.greengrass.integrationtests.BaseITCase;
 import com.aws.greengrass.integrationtests.ipc.IPCTestUtils;
+import com.aws.greengrass.integrationtests.util.ConfigPlatformResolver;
 import com.aws.greengrass.lifecyclemanager.GlobalStateChangeListener;
 import com.aws.greengrass.lifecyclemanager.Kernel;
 import com.aws.greengrass.lifecyclemanager.exceptions.ServiceLoadException;
 import com.aws.greengrass.testcommons.testutilities.GGExtension;
+import com.aws.greengrass.testcommons.testutilities.NoOpPathOwnershipHandler;
 import com.aws.greengrass.testcommons.testutilities.TestUtils;
 import com.aws.greengrass.testcommons.testutilities.UniqueRootPathExtension;
 import com.aws.greengrass.util.platforms.Platform;
@@ -25,6 +27,7 @@ import com.aws.greengrass.util.platforms.unix.UnixPlatform;
 import com.fasterxml.jackson.databind.DeserializationFeature;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.junit.jupiter.api.AfterAll;
+import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.MethodOrderer;
@@ -75,7 +78,6 @@ import static com.aws.greengrass.componentmanager.KernelConfigResolver.CONFIGURA
 import static com.aws.greengrass.integrationtests.ipc.IPCTestUtils.TEST_SERVICE_NAME;
 import static com.aws.greengrass.integrationtests.ipc.IPCTestUtils.getEventStreamRpcConnection;
 import static com.aws.greengrass.integrationtests.ipc.IPCTestUtils.getListenerForServiceRunning;
-import static com.aws.greengrass.integrationtests.ipc.IPCTestUtils.prepareKernelFromConfigFile;
 import static com.aws.greengrass.integrationtests.ipc.IPCTestUtils.waitForDeploymentToBeSuccessful;
 import static com.aws.greengrass.integrationtests.ipc.IPCTestUtils.waitForServiceToComeInState;
 import static com.aws.greengrass.lifecyclemanager.GreengrassService.RUN_WITH_NAMESPACE_TOPIC;
@@ -108,10 +110,25 @@ class IPCCliTest extends BaseITCase {
 
     @BeforeAll
     static void beforeAll() throws Exception {
+        // Set this property for kernel to scan its own classpath to find plugins
+        System.setProperty("aws.greengrass.scanSelfClasspath", "true");
         kernel = prepareKernelFromConfigFile("ipc.yaml", IPCCliTest.class, CLI_SERVICE, TEST_SERVICE_NAME);
         BaseITCase.setDeviceConfig(kernel, DeviceConfiguration.DEPLOYMENT_POLLING_FREQUENCY_SECONDS, 1L);
         eventStreamRpcConnection = getEventStreamRpcConnection(kernel, CLI_SERVICE);
         clientConnection = new GreengrassCoreIPCClient(eventStreamRpcConnection);
+    }
+
+    public static Kernel prepareKernelFromConfigFile(String configFile, Class testClass, String... serviceNames) throws InterruptedException, IOException {
+        Kernel kernel = new Kernel();
+        NoOpPathOwnershipHandler.register(kernel);
+        ConfigPlatformResolver.initKernelWithMultiPlatformConfig(kernel, testClass.getResource(configFile));
+        CountDownLatch awaitIpcServiceLatch = new CountDownLatch(serviceNames.length);
+        GlobalStateChangeListener listener = getListenerForServiceRunning(awaitIpcServiceLatch, serviceNames);
+        kernel.getContext().addGlobalStateChangeListener(listener);
+        kernel.launch();
+        Assertions.assertTrue(awaitIpcServiceLatch.await(60L, TimeUnit.SECONDS));
+        kernel.getContext().removeGlobalStateChangeListener(listener);
+        return kernel;
     }
 
     @AfterAll

@@ -130,7 +130,7 @@ class CLIServiceTest extends GGServiceTestUtil {
         cliService.startup();
         verifyHandlersRegisteredForAllOperations();
         verify(authenticationHandler).registerAuthenticationTokenForExternalClient
-                (anyString(), startsWith("greengrass-cli-user"));
+                (anyString(), startsWith("greengrass-cli#user"));
 
         Path authDir = nucleusPaths.cliIpcInfoPath();
         assertTrue(Files.exists(authDir));
@@ -154,9 +154,9 @@ class CLIServiceTest extends GGServiceTestUtil {
         when(authenticationHandler.registerAuthenticationTokenForExternalClient(anyString(), anyString()))
                 .thenAnswer(i -> {
                     Object clientId = i.getArgument(1);
-                    if ("greengrass-cli-group-123".equals(clientId)) {
+                    if ("greengrass-cli#group-123".equals(clientId)) {
                         return MOCK_AUTH_TOKEN;
-                    } else if ("greengrass-cli-group-456".equals(clientId)) {
+                    } else if ("greengrass-cli#group-456".equals(clientId)) {
                         return MOCK_AUTH_TOKEN_2;
                     }
                     throw new InvalidUseOfMatchersException(
@@ -197,8 +197,8 @@ class CLIServiceTest extends GGServiceTestUtil {
         ArgumentCaptor<String> argument = ArgumentCaptor.forClass(String.class);
         verify(authenticationHandler, times(2)).registerAuthenticationTokenForExternalClient
                 (anyString(), argument.capture());
-        assertThat(argument.getAllValues(), containsInRelativeOrder("greengrass-cli-group-123",
-                "greengrass-cli-group-456"));
+        assertThat(argument.getAllValues(), containsInRelativeOrder("greengrass-cli#group-123",
+                "greengrass-cli#group-456"));
 
         Path authDir = nucleusPaths.cliIpcInfoPath();
         assertTrue(Files.exists(authDir.resolve("group-123")));

@@ -5,6 +5,8 @@
 
 package com.aws.greengrass.cli;
 
+import com.aws.greengrass.authorization.AuthorizationHandler;
+import com.aws.greengrass.authorization.exceptions.AuthorizationException;
 import com.aws.greengrass.componentmanager.ComponentStore;
 import com.aws.greengrass.config.Topics;
 import com.aws.greengrass.dependency.Context;
@@ -61,6 +63,7 @@ import java.util.Map;
 import java.util.UUID;
 
 import static com.aws.greengrass.cli.CLIEventStreamAgent.PERSISTENT_LOCAL_DEPLOYMENTS;
+import static com.aws.greengrass.cli.CLIService.CLI_SERVICE;
 import static com.aws.greengrass.cli.CLIService.GREENGRASS_CLI_CLIENT_ID_FMT;
 import static com.aws.greengrass.componentmanager.KernelConfigResolver.CONFIGURATION_CONFIG_KEY;
 import static com.aws.greengrass.componentmanager.KernelConfigResolver.VERSION_CONFIG_KEY;
@@ -76,6 +79,8 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.junit.jupiter.api.Assertions.fail;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.lenient;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -102,15 +107,20 @@ class CLIEventStreamAgentTest {
     DeploymentQueue deploymentQueue;
 
     @Mock
+    AuthorizationHandler authorizationHandler;
+
+    @Mock
     private ComponentStore componentStore;
 
     @InjectMocks
     private CLIEventStreamAgent cliEventStreamAgent;
 
     @BeforeEach
-    void setup() {
+    void setup() throws AuthorizationException {
         when(mockContext.getContinuation()).thenReturn(mock(ServerConnectionContinuation.class));
         when(mockContext.getAuthenticationData()).thenReturn(() -> String.format(GREENGRASS_CLI_CLIENT_ID_FMT, "abc"));
+        lenient().when(authorizationHandler.isAuthorized(eq(CLI_SERVICE), any()))
+                .thenThrow(new AuthorizationException("bad"));
     }
 
     @Test
@@ -118,7 +128,21 @@ class CLIEventStreamAgentTest {
         // Pretend that TEST_SERVICE has connected and wants to call the CLI APIs
         when(mockContext.getAuthenticationData()).thenReturn(() -> TEST_SERVICE);
         GetComponentDetailsRequest request = new GetComponentDetailsRequest();
+        request.setComponentName("any");
         assertThrows(UnauthorizedError.class,
+                () -> cliEventStreamAgent.getGetComponentDetailsHandler(mockContext).handleRequest(request));
+    }
+
+    @Test
+    void test_GetComponentDetails_with_non_cli_auth_token_calls_authZ()
+            throws AuthorizationException, ServiceLoadException {
+        // Pretend that TEST_SERVICE has connected and wants to call the CLI APIs
+        when(mockContext.getAuthenticationData()).thenReturn(() -> TEST_SERVICE);
+        GetComponentDetailsRequest request = new GetComponentDetailsRequest();
+        request.setComponentName("any");
+        when(authorizationHandler.isAuthorized(eq(CLI_SERVICE), any())).thenReturn(true);
+        when(kernel.locate("any")).thenThrow(ServiceLoadException.class);
+        assertThrows(ResourceNotFoundError.class,
                 () -> cliEventStreamAgent.getGetComponentDetailsHandler(mockContext).handleRequest(request));
     }
 

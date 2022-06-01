@@ -29,6 +29,12 @@ jobs:
       - name: Build with Maven (not Windows)
         run: mvn -U -ntp clean verify
         if: matrix.os != 'windows-latest'
+      - name: Upload Failed Test Report
+        uses: actions/upload-artifact@v1.0.0
+        if: failure()
+        with:
+          name: Failed Test Report ${{ matrix.os }}
+          path: server/target/surefire-reports
       - name: Convert Jacoco to Cobertura
         run: |
           python3 ./.github/scripts/cover2cover.py client/target/jacoco-report/jacoco.xml src/main/java > client/target/jacoco-report/cobertura.xml

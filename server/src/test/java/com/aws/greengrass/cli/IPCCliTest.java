@@ -37,6 +37,7 @@ import org.junit.jupiter.api.TestMethodOrder;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.junit.jupiter.api.extension.ExtensionContext;
 import software.amazon.awssdk.aws.greengrass.GreengrassCoreIPCClient;
+import software.amazon.awssdk.aws.greengrass.GreengrassCoreIPCClientV2;
 import software.amazon.awssdk.aws.greengrass.model.ComponentDetails;
 import software.amazon.awssdk.aws.greengrass.model.CreateLocalDeploymentRequest;
 import software.amazon.awssdk.aws.greengrass.model.CreateLocalDeploymentResponse;
@@ -161,6 +162,13 @@ class IPCCliTest extends BaseITCase {
 
         assertNotNull(componentDetails);
         assertEquals("1.0.0", componentDetails.getVersion());
+
+        try(EventStreamRPCConnection connection = IPCTestUtils.getEventStreamRpcConnection(kernel,
+                "ServiceName")) {
+            GreengrassCoreIPCClientV2 client =
+                    GreengrassCoreIPCClientV2.builder().withClient(new GreengrassCoreIPCClient(connection)).build();
+            assertEquals(componentDetails, client.getComponentDetails(request).getComponentDetails());
+        }
     }
 
     @Test
@@ -198,11 +206,17 @@ class IPCCliTest extends BaseITCase {
                 clientConnection.listComponents(request, Optional.empty()).getResponse()
                         .get(DEFAULT_TIMEOUT_IN_SEC, TimeUnit.SECONDS);
         List<String> components =
-                listComponentsResponse.getComponents().stream().map(cd -> cd.getComponentName()).collect(Collectors.toList());
+                listComponentsResponse.getComponents().stream().map(ComponentDetails::getComponentName).collect(Collectors.toList());
         assertTrue(components.contains("mqtt"));
         assertTrue(components.contains(TEST_SERVICE_NAME));
         assertFalse(components.contains("main"));
 
+        try(EventStreamRPCConnection connection = IPCTestUtils.getEventStreamRpcConnection(kernel,
+                "ServiceName")) {
+            GreengrassCoreIPCClientV2 client =
+                    GreengrassCoreIPCClientV2.builder().withClient(new GreengrassCoreIPCClient(connection)).build();
+            assertEquals(components, client.listComponents(request).getComponents().stream().map(ComponentDetails::getComponentName).collect(Collectors.toList()));
+        }
     }
 
     @Test

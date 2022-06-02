@@ -20,6 +20,16 @@ services:
     lifecycle: {}
     version: 1.0.0
   ServiceName:
+    configuration:
+      accessControl:
+        aws.greengrass.Cli:
+          testPolicy1:
+            policyDescription: "Test policy"
+            operations:
+              - aws.greengrass#GetComponentDetails
+              - aws.greengrass#ListComponents
+            resources:
+              - '*'
     lifecycle:
       run:
         windows:

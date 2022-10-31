@@ -115,6 +115,9 @@ class CLIEventStreamAgentTest {
     @InjectMocks
     private CLIEventStreamAgent cliEventStreamAgent;
 
+    @Mock
+    Context context;
+
     @BeforeEach
     void setup() throws AuthorizationException {
         when(mockContext.getContinuation()).thenReturn(mock(ServerConnectionContinuation.class));
@@ -325,6 +328,67 @@ class CLIEventStreamAgentTest {
     }
 
     @Test
+    void testCreateLocalDeployment_clean_up_queued_deployment() throws JsonProcessingException {
+        Topics cliServiceConfig = generateTopics();
+        when(deploymentQueue.isEmpty()).thenReturn(true);
+        when(deploymentQueue.offer(any())).thenReturn(true);
+        cliEventStreamAgent.setDeploymentQueue(deploymentQueue);
+        CreateLocalDeploymentRequest request = new CreateLocalDeploymentRequest();
+        request.setGroupName(MOCK_GROUP);
+        request.setRootComponentVersionsToAdd(ImmutableMap.of(TEST_SERVICE, "1.0.0"));
+        request.setRootComponentsToRemove(Arrays.asList("SomeService"));
+        Map<String, String> componentConfigToMerge = new HashMap<>();
+        componentConfigToMerge.put("param1", "value1");
+        Map<String, Map<String, Object>> action = new HashMap<>();
+        action.put(TEST_SERVICE, ImmutableMap.of("MERGE", componentConfigToMerge));
+        request.setComponentToConfiguration(action);
+        cliEventStreamAgent.getCreateLocalDeploymentHandler(mockContext, cliServiceConfig).handleRequest(request);
+        ArgumentCaptor<Deployment> deploymentCaptor = ArgumentCaptor.forClass(Deployment.class);
+        verify(deploymentQueue).offer(deploymentCaptor.capture());
+        String deploymentDoc = deploymentCaptor.getValue().getDeploymentDocument();
+        LocalOverrideRequest localOverrideRequest = OBJECT_MAPPER.readValue(deploymentDoc, LocalOverrideRequest.class);
+        assertEquals(MOCK_GROUP, localOverrideRequest.getGroupName());
+        assertTrue(localOverrideRequest.getComponentsToMerge().containsKey(TEST_SERVICE));
+        assertTrue(localOverrideRequest.getComponentsToMerge().containsValue("1.0.0"));
+        assertTrue(localOverrideRequest.getComponentsToRemove().contains("SomeService"));
+        assertNotNull(localOverrideRequest.getConfigurationUpdate().get(TEST_SERVICE));
+        assertEquals("value1",
+                localOverrideRequest.getConfigurationUpdate().get(TEST_SERVICE).getValueToMerge().get("param1"));
+    }
+
+    private Topics generateTopics() {
+        Topics cliServiceConfig = Topics.of(context, "runtime", null);
+        cliServiceConfig.lookup(PERSISTENT_LOCAL_DEPLOYMENTS, "7f3d2572-e8fb-4b7b-b4b6-4f774b5d16bd",
+                "DeploymentId").withNewerValue(100, "NULL");
+        cliServiceConfig.lookup(PERSISTENT_LOCAL_DEPLOYMENTS, "7f3d2572-e8fb-4b7b-b4b6-4f774b5d16bd",
+                "DeploymentStatus").withNewerValue(100, "FAILED");
+        cliServiceConfig.lookup(PERSISTENT_LOCAL_DEPLOYMENTS, "7f3d2572-e8fb-4b7b-b4b6-4f774b5d16bd",
+                "DeploymentStatusDetails", "detailed-deployment-status").withNewerValue(100, "FAILED_ROLLBACK_NOT_REQUESTED");
+
+        cliServiceConfig.lookup(PERSISTENT_LOCAL_DEPLOYMENTS, "6f3d2572-e8fb-4b7b-b4b6-4f774b5d16bd",
+                "DeploymentId").withNewerValue(100, "NULL");
+        cliServiceConfig.lookup(PERSISTENT_LOCAL_DEPLOYMENTS, "6f3d2572-e8fb-4b7b-b4b6-4f774b5d16bd",
+                "DeploymentStatus").withNewerValue(100, "QUEUED");
+        cliServiceConfig.lookup(PERSISTENT_LOCAL_DEPLOYMENTS, "6f3d2572-e8fb-4b7b-b4b6-4f774b5d16bd",
+                "DeploymentStatusDetails", "detailed-deployment-status").withNewerValue(100, "QUEUED1");
+
+        cliServiceConfig.lookup(PERSISTENT_LOCAL_DEPLOYMENTS, "5f3d2572-e8fb-4b7b-b4b6-4f774b5d16bd",
+                "DeploymentId").withNewerValue(100, "NULL");
+        cliServiceConfig.lookup(PERSISTENT_LOCAL_DEPLOYMENTS, "5f3d2572-e8fb-4b7b-b4b6-4f774b5d16bd",
+                "DeploymentStatus").withNewerValue(100, "QUEUED");
+        cliServiceConfig.lookup(PERSISTENT_LOCAL_DEPLOYMENTS, "5f3d2572-e8fb-4b7b-b4b6-4f774b5d16bd",
+                "DeploymentStatusDetails", "detailed-deployment-status").withNewerValue(100, "QUEUED2");
+
+        cliServiceConfig.lookup(PERSISTENT_LOCAL_DEPLOYMENTS, "4f3d2572-e8fb-4b7b-b4b6-4f774b5d16bd",
+                "DeploymentId").withNewerValue(100, "NULL");
+        cliServiceConfig.lookup(PERSISTENT_LOCAL_DEPLOYMENTS, "4f3d2572-e8fb-4b7b-b4b6-4f774b5d16bd",
+                "DeploymentStatus").withNewerValue(100, "SUCCEEDED");
+        cliServiceConfig.lookup(PERSISTENT_LOCAL_DEPLOYMENTS, "4f3d2572-e8fb-4b7b-b4b6-4f774b5d16bd",
+                "DeploymentStatusDetails", "detailed-deployment-status").withNewerValue(100, "SUCCEEDED");
+        return cliServiceConfig;
+    }
+
+    @Test
     void testGetLocalDeploymentStatus_invalidDeploymentId() {
         Topics mockCliConfig = mock(Topics.class);
         GetLocalDeploymentStatusRequest request = new GetLocalDeploymentStatusRequest();
@@ -412,6 +476,22 @@ class CLIEventStreamAgentTest {
                 }
             });
         }
+    }
+
+    @Test
+    @SuppressWarnings("PMD.CloseResource")
+    void testListLocalDeployment_clean_up_queued_deployment() throws IOException {
+        when(deploymentQueue.isEmpty()).thenReturn(true);
+        Topics cliServiceConfig = generateTopics();
+        ListLocalDeploymentsRequest request = new ListLocalDeploymentsRequest();
+        ListLocalDeploymentsResponse response =
+                cliEventStreamAgent.getListLocalDeploymentsHandler(mockContext, cliServiceConfig)
+                        .handleRequest(request);
+        assertNotNull(cliServiceConfig.findTopics(PERSISTENT_LOCAL_DEPLOYMENTS, "7f3d2572-e8fb-4b7b-b4b6-4f774b5d16bd"));
+        assertNull(cliServiceConfig.findTopics(PERSISTENT_LOCAL_DEPLOYMENTS, "6f3d2572-e8fb-4b7b-b4b6-4f774b5d16bd"));
+        assertNull(cliServiceConfig.findTopics(PERSISTENT_LOCAL_DEPLOYMENTS, "5f3d2572-e8fb-4b7b-b4b6-4f774b5d16bd"));
+        assertNotNull(cliServiceConfig.findTopics(PERSISTENT_LOCAL_DEPLOYMENTS, "4f3d2572-e8fb-4b7b-b4b6-4f774b5d16bd"));
+        assertEquals(4, response.getLocalDeployments().size());
     }
 
     @Test

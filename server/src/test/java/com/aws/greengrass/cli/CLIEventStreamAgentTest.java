@@ -435,6 +435,21 @@ class CLIEventStreamAgentTest {
 
     @Test
     @SuppressWarnings("PMD.CloseResource")
+    void testGetLocalDeploymentStatus_clean_up_queued_deployment() {
+        when(deploymentQueue.isEmpty()).thenReturn(true);
+        Topics cliServiceConfig = generateTopics();
+        GetLocalDeploymentStatusRequest request = new GetLocalDeploymentStatusRequest();
+        request.setDeploymentId("7f3d2572-e8fb-4b7b-b4b6-4f774b5d16bd");
+        cliEventStreamAgent.getGetLocalDeploymentStatusHandler(mockContext, cliServiceConfig)
+                .handleRequest(request);
+        assertNotNull(cliServiceConfig.findTopics(PERSISTENT_LOCAL_DEPLOYMENTS, "7f3d2572-e8fb-4b7b-b4b6-4f774b5d16bd"));
+        assertNull(cliServiceConfig.findTopics(PERSISTENT_LOCAL_DEPLOYMENTS, "6f3d2572-e8fb-4b7b-b4b6-4f774b5d16bd"));
+        assertNull(cliServiceConfig.findTopics(PERSISTENT_LOCAL_DEPLOYMENTS, "5f3d2572-e8fb-4b7b-b4b6-4f774b5d16bd"));
+        assertNotNull(cliServiceConfig.findTopics(PERSISTENT_LOCAL_DEPLOYMENTS, "4f3d2572-e8fb-4b7b-b4b6-4f774b5d16bd"));
+    }
+
+    @Test
+    @SuppressWarnings("PMD.CloseResource")
     void testListLocalDeployment_no_local_deployments() throws IOException {
         Topics mockCliConfig = mock(Topics.class);
         try (Context context = new Context()) {
@@ -491,7 +506,7 @@ class CLIEventStreamAgentTest {
         assertNull(cliServiceConfig.findTopics(PERSISTENT_LOCAL_DEPLOYMENTS, "6f3d2572-e8fb-4b7b-b4b6-4f774b5d16bd"));
         assertNull(cliServiceConfig.findTopics(PERSISTENT_LOCAL_DEPLOYMENTS, "5f3d2572-e8fb-4b7b-b4b6-4f774b5d16bd"));
         assertNotNull(cliServiceConfig.findTopics(PERSISTENT_LOCAL_DEPLOYMENTS, "4f3d2572-e8fb-4b7b-b4b6-4f774b5d16bd"));
-        assertEquals(4, response.getLocalDeployments().size());
+        assertEquals(2, response.getLocalDeployments().size());
     }
 
     @Test

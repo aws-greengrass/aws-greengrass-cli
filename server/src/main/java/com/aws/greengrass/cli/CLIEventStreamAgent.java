@@ -544,6 +544,7 @@ public class CLIEventStreamAgent {
                         .resource(request.getDeploymentId())
                         .operation(GET_LOCAL_DEPLOYMENT_STATUS)
                         .build());
+                cleanUpQueuedDeployments(cliServiceConfig);
                 Topics localDeployments = cliServiceConfig.findTopics(PERSISTENT_LOCAL_DEPLOYMENTS);
                 if (localDeployments == null || localDeployments.findTopics(request.getDeploymentId()) == null) {
                     ResourceNotFoundError rnf = new ResourceNotFoundError();
@@ -605,6 +606,7 @@ public class CLIEventStreamAgent {
                         .operation(LIST_LOCAL_DEPLOYMENTS)
                         .build());
                 List<LocalDeployment> persistedDeployments = new ArrayList<>();
+                cleanUpQueuedDeployments(cliServiceConfig);
                 Topics localDeployments = cliServiceConfig.findTopics(PERSISTENT_LOCAL_DEPLOYMENTS);
                 if (localDeployments != null) {
                     localDeployments.forEach(topic -> {
@@ -617,7 +619,6 @@ public class CLIEventStreamAgent {
                     });
                 }
 
-                cleanUpQueuedDeployments(cliServiceConfig);
                 ListLocalDeploymentsResponse response = new ListLocalDeploymentsResponse();
                 response.setLocalDeployments(persistedDeployments);
                 return response;
@@ -709,22 +710,27 @@ public class CLIEventStreamAgent {
             // Find deploymentIds that status are queued
             if (localDeployments != null) {
                 localDeployments.forEach(topic -> {
-                    Topics topics = (Topics) topic;
-                    String tmpDeploymentId = topics.getName();
-                    DeploymentStatus tmpDeploymentStatus = deploymentStatusFromString(
-                            Coerce.toString(topics.find(DEPLOYMENT_STATUS_KEY_NAME)));
+                    if (topic instanceof Topics) {
+                        Topics topics = (Topics) topic;
+                        String tmpDeploymentId = topics.getName();
+                        DeploymentStatus tmpDeploymentStatus = deploymentStatusFromString(
+                                Coerce.toString(topics.find(DEPLOYMENT_STATUS_KEY_NAME)));
 
-                    if (DeploymentStatus.QUEUED == tmpDeploymentStatus) {
-                        deploymentIdToRemoveList.add(tmpDeploymentId);
+                        if (DeploymentStatus.QUEUED == tmpDeploymentStatus) {
+                            deploymentIdToRemoveList.add(tmpDeploymentId);
+                        }
                     }
                 });
             }
 
             // Find the topics to remove
-            if (deploymentIdToRemoveList != null && deploymentIdToRemoveList.size() > 0) {
+            if (deploymentIdToRemoveList != null && !deploymentIdToRemoveList.isEmpty()) {
                 for (String tmpDeploymentIdToRemove : deploymentIdToRemoveList) {
                     Topics tmpTopicsToRemove = localDeployments.findTopics(tmpDeploymentIdToRemove);
-                    tmpTopicsToRemove.remove();
+
+                    if (tmpTopicsToRemove != null) {
+                        tmpTopicsToRemove.remove();
+                    }
                 }
             }
         }

@@ -66,6 +66,45 @@ class CLITest {
     }
 
     @Test
+    void pubCommand() {
+        String topicname = "/a/bb/ccc";
+        String message = "testMessage...";
+        int exitCode = runCommandLine("topic", "pub", "--topicname=" + topicname, "--message=" + message, "--messagetype='local'");
+        assertThat(exitCode, is(0));
+        exitCode = runCommandLine("topic", "pub", "--topicname=" + topicname, "--message=" + message
+                , "--messagetype='local'", "--qos='0'");
+        assertThat(exitCode, is(0));
+        exitCode = runCommandLine("topic", "pub", "--topicname=" + topicname, "--message=" + message
+                , "--messagetype='local'", "--qos='1'");
+        assertThat(exitCode, is(0));
+        exitCode = runCommandLine("topic", "pub", "--topicname=" + topicname, "--message=" + message, "--messagetype='mqtt'");
+        assertThat(exitCode, is(0));
+        exitCode = runCommandLine("topic", "pub", "--topicname=" + topicname, "--message=" + message, "--messageType='local'");
+        assertThat(exitCode, is(2));
+        exitCode = runCommandLine("topic", "pub", "--topicname=" + topicname, "--message=" + message);
+        assertThat(exitCode, is(2));
+        exitCode = runCommandLine("topic", "pub", "--topicname=" + topicname, "--message=' '");
+        assertThat(exitCode, is(2));
+    }
+
+    @Test
+    void subCommand() {
+        String topicname = "/a/bb/ccc";
+        int exitCode = runCommandLine("topic", "sub", "--topicname=" + topicname, "--messagetype='local'");
+        assertThat(exitCode, is(0));
+        exitCode = runCommandLine("topic", "sub", "--topicname=" + topicname, "--messagetype='mqtt'");
+        assertThat(exitCode, is(0));
+        exitCode = runCommandLine("topic", "sub", "--topicname=" + topicname, "--messagetype='local'", "--qos='0'");
+        assertThat(exitCode, is(0));
+        exitCode = runCommandLine("topic", "sub", "--topicname=" + topicname, "--messagetype='local'", "--qos='1'");
+        assertThat(exitCode, is(0));
+        exitCode = runCommandLine("topic", "sub", "--topicname=" + topicname);
+        assertThat(exitCode, is(2));
+        exitCode = runCommandLine("topic", "sub", "--topicname=''", "--messageType='local'");
+        assertThat(exitCode, is(2));
+    }
+
+    @Test
     void helpCommand() {
         int exitCode = runCommandLine("help");
         assertThat(exitCode, is(0));

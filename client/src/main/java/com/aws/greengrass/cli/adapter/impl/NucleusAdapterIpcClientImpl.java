@@ -11,6 +11,9 @@ import com.fasterxml.jackson.databind.DeserializationFeature;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import software.amazon.awssdk.aws.greengrass.GetLocalDeploymentStatusResponseHandler;
 import software.amazon.awssdk.aws.greengrass.GreengrassCoreIPCClient;
+import software.amazon.awssdk.aws.greengrass.SubscribeToIoTCoreResponseHandler;
+import software.amazon.awssdk.aws.greengrass.SubscribeToTopicResponseHandler;
+import software.amazon.awssdk.aws.greengrass.model.BinaryMessage;
 import software.amazon.awssdk.aws.greengrass.model.ComponentDetails;
 import software.amazon.awssdk.aws.greengrass.model.CreateDebugPasswordRequest;
 import software.amazon.awssdk.aws.greengrass.model.CreateDebugPasswordResponse;
@@ -18,22 +21,35 @@ import software.amazon.awssdk.aws.greengrass.model.CreateLocalDeploymentRequest;
 import software.amazon.awssdk.aws.greengrass.model.CreateLocalDeploymentResponse;
 import software.amazon.awssdk.aws.greengrass.model.GetComponentDetailsRequest;
 import software.amazon.awssdk.aws.greengrass.model.GetLocalDeploymentStatusRequest;
+import software.amazon.awssdk.aws.greengrass.model.IoTCoreMessage;
 import software.amazon.awssdk.aws.greengrass.model.ListComponentsRequest;
 import software.amazon.awssdk.aws.greengrass.model.ListComponentsResponse;
 import software.amazon.awssdk.aws.greengrass.model.ListLocalDeploymentsRequest;
 import software.amazon.awssdk.aws.greengrass.model.ListLocalDeploymentsResponse;
 import software.amazon.awssdk.aws.greengrass.model.LocalDeployment;
+import software.amazon.awssdk.aws.greengrass.model.PublishMessage;
+import software.amazon.awssdk.aws.greengrass.model.PublishToIoTCoreRequest;
+import software.amazon.awssdk.aws.greengrass.model.PublishToTopicRequest;
+import software.amazon.awssdk.aws.greengrass.model.QOS;
 import software.amazon.awssdk.aws.greengrass.model.RestartComponentRequest;
 import software.amazon.awssdk.aws.greengrass.model.StopComponentRequest;
+import software.amazon.awssdk.aws.greengrass.model.SubscribeToIoTCoreRequest;
+import software.amazon.awssdk.aws.greengrass.model.SubscribeToIoTCoreResponse;
+import software.amazon.awssdk.aws.greengrass.model.SubscribeToTopicRequest;
+import software.amazon.awssdk.aws.greengrass.model.SubscribeToTopicResponse;
+import software.amazon.awssdk.aws.greengrass.model.SubscriptionResponseMessage;
+import software.amazon.awssdk.aws.greengrass.model.UnauthorizedError;
 import software.amazon.awssdk.crt.io.ClientBootstrap;
 import software.amazon.awssdk.crt.io.EventLoopGroup;
 import software.amazon.awssdk.crt.io.SocketOptions;
 import software.amazon.awssdk.eventstreamrpc.EventStreamRPCConnection;
 import software.amazon.awssdk.eventstreamrpc.EventStreamRPCConnectionConfig;
 import software.amazon.awssdk.eventstreamrpc.GreengrassConnectMessageSupplier;
+import software.amazon.awssdk.eventstreamrpc.StreamResponseHandler;
 
 import java.io.File;
 import java.io.IOException;
+import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.LinkOption;
 import java.nio.file.Path;
@@ -207,6 +223,198 @@ public class NucleusAdapterIpcClientImpl implements NucleusAdapterIpc {
         } finally {
             close();
         }
+    }
+
+    @Override
+    public void publishToTopic(String topicName, String message) {
+        try {
+            PublishToTopicRequest publishToTopicRequest = new PublishToTopicRequest();
+            PublishMessage publishMessage = new PublishMessage();
+            BinaryMessage binaryMessage = new BinaryMessage();
+            binaryMessage.setMessage(message.getBytes(StandardCharsets.UTF_8));
+            publishMessage.setBinaryMessage(binaryMessage);
+            publishToTopicRequest.setPublishMessage(publishMessage);
+            publishToTopicRequest.setTopic(topicName);
+            getIpcClient().publishToTopic(publishToTopicRequest, Optional.empty());
+        } finally {
+            close();
+        }
+    }
+
+    @Override
+    public void publishToIoTCore(String topicName, String message, String qos) {
+        try {
+            QOS qos1 = QOS.get(qos);
+            PublishToIoTCoreRequest publishToIoTCoreRequest = new PublishToIoTCoreRequest();
+            publishToIoTCoreRequest.setTopicName(topicName);
+            publishToIoTCoreRequest.setPayload(message.getBytes(StandardCharsets.UTF_8));
+            publishToIoTCoreRequest.setQos(qos1);
+            getIpcClient().publishToIoTCore(publishToIoTCoreRequest, Optional.empty());
+        } finally {
+            close();
+        }
+    }
+
+    @Override
+    public void subscribeToTopic(String topic) {
+        try {
+            StreamResponseHandler<SubscriptionResponseMessage> streamResponseHandler =
+                    new SubscriptionResponseHandler(topic);
+            SubscribeToTopicResponseHandler responseHandler =
+                    subscribeToTopic(getIpcClient(), topic, streamResponseHandler);
+            CompletableFuture<SubscribeToTopicResponse> futureResponse =
+                    responseHandler.getResponse();
+            try {
+                futureResponse.get(DEFAULT_TIMEOUT_IN_SEC, TimeUnit.SECONDS);
+                System.out.println("Successfully subscribed to topic: " + topic);
+            } catch (TimeoutException e) {
+                System.err.println("Timeout occurred while subscribing to topic: " + topic);
+            } catch (ExecutionException e) {
+                if (e.getCause() instanceof UnauthorizedError) {
+                    System.err.println("Unauthorized error while publishing to topic: " + topic);
+                } else {
+                    throw e;
+                }
+            }
+
+            // Keep the main thread alive, or the process will exit.
+            try {
+                while (true) {
+                    Thread.sleep(10000);
+                }
+            } catch (InterruptedException e) {
+                System.out.println("Subscribe interrupted.");
+            }
+
+            // To stop subscribing, close the stream.
+            responseHandler.closeStream();
+        } catch (InterruptedException e) {
+            System.out.println("IPC interrupted.");
+        } catch (ExecutionException e) {
+            System.err.println("Exception occurred when using IPC.");
+            e.printStackTrace();
+            System.exit(1);
+        }
+    }
+
+    @Override
+    public void subscribeToIoTCore(String topicName, String qos) {
+        try{
+            StreamResponseHandler<IoTCoreMessage> streamResponseHandler = new SubscriptionMqttResponseHandler();
+            SubscribeToIoTCoreRequest subscribeToIoTCoreRequest = new SubscribeToIoTCoreRequest();
+            subscribeToIoTCoreRequest.setTopicName(topicName);
+            subscribeToIoTCoreRequest.setQos(qos);
+            SubscribeToIoTCoreResponseHandler responseHandler = getIpcClient().subscribeToIoTCore(subscribeToIoTCoreRequest,
+                    Optional.of(streamResponseHandler));
+            CompletableFuture<SubscribeToIoTCoreResponse> futureResponse = responseHandler.getResponse();
+            try {
+                futureResponse.get(DEFAULT_TIMEOUT_IN_SEC, TimeUnit.SECONDS);
+                System.out.println("Successfully subscribed to topic: " + topicName);
+            } catch (TimeoutException e) {
+                System.err.println("Timeout occurred while subscribing to topic: " + topicName);
+            } catch (ExecutionException e) {
+                if (e.getCause() instanceof UnauthorizedError) {
+                    System.err.println("Unauthorized error while subscribing to topic: " + topicName);
+                } else {
+                    throw e;
+                }
+            }
+
+            // Keep the main thread alive, or the process will exit.
+            try {
+                while (true) {
+                    Thread.sleep(10000);
+                }
+            } catch (InterruptedException e) {
+                System.out.println("Subscribe interrupted.");
+            }
+
+            // To stop subscribing, close the stream.
+            responseHandler.closeStream();
+        } catch (InterruptedException e) {
+            System.out.println("IPC interrupted.");
+        } catch (ExecutionException e) {
+            System.err.println("Exception occurred when using IPC.");
+            e.printStackTrace();
+            System.exit(1);
+        }
+    }
+
+    public static class SubscriptionMqttResponseHandler implements StreamResponseHandler<IoTCoreMessage> {
+
+        @Override
+        public void onStreamEvent(IoTCoreMessage ioTCoreMessage) {
+            try {
+                String topic = ioTCoreMessage.getMessage().getTopicName();
+                String message = new String(ioTCoreMessage.getMessage().getPayload(),
+                        StandardCharsets.UTF_8);
+                System.out.printf("Received new message on topic %s: %s%n", topic, message);
+            } catch (Exception e) {
+                System.err.println("Exception occurred while processing subscription response " +
+                        "message.");
+                e.printStackTrace();
+            }
+        }
+
+        @Override
+        public boolean onStreamError(Throwable error) {
+            System.err.println("Received a stream error.");
+            error.printStackTrace();
+            return false;
+        }
+
+        @Override
+        public void onStreamClosed() {
+            System.out.println("Subscribe to IoT Core stream closed.");
+        }
+    }
+
+    private SubscribeToTopicResponseHandler subscribeToTopic(GreengrassCoreIPCClient greengrassCoreIPCClient
+            , String topic, StreamResponseHandler<SubscriptionResponseMessage> streamResponseHandler) {
+        SubscribeToTopicRequest subscribeToTopicRequest = new SubscribeToTopicRequest();
+        subscribeToTopicRequest.setTopic(topic);
+        return greengrassCoreIPCClient.subscribeToTopic(subscribeToTopicRequest,
+                Optional.of(streamResponseHandler));
+    }
+
+
+    public static class SubscriptionResponseHandler implements StreamResponseHandler<SubscriptionResponseMessage> {
+
+        private final String topic;
+
+        public SubscriptionResponseHandler(String topic) {
+            this.topic = topic;
+        }
+
+        @Override
+        public void onStreamEvent(SubscriptionResponseMessage subscriptionResponseMessage) {
+            try {
+                String message =
+                        new String(subscriptionResponseMessage.getBinaryMessage().getMessage(),
+                                StandardCharsets.UTF_8);
+                System.out.printf("Received new message on topic %s: %s%n", this.topic, message);
+            } catch (Exception e) {
+                System.err.println("Exception occurred while processing subscription response " +
+                        "message.");
+                e.printStackTrace();
+            }
+        }
+
+        @Override
+        public boolean onStreamError(Throwable error) {
+            System.err.println("Received a stream error.");
+            error.printStackTrace();
+            return false; // Return true to close stream, false to keep stream open.
+        }
+
+        @Override
+        public void onStreamClosed() {
+            System.out.println("Subscribe to topic stream closed.");
+        }
+    }
+
+    public static void onStreamClosed() {
+        System.out.println("Subscribe to topic stream closed.");
     }
 
     private String getGgcRoot() {

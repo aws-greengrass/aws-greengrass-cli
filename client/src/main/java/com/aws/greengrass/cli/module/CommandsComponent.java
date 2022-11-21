@@ -9,6 +9,7 @@ import com.aws.greengrass.cli.commands.ComponentCommand;
 import com.aws.greengrass.cli.commands.DeploymentCommand;
 import com.aws.greengrass.cli.commands.Logs;
 import com.aws.greengrass.cli.commands.PasswordCommand;
+import com.aws.greengrass.cli.commands.TopicCommand;
 import dagger.Component;
 
 import javax.inject.Singleton;
@@ -26,4 +27,6 @@ public interface CommandsComponent {
     DeploymentCommand deployment();
 
     PasswordCommand password();
+
+    TopicCommand topic();
 }

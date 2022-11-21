@@ -37,7 +37,9 @@ import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.StandardOpenOption;
+import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import javax.inject.Inject;
 
@@ -45,6 +47,8 @@ import static com.aws.greengrass.componentmanager.KernelConfigResolver.CONFIGURA
 import static com.aws.greengrass.componentmanager.KernelConfigResolver.VERSION_CONFIG_KEY;
 import static com.aws.greengrass.ipc.AuthenticationHandler.SERVICE_UNIQUE_ID_KEY;
 import static com.aws.greengrass.ipc.IPCEventStreamService.NUCLEUS_DOMAIN_SOCKET_FILEPATH;
+import static com.aws.greengrass.ipc.modules.MqttProxyIPCService.MQTT_PROXY_SERVICE_NAME;
+import static com.aws.greengrass.ipc.modules.PubSubIPCService.PUB_SUB_SERVICE_NAME;
 
 @ImplementsService(name = CLIService.CLI_SERVICE, autostart = true)
 public class CLIService extends PluginService {
@@ -171,9 +175,30 @@ public class CLIService extends PluginService {
                 Files.createSymbolicLink(link, binary);
                 logger.atInfo().kv("binary", binary).kv("link", link).log("Set up symlink to CLI binary");
             }
+
+            // authorize pub/sub for the cli
+            authorizePubSubPermission(PUB_SUB_SERVICE_NAME);
+            authorizePubSubPermission(MQTT_PROXY_SERVICE_NAME);
         } catch (IOException | SemverException e) {
             logger.atError().log("Failed to set up symlink to CLI binary", e);
         }
+    }
+
+    private void authorizePubSubPermission(String serviceIdentifier) throws IOException {
+        String defaultClientId =
+                USER_CLIENT_ID_PREFIX + Platform.getInstance().lookupCurrentUser().getPrincipalIdentifier();
+        String serviceName = getAuthClientIdentifier(defaultClientId);
+        List<String> list = new ArrayList<>();
+        list.add("*");
+        String policyName = "aws.greengrass.Cli:pubsub:10";
+        config.parent.lookup(serviceName, CONFIGURATION_CONFIG_KEY, ACCESS_CONTROL_NAMESPACE_TOPIC,
+                serviceIdentifier,
+                policyName, "resources").dflt(list);
+        config.parent.lookup(serviceName, CONFIGURATION_CONFIG_KEY, ACCESS_CONTROL_NAMESPACE_TOPIC,
+                serviceIdentifier, policyName, "operations").dflt(list);
+
+        config.parent.lookup(serviceName, CONFIGURATION_CONFIG_KEY, ACCESS_CONTROL_NAMESPACE_TOPIC,
+                serviceIdentifier, policyName, "policyDescription").dflt("Allows access to publish/subscribe topic.");
     }
 
     private void setCliClientPermission(Path clientDir) {

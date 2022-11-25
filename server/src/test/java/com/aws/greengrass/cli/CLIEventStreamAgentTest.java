@@ -455,12 +455,16 @@ class CLIEventStreamAgentTest {
                     localDeploymentDetails.setStatus(DeploymentStatus.SUCCEEDED);
                 }
                 cliEventStreamAgent.persistLocalDeployment(cliServiceConfig, localDeploymentDetails.convertToMapOfObject());
+                // to ensure topic add as order
+                Thread.sleep(1000);
             }
 
             Topics localDeployments = cliServiceConfig.findTopics(PERSISTENT_LOCAL_DEPLOYMENTS);
 
             assertEquals(6, localDeployments.size());
             assertNull(localDeployments.findNode("deploymentId1"));
+        } catch (InterruptedException e) {
+            throw new RuntimeException(e);
         }
     }
 }

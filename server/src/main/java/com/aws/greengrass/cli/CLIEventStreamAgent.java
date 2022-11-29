@@ -519,6 +519,8 @@ public class CLIEventStreamAgent {
                     localDeploymentDetails.setDeploymentId(deploymentId);
                     localDeploymentDetails.setDeploymentType(Deployment.DeploymentType.LOCAL);
                     localDeploymentDetails.setStatus(DeploymentStatus.QUEUED);
+                    cleanUpQueuedDeployments(cliServiceConfig);
+
                     persistLocalDeployment(cliServiceConfig, localDeploymentDetails.convertToMapOfObject());
                     if (deploymentQueue.offer(deployment)) {
                         logger.atInfo().kv(DEPLOYMENT_ID_LOG_KEY, deploymentId)
@@ -535,6 +537,7 @@ public class CLIEventStreamAgent {
                 }
             });
         }
+
 
         @Override
         public void handleStreamEvent(EventStreamJsonMessage streamRequestEvent) {
@@ -567,6 +570,7 @@ public class CLIEventStreamAgent {
                         .resource(request.getDeploymentId())
                         .operation(GET_LOCAL_DEPLOYMENT_STATUS)
                         .build());
+                cleanUpQueuedDeployments(cliServiceConfig);
                 Topics localDeployments = cliServiceConfig.findTopics(PERSISTENT_LOCAL_DEPLOYMENTS);
                 if (localDeployments == null || localDeployments.findTopics(request.getDeploymentId()) == null) {
                     ResourceNotFoundError rnf = new ResourceNotFoundError();
@@ -628,6 +632,7 @@ public class CLIEventStreamAgent {
                         .operation(LIST_LOCAL_DEPLOYMENTS)
                         .build());
                 List<LocalDeployment> persistedDeployments = new ArrayList<>();
+                cleanUpQueuedDeployments(cliServiceConfig);
                 Topics localDeployments = cliServiceConfig.findTopics(PERSISTENT_LOCAL_DEPLOYMENTS);
                 if (localDeployments != null) {
                     localDeployments.forEach(topic -> {
@@ -639,6 +644,7 @@ public class CLIEventStreamAgent {
                         persistedDeployments.add(localDeployment);
                     });
                 }
+
                 ListLocalDeploymentsResponse response = new ListLocalDeploymentsResponse();
                 response.setLocalDeployments(persistedDeployments);
                 return response;
@@ -719,6 +725,41 @@ public class CLIEventStreamAgent {
             }
         }
         return null;
+    }
+
+    private void cleanUpQueuedDeployments(Topics cliServiceConfig) {
+        List<String> deploymentIdToRemoveList = new ArrayList<>();
+
+        if (deploymentQueue.isEmpty()) {
+            Topics localDeployments = cliServiceConfig.findTopics(PERSISTENT_LOCAL_DEPLOYMENTS);
+
+            // Find deploymentIds that status are queued
+            if (localDeployments != null) {
+                localDeployments.forEach(topic -> {
+                    if (topic instanceof Topics) {
+                        Topics topics = (Topics) topic;
+                        String tmpDeploymentId = topics.getName();
+                        DeploymentStatus tmpDeploymentStatus = deploymentStatusFromString(
+                                Coerce.toString(topics.find(DEPLOYMENT_STATUS_KEY_NAME)));
+
+                        if (DeploymentStatus.QUEUED == tmpDeploymentStatus) {
+                            deploymentIdToRemoveList.add(tmpDeploymentId);
+                        }
+                    }
+                });
+            }
+
+            // Find the topics to remove
+            if (deploymentIdToRemoveList != null && !deploymentIdToRemoveList.isEmpty()) {
+                for (String tmpDeploymentIdToRemove : deploymentIdToRemoveList) {
+                    Topics tmpTopicsToRemove = localDeployments.findTopics(tmpDeploymentIdToRemove);
+
+                    if (tmpTopicsToRemove != null) {
+                        tmpTopicsToRemove.remove();
+                    }
+                }
+            }
+        }
     }
 
     @Data

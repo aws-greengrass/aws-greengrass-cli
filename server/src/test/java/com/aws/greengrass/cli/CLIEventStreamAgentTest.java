@@ -440,31 +440,29 @@ class CLIEventStreamAgentTest {
     }
 
     @Test
-    void test_persist_last_five_successful_local_deployments() throws IOException {
-        try (Context context = new Context()) {
-            Topics cliServiceConfig = Topics.of(context, TEST_SERVICE, null);
+    void test_persist_last_five_successful_local_deployments() throws InterruptedException {
+        Context context = new Context();
+        Topics cliServiceConfig = Topics.of(context, TEST_SERVICE, null);
 
-            CLIEventStreamAgent.LocalDeploymentDetails localDeploymentDetails = new CLIEventStreamAgent.LocalDeploymentDetails();
-            for (int i = 1; i <= 7; i++) {
-                String deploymentId = "deploymentId" + i;
-                localDeploymentDetails.setDeploymentId(deploymentId);
-                localDeploymentDetails.setDeploymentType(Deployment.DeploymentType.LOCAL);
-                if (i == 3) {
-                    localDeploymentDetails.setStatus(DeploymentStatus.FAILED);
-                } else {
-                    localDeploymentDetails.setStatus(DeploymentStatus.SUCCEEDED);
-                }
-                cliEventStreamAgent.persistLocalDeployment(cliServiceConfig, localDeploymentDetails.convertToMapOfObject());
-                // to ensure topic add as order
-                Thread.sleep(1000);
+        CLIEventStreamAgent.LocalDeploymentDetails localDeploymentDetails = new CLIEventStreamAgent.LocalDeploymentDetails();
+        for (int i = 1; i <= 7; i++) {
+            String deploymentId = "deploymentId" + i;
+            localDeploymentDetails.setDeploymentId(deploymentId);
+            localDeploymentDetails.setDeploymentType(Deployment.DeploymentType.LOCAL);
+            if (i == 3) {
+                localDeploymentDetails.setStatus(DeploymentStatus.FAILED);
+            } else {
+                localDeploymentDetails.setStatus(DeploymentStatus.SUCCEEDED);
             }
-
-            Topics localDeployments = cliServiceConfig.findTopics(PERSISTENT_LOCAL_DEPLOYMENTS);
-
-            assertEquals(6, localDeployments.size());
-            assertNull(localDeployments.findNode("deploymentId1"));
-        } catch (InterruptedException e) {
-            throw new RuntimeException(e);
+            cliEventStreamAgent.persistLocalDeployment(cliServiceConfig, localDeploymentDetails.convertToMapOfObject());
+            // to ensure topic add as order
+            Thread.sleep(1);
+            context.waitForPublishQueueToClear();
         }
+
+        Topics localDeployments = cliServiceConfig.findTopics(PERSISTENT_LOCAL_DEPLOYMENTS);
+
+        assertEquals(6, localDeployments.size());
+        assertNull(localDeployments.findNode("deploymentId1"));
     }
 }

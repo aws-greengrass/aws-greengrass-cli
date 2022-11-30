@@ -184,7 +184,6 @@ public class CLIEventStreamAgent {
         String deploymentId = (String) deploymentDetails.get(DEPLOYMENT_ID_KEY_NAME);
         Topics localDeploymentDetails = localDeployments.lookupTopics(deploymentId);
         localDeploymentDetails.replaceAndWait(deploymentDetails);
-        // TODO: [P41178971]: Implement a limit on no of local deployments to persist status for
         // #P39046999 Persist last (5) successful local deployments as part of CLI application code.
         if (localDeployments.size() > PERSIST_LIMIT) {
             List<Topics> childrenToRemove = new ArrayList<>();

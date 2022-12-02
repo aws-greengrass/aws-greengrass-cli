@@ -248,6 +248,8 @@ public class NucleusAdapterIpcClientImpl implements NucleusAdapterIpc {
             System.err.println("Exception occurred when publishing to topic.");
             e.printStackTrace();
             System.exit(1);
+        } finally {
+            close();
         }
     }
 
@@ -268,6 +270,8 @@ public class NucleusAdapterIpcClientImpl implements NucleusAdapterIpc {
             System.err.println("Exception occurred when publishing to IoT Core.");
             e.printStackTrace();
             System.exit(1);
+        } finally {
+            close();
         }
     }
 

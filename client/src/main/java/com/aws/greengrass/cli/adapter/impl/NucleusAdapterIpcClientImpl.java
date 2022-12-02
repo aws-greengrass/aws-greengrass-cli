@@ -11,6 +11,8 @@ import com.fasterxml.jackson.databind.DeserializationFeature;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import software.amazon.awssdk.aws.greengrass.GetLocalDeploymentStatusResponseHandler;
 import software.amazon.awssdk.aws.greengrass.GreengrassCoreIPCClient;
+import software.amazon.awssdk.aws.greengrass.PublishToIoTCoreResponseHandler;
+import software.amazon.awssdk.aws.greengrass.PublishToTopicResponseHandler;
 import software.amazon.awssdk.aws.greengrass.SubscribeToIoTCoreResponseHandler;
 import software.amazon.awssdk.aws.greengrass.SubscribeToTopicResponseHandler;
 import software.amazon.awssdk.aws.greengrass.model.BinaryMessage;
@@ -29,7 +31,9 @@ import software.amazon.awssdk.aws.greengrass.model.ListLocalDeploymentsResponse;
 import software.amazon.awssdk.aws.greengrass.model.LocalDeployment;
 import software.amazon.awssdk.aws.greengrass.model.PublishMessage;
 import software.amazon.awssdk.aws.greengrass.model.PublishToIoTCoreRequest;
+import software.amazon.awssdk.aws.greengrass.model.PublishToIoTCoreResponse;
 import software.amazon.awssdk.aws.greengrass.model.PublishToTopicRequest;
+import software.amazon.awssdk.aws.greengrass.model.PublishToTopicResponse;
 import software.amazon.awssdk.aws.greengrass.model.QOS;
 import software.amazon.awssdk.aws.greengrass.model.RestartComponentRequest;
 import software.amazon.awssdk.aws.greengrass.model.StopComponentRequest;
@@ -227,31 +231,43 @@ public class NucleusAdapterIpcClientImpl implements NucleusAdapterIpc {
 
     @Override
     public void publishToTopic(String topicName, String message) {
+        PublishToTopicRequest publishToTopicRequest = new PublishToTopicRequest();
+        PublishMessage publishMessage = new PublishMessage();
+        BinaryMessage binaryMessage = new BinaryMessage();
+        binaryMessage.setMessage(message.getBytes(StandardCharsets.UTF_8));
+        publishMessage.setBinaryMessage(binaryMessage);
+        publishToTopicRequest.setPublishMessage(publishMessage);
+        publishToTopicRequest.setTopic(topicName);
+        PublishToTopicResponseHandler responseHandler = getIpcClient().publishToTopic(publishToTopicRequest, Optional.empty());
+        CompletableFuture<PublishToTopicResponse> response = responseHandler.getResponse();
         try {
-            PublishToTopicRequest publishToTopicRequest = new PublishToTopicRequest();
-            PublishMessage publishMessage = new PublishMessage();
-            BinaryMessage binaryMessage = new BinaryMessage();
-            binaryMessage.setMessage(message.getBytes(StandardCharsets.UTF_8));
-            publishMessage.setBinaryMessage(binaryMessage);
-            publishToTopicRequest.setPublishMessage(publishMessage);
-            publishToTopicRequest.setTopic(topicName);
-            getIpcClient().publishToTopic(publishToTopicRequest, Optional.empty());
-        } finally {
-            close();
+            response.get();
+        } catch (InterruptedException interruptedException) {
+            System.out.println("publish interrupted.");
+        } catch (ExecutionException e) {
+            System.err.println("Exception occurred when publishing to topic.");
+            e.printStackTrace();
+            System.exit(1);
         }
     }
 
     @Override
     public void publishToIoTCore(String topicName, String message, String qos) {
+        QOS qos1 = QOS.get(qos);
+        PublishToIoTCoreRequest publishToIoTCoreRequest = new PublishToIoTCoreRequest();
+        publishToIoTCoreRequest.setTopicName(topicName);
+        publishToIoTCoreRequest.setPayload(message.getBytes(StandardCharsets.UTF_8));
+        publishToIoTCoreRequest.setQos(qos1);
+        PublishToIoTCoreResponseHandler responseHandler = getIpcClient().publishToIoTCore(publishToIoTCoreRequest, Optional.empty());
+        CompletableFuture<PublishToIoTCoreResponse> response = responseHandler.getResponse();
         try {
-            QOS qos1 = QOS.get(qos);
-            PublishToIoTCoreRequest publishToIoTCoreRequest = new PublishToIoTCoreRequest();
-            publishToIoTCoreRequest.setTopicName(topicName);
-            publishToIoTCoreRequest.setPayload(message.getBytes(StandardCharsets.UTF_8));
-            publishToIoTCoreRequest.setQos(qos1);
-            getIpcClient().publishToIoTCore(publishToIoTCoreRequest, Optional.empty());
-        } finally {
-            close();
+            response.get();
+        } catch (InterruptedException interruptedException) {
+            System.out.println("publish interrupted.");
+        } catch (ExecutionException e) {
+            System.err.println("Exception occurred when publishing to IoT Core.");
+            e.printStackTrace();
+            System.exit(1);
         }
     }
 
@@ -265,10 +281,8 @@ public class NucleusAdapterIpcClientImpl implements NucleusAdapterIpc {
             CompletableFuture<SubscribeToTopicResponse> futureResponse =
                     responseHandler.getResponse();
             try {
-                futureResponse.get(DEFAULT_TIMEOUT_IN_SEC, TimeUnit.SECONDS);
+                futureResponse.get();
                 System.out.println("Successfully subscribed to topic: " + topic);
-            } catch (TimeoutException e) {
-                System.err.println("Timeout occurred while subscribing to topic: " + topic);
             } catch (ExecutionException e) {
                 if (e.getCause() instanceof UnauthorizedError) {
                     System.err.println("Unauthorized error while publishing to topic: " + topic);
@@ -308,10 +322,8 @@ public class NucleusAdapterIpcClientImpl implements NucleusAdapterIpc {
                     Optional.of(streamResponseHandler));
             CompletableFuture<SubscribeToIoTCoreResponse> futureResponse = responseHandler.getResponse();
             try {
-                futureResponse.get(DEFAULT_TIMEOUT_IN_SEC, TimeUnit.SECONDS);
+                futureResponse.get();
                 System.out.println("Successfully subscribed to topic: " + topicName);
-            } catch (TimeoutException e) {
-                System.err.println("Timeout occurred while subscribing to topic: " + topicName);
             } catch (ExecutionException e) {
                 if (e.getCause() instanceof UnauthorizedError) {
                     System.err.println("Unauthorized error while subscribing to topic: " + topicName);
@@ -345,10 +357,9 @@ public class NucleusAdapterIpcClientImpl implements NucleusAdapterIpc {
         @Override
         public void onStreamEvent(IoTCoreMessage ioTCoreMessage) {
             try {
-                String topic = ioTCoreMessage.getMessage().getTopicName();
                 String message = new String(ioTCoreMessage.getMessage().getPayload(),
                         StandardCharsets.UTF_8);
-                System.out.printf("Received new message on topic %s: %s%n", topic, message);
+                System.out.printf("Received new message : %s%n",  message);
             } catch (Exception e) {
                 System.err.println("Exception occurred while processing subscription response " +
                         "message.");
@@ -381,6 +392,7 @@ public class NucleusAdapterIpcClientImpl implements NucleusAdapterIpc {
     public static class SubscriptionResponseHandler implements StreamResponseHandler<SubscriptionResponseMessage> {
 
         private final String topic;
+        private static final ObjectMapper SERIALIZER = new ObjectMapper();
 
         public SubscriptionResponseHandler(String topic) {
             this.topic = topic;
@@ -389,10 +401,24 @@ public class NucleusAdapterIpcClientImpl implements NucleusAdapterIpc {
         @Override
         public void onStreamEvent(SubscriptionResponseMessage subscriptionResponseMessage) {
             try {
-                String message =
-                        new String(subscriptionResponseMessage.getBinaryMessage().getMessage(),
-                                StandardCharsets.UTF_8);
-                System.out.printf("Received new message on topic %s: %s%n", this.topic, message);
+                Optional<Map<String, Object>> jsonMessage = Optional.empty();
+                if (subscriptionResponseMessage.getJsonMessage() != null) {
+                    jsonMessage = Optional.of(subscriptionResponseMessage.getJsonMessage().getMessage());
+                }
+                Optional<byte[]> binaryMessage = Optional.empty();
+                if (subscriptionResponseMessage.getBinaryMessage() != null) {
+                    binaryMessage = Optional.of(subscriptionResponseMessage.getBinaryMessage().getMessage());
+                }
+
+                byte[] bytes = new byte[10];
+                if (jsonMessage.isPresent()) {
+                    bytes = SERIALIZER.writeValueAsBytes(jsonMessage.get());
+                } else if (binaryMessage.isPresent()) {
+                    bytes = subscriptionResponseMessage.getBinaryMessage().getMessage();
+                }
+
+                String message = new String(bytes, StandardCharsets.UTF_8);
+                System.out.printf("Received new message : %s%n",  message);
             } catch (Exception e) {
                 System.err.println("Exception occurred while processing subscription response " +
                         "message.");

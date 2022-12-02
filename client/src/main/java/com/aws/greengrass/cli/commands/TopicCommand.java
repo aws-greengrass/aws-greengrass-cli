@@ -6,8 +6,6 @@
 package com.aws.greengrass.cli.commands;
 
 import com.aws.greengrass.cli.adapter.NucleusAdapterIpc;
-import com.fasterxml.jackson.core.JsonProcessingException;
-import com.fasterxml.jackson.databind.ObjectMapper;
 import picocli.CommandLine;
 
 import javax.inject.Inject;
@@ -54,42 +52,16 @@ public class TopicCommand extends BaseCommand {
     public void pub(@CommandLine.Option(names = {"-t", "--topic"}, paramLabel = "The name of the topic.", required = true) String topicName,
                     @CommandLine.Option(names = {"-m", "--message"}, paramLabel = "The message that is published.", required = true) String message,
                     @CommandLine.ArgGroup(multiplicity = "1") MessageType type,
-                    @CommandLine.Option(names = {"-q", "--qos"}, paramLabel = "This applies to the --iotcore option only.", defaultValue = "0") String qos)
-            throws IOException {
+                    @CommandLine.Option(names = {"-q", "--qos"}, paramLabel = "This applies to the --iotcore option only.", defaultValue = "0") String qos) {
         if(isEmpty(topicName)){
             System.err.println("Topic name cannot be empty.");
             return;
         }
-
-        String configurationUpdate = null;
-        if (message != null && !message.isEmpty()) {
-            try {
-                // Try to read JSON from a file if it is a path and the file exists
-                try {
-                    Optional<Path> filePath = deTilde(message);
-                    if (filePath.isPresent() && Files.exists(filePath.get())) {
-                        configurationUpdate = new String(Files.readAllBytes(filePath.get()), StandardCharsets.UTF_8);
-                    }
-                } catch (InvalidPathException ignored) {
-                    // If the input is a JSON, InvalidPathException is thrown from deTilde and needs to be ignored
-                }
-
-                // If it wasn't a file or a path, then try reading it as a JSON string
-                if (configurationUpdate == null) {
-                    configurationUpdate = message;
-                }
-            } catch (JsonProcessingException e) {
-                System.err.println(spec.commandLine().getColorScheme()
-                        .errorText("Update configuration parameter is not a properly formatted JSON "
-                                + "file or a JSON string"));
-                System.err.println(spec.commandLine().getColorScheme().errorText(e.getMessage()));
-            }
-        }
-
+        String content = getContent(message);
         if (type.local != null && type.local.equals(MSGTYPE.LOCAL)) {
-            nucleusAdapterIpc.publishToTopic(topicName, configurationUpdate);
+            nucleusAdapterIpc.publishToTopic(topicName, content);
         } else if (type.mqtt != null && type.mqtt.equals(MSGTYPE.MQTT)) {
-            nucleusAdapterIpc.publishToIoTCore(topicName, configurationUpdate, qos);
+            nucleusAdapterIpc.publishToIoTCore(topicName, content, qos);
         } else {
             System.err.println(spec.commandLine().getColorScheme()
                     .errorText("The type of message error occurred, pubsub can only be LOCAL and iotcore can only be MQTT."));
@@ -102,7 +74,8 @@ public class TopicCommand extends BaseCommand {
             versionProvider = com.aws.greengrass.cli.module.VersionProvider.class)
     public void sub(@CommandLine.Option(names = {"-t", "--topic"}, paramLabel = "The name of the topic.", required = true) String topicName,
                     @CommandLine.ArgGroup(multiplicity = "1") MessageType type,
-                    @CommandLine.Option(names = {"-q", "--qos"}, paramLabel = "This applies to the --iotcore option only.", defaultValue = "0") String qos) throws IOException {
+                    @CommandLine.Option(names = {"-q", "--qos"}, paramLabel = "This applies to the --iotcore option only.", defaultValue = "0") String qos)
+            throws IOException {
         if(isEmpty(topicName)){
             System.err.println("Topic name cannot be empty.");
             return;
@@ -118,6 +91,12 @@ public class TopicCommand extends BaseCommand {
         }
     }
 
+    /**
+     * Determine if string is empty.
+     *
+     * @param s
+     * @return boolean
+     */
     private boolean isEmpty(String s) {
         if (s == null) {
             return true;
@@ -129,6 +108,37 @@ public class TopicCommand extends BaseCommand {
             }
         }
         return true;
+    }
+
+    /**
+     * Get content from a file or string.
+     *
+     * @param message
+     * @return String
+     */
+    private String getContent(String message) {
+        String content = null;
+        if (message != null && !message.isEmpty()) {
+            try {
+                // Try to read content from a file if it is a path and the file exists
+                try {
+                    Optional<Path> filePath = deTilde(message);
+                    if (filePath.isPresent() && Files.exists(filePath.get())) {
+                        content = new String(Files.readAllBytes(filePath.get()), StandardCharsets.UTF_8);
+                    }
+                } catch (InvalidPathException ignored) {
+                    // InvalidPathException is thrown from deTilde and needs to be ignored.
+                }
+
+                // If it wasn't a file or a path, then try reading it as a string
+                if (content == null) {
+                    content = message;
+                }
+            } catch (IOException e) {
+                System.err.println(e.getMessage());
+            }
+        }
+        return content;
     }
 
 }

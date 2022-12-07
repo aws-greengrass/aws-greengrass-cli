@@ -9,6 +9,7 @@ import com.aws.greengrass.cli.adapter.NucleusAdapterIpc;
 import com.aws.greengrass.cli.util.PlatformUtils;
 import com.fasterxml.jackson.databind.DeserializationFeature;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.google.gson.Gson;
 import software.amazon.awssdk.aws.greengrass.GetLocalDeploymentStatusResponseHandler;
 import software.amazon.awssdk.aws.greengrass.GreengrassCoreIPCClient;
 import software.amazon.awssdk.aws.greengrass.PublishToIoTCoreResponseHandler;
@@ -406,7 +407,7 @@ public class NucleusAdapterIpcClientImpl implements NucleusAdapterIpc {
                 if (subscriptionResponseMessage.getJsonMessage() != null) {
                     Map<String, Object> jsonMessage = subscriptionResponseMessage.getJsonMessage().getMessage();
                     if (jsonMessage != null) {
-                        System.out.printf("%s%n", jsonMessage);
+                        System.out.printf("%s%n", new Gson().toJson(jsonMessage));
                     }
                 } else if (subscriptionResponseMessage.getBinaryMessage() != null) {
                     byte[] binaryMessage = subscriptionResponseMessage.getBinaryMessage().getMessage();

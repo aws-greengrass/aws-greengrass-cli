@@ -33,10 +33,10 @@ public class TopicCommand extends BaseCommand {
     }
 
     public static class MessageType{
-        @CommandLine.Option(names = {"--pubsub"}, paramLabel = "To send local message.",
+        @CommandLine.Option(names = {"--pubsub"}, paramLabel = "Local pubsub message.",
                 required = true, arity = "0..1", fallbackValue = LOCAL) MSGTYPE local;
 
-        @CommandLine.Option(names = {"--iotcore"}, paramLabel = "To send Iot Core message.",
+        @CommandLine.Option(names = {"--iotcore"}, paramLabel = "IoT Core message.",
                 required = true, arity = "0..1", fallbackValue = MQTT) MSGTYPE mqtt;
     }
 
@@ -125,6 +125,7 @@ public class TopicCommand extends BaseCommand {
                     Optional<Path> filePath = deTilde(message);
                     if (filePath.isPresent() && Files.exists(filePath.get())) {
                         content = new String(Files.readAllBytes(filePath.get()), StandardCharsets.UTF_8);
+                        return content;
                     }
                 } catch (InvalidPathException ignored) {
                     // InvalidPathException is thrown from deTilde and needs to be ignored.

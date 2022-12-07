@@ -361,7 +361,7 @@ public class NucleusAdapterIpcClientImpl implements NucleusAdapterIpc {
             try {
                 String message = new String(ioTCoreMessage.getMessage().getPayload(),
                         StandardCharsets.UTF_8);
-                System.out.printf("Received new message : %s%n",  message);
+                System.out.printf("%s%n",  message);
             } catch (Exception e) {
                 System.err.println("Exception occurred while processing subscription response " +
                         "message.");
@@ -403,24 +403,15 @@ public class NucleusAdapterIpcClientImpl implements NucleusAdapterIpc {
         @Override
         public void onStreamEvent(SubscriptionResponseMessage subscriptionResponseMessage) {
             try {
-                Optional<Map<String, Object>> jsonMessage = Optional.empty();
                 if (subscriptionResponseMessage.getJsonMessage() != null) {
-                    jsonMessage = Optional.of(subscriptionResponseMessage.getJsonMessage().getMessage());
+                    Map<String, Object> jsonMessage = subscriptionResponseMessage.getJsonMessage().getMessage();
+                    if (jsonMessage != null) {
+                        System.out.printf("%s%n", jsonMessage);
+                    }
+                } else if (subscriptionResponseMessage.getBinaryMessage() != null) {
+                    byte[] binaryMessage = subscriptionResponseMessage.getBinaryMessage().getMessage();
+                    System.out.printf("%s%n", new String(binaryMessage, StandardCharsets.UTF_8));
                 }
-                Optional<byte[]> binaryMessage = Optional.empty();
-                if (subscriptionResponseMessage.getBinaryMessage() != null) {
-                    binaryMessage = Optional.of(subscriptionResponseMessage.getBinaryMessage().getMessage());
-                }
-
-                byte[] bytes = new byte[10];
-                if (jsonMessage.isPresent()) {
-                    bytes = SERIALIZER.writeValueAsBytes(jsonMessage.get());
-                } else if (binaryMessage.isPresent()) {
-                    bytes = subscriptionResponseMessage.getBinaryMessage().getMessage();
-                }
-
-                String message = new String(bytes, StandardCharsets.UTF_8);
-                System.out.printf("Received new message : %s%n",  message);
             } catch (Exception e) {
                 System.err.println("Exception occurred while processing subscription response " +
                         "message.");

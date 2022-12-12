@@ -72,24 +72,20 @@ class CLITest {
         //./greengrass-cli topic pub --topic 'abc' --message 'msg...' --pubsub
         String topicname = "/a/bb/ccc";
         String message = "testMessage...";
-        int exitCode = runCommandLine("topic", "pub", "--topic=" + topicname, "--message=" + message, "--pubsub");
+        int exitCode = runCommandLine("pubsub", "pub", "--topic=" + topicname, "--message=" + message);
         assertThat(exitCode, is(exitCodeSuccess));
-        exitCode = runCommandLine("topic", "pub", "--topic=" + topicname, "--message=" + message
-                , "--pubsub", "--qos='0'");
+        exitCode = runCommandLine("pubsub", "pub", "--topic=" + topicname, "--message=" + message
+                , "--qos='0'");
+        assertThat(exitCode, is(exitCodeFail));
+        exitCode = runCommandLine("pubsub", "pub", "--topic=" + topicname, "--message=" + message
+                , "--qos='1'");
+        assertThat(exitCode, is(exitCodeFail));
+        exitCode = runCommandLine("iotcore", "pub", "--topic=" + topicname, "--message=" + message);
         assertThat(exitCode, is(exitCodeSuccess));
-        exitCode = runCommandLine("topic", "pub", "--topic=" + topicname, "--message=" + message
-                , "--pubsub", "--qos='1'");
+        exitCode = runCommandLine("pubsub", "pub", "--topic=" + topicname, "--message=' '");
         assertThat(exitCode, is(exitCodeSuccess));
-        exitCode = runCommandLine("topic", "pub", "--topic=" + topicname, "--message=" + message, "--iotcore");
+        exitCode = runCommandLine("iotcore", "pub", "--topic=" + topicname, "--message=' '");
         assertThat(exitCode, is(exitCodeSuccess));
-        exitCode = runCommandLine("topic", "pub", "--topic=" + topicname, "--message=" + message);
-        assertThat(exitCode, is(exitCodeFail));
-        exitCode = runCommandLine("topic", "pub", "--topic=" + topicname, "--message=' '");
-        assertThat(exitCode, is(exitCodeFail));
-        exitCode = runCommandLine("topic", "pub", "--topic=" + topicname, "--message=" + message, "--iotcore local");
-        assertThat(exitCode, is(exitCodeFail));
-        exitCode = runCommandLine("topic", "pub", "--topic=" + topicname, "--message=" + message, "--iotcore --pubsub");
-        assertThat(exitCode, is(exitCodeFail));
     }
 
     @Test
@@ -97,25 +93,19 @@ class CLITest {
         //./greengrass-cli topic sub --topic 'abc' --pubsub
         String topicname = "/a/bb/ccc";
         String message = "testMessage...";
-        int exitCode = runCommandLine("topic", "sub", "--topic=" + topicname, "--pubsub");
+        int exitCode = runCommandLine("pubsub", "sub", "--topic=" + topicname);
         assertThat(exitCode, is(exitCodeSuccess));
-        exitCode = runCommandLine("topic", "sub", "--topic=" + topicname, "--iotcore");
+        exitCode = runCommandLine("iotcore", "sub", "--topic=" + topicname);
         assertThat(exitCode, is(exitCodeSuccess));
-        exitCode = runCommandLine("topic", "sub", "--topic=" + topicname, "--pubsub", "--qos='0'");
-        assertThat(exitCode, is(exitCodeSuccess));
-        exitCode = runCommandLine("topic", "sub", "--topic=" + topicname, "--pubsub", "--qos='1'");
-        assertThat(exitCode, is(exitCodeSuccess));
-        exitCode = runCommandLine("topic", "sub", "--topic=" + topicname);
+        exitCode = runCommandLine("pubsub", "sub", "--topic=" + topicname, "--qos='0'");
         assertThat(exitCode, is(exitCodeFail));
-        exitCode = runCommandLine("topic", "sub", "--topic=''", "--pubsub");
+        exitCode = runCommandLine("pubsub", "sub", "--topic=" + topicname, "--qos='1'");
+        assertThat(exitCode, is(exitCodeFail));
+        exitCode = runCommandLine("pubsub", "sub", "--topic=''");
         assertThat(exitCode, is(exitCodeSuccess));
-        exitCode = runCommandLine("topic", "sub", "--topic=" + topicname, "--message=" + message,"--pubsub", "--qos='1'");
+        exitCode = runCommandLine("pubsub", "sub", "--topic=" + topicname, "--message=" + message, "--qos='1'");
         assertThat(exitCode, is(exitCodeFail));
-        exitCode = runCommandLine("topic", "sub", "--topic=" + topicname);
-        assertThat(exitCode, is(exitCodeFail));
-        exitCode = runCommandLine("topic", "sub", "--topic=" + topicname, "--iotcore local");
-        assertThat(exitCode, is(exitCodeFail));
-        exitCode = runCommandLine("topic", "sub", "--topic=" + topicname, "--iotcore --pubsub");
+        exitCode = runCommandLine("iotcore", "sub", "--topic=" + topicname, "--message=" + message);
         assertThat(exitCode, is(exitCodeFail));
     }
 

@@ -52,6 +52,9 @@ import software.amazon.awssdk.eventstreamrpc.EventStreamRPCConnectionConfig;
 import software.amazon.awssdk.eventstreamrpc.GreengrassConnectMessageSupplier;
 import software.amazon.awssdk.eventstreamrpc.StreamResponseHandler;
 
+import javax.annotation.Nullable;
+import javax.inject.Inject;
+import javax.inject.Named;
 import java.io.File;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
@@ -67,9 +70,6 @@ import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
-import javax.annotation.Nullable;
-import javax.inject.Inject;
-import javax.inject.Named;
 
 public class NucleusAdapterIpcClientImpl implements NucleusAdapterIpc {
 
@@ -232,45 +232,59 @@ public class NucleusAdapterIpcClientImpl implements NucleusAdapterIpc {
 
     @Override
     public void publishToTopic(String topicName, String message) {
-        PublishToTopicRequest publishToTopicRequest = new PublishToTopicRequest();
-        PublishMessage publishMessage = new PublishMessage();
-        BinaryMessage binaryMessage = new BinaryMessage();
-        binaryMessage.setMessage(message.getBytes(StandardCharsets.UTF_8));
-        publishMessage.setBinaryMessage(binaryMessage);
-        publishToTopicRequest.setPublishMessage(publishMessage);
-        publishToTopicRequest.setTopic(topicName);
-        PublishToTopicResponseHandler responseHandler = getIpcClient().publishToTopic(publishToTopicRequest, Optional.empty());
-        CompletableFuture<PublishToTopicResponse> response = responseHandler.getResponse();
         try {
-            response.get();
-        } catch (InterruptedException interruptedException) {
-            System.out.println("publish interrupted.");
+            PublishToTopicRequest publishToTopicRequest = new PublishToTopicRequest();
+            PublishMessage publishMessage = new PublishMessage();
+            BinaryMessage binaryMessage = new BinaryMessage();
+            binaryMessage.setMessage(message.getBytes(StandardCharsets.UTF_8));
+            publishMessage.setBinaryMessage(binaryMessage);
+            publishToTopicRequest.setPublishMessage(publishMessage);
+            publishToTopicRequest.setTopic(topicName);
+            PublishToTopicResponseHandler responseHandler = getIpcClient().publishToTopic(publishToTopicRequest, Optional.empty());
+            CompletableFuture<PublishToTopicResponse> response = responseHandler.getResponse();
+            try {
+                response.get();
+            } catch (InterruptedException interruptedException) {
+                System.out.println("publish interrupted.");
+            } catch (ExecutionException e) {
+                if (e.getCause() instanceof UnauthorizedError) {
+                    System.err.println("Unauthorized error while publishing to topic: " + topicName);
+                } else {
+                    throw e;
+                }
+            }
         } catch (ExecutionException e) {
-            System.err.println("Exception occurred when publishing to topic.");
+            System.err.println("Exception occurred when using IPC.");
+            e.printStackTrace();
             System.exit(1);
-        } finally {
-            close();
         }
     }
 
     @Override
     public void publishToIoTCore(String topicName, String message, String qos) {
-        QOS qos1 = QOS.get(qos);
-        PublishToIoTCoreRequest publishToIoTCoreRequest = new PublishToIoTCoreRequest();
-        publishToIoTCoreRequest.setTopicName(topicName);
-        publishToIoTCoreRequest.setPayload(message.getBytes(StandardCharsets.UTF_8));
-        publishToIoTCoreRequest.setQos(qos1);
-        PublishToIoTCoreResponseHandler responseHandler = getIpcClient().publishToIoTCore(publishToIoTCoreRequest, Optional.empty());
-        CompletableFuture<PublishToIoTCoreResponse> response = responseHandler.getResponse();
         try {
-            response.get();
-        } catch (InterruptedException interruptedException) {
-            System.out.println("publish interrupted.");
+            QOS qos1 = QOS.get(qos);
+            PublishToIoTCoreRequest publishToIoTCoreRequest = new PublishToIoTCoreRequest();
+            publishToIoTCoreRequest.setTopicName(topicName);
+            publishToIoTCoreRequest.setPayload(message.getBytes(StandardCharsets.UTF_8));
+            publishToIoTCoreRequest.setQos(qos1);
+            PublishToIoTCoreResponseHandler responseHandler = getIpcClient().publishToIoTCore(publishToIoTCoreRequest, Optional.empty());
+            CompletableFuture<PublishToIoTCoreResponse> response = responseHandler.getResponse();
+            try {
+                response.get();
+            } catch (InterruptedException interruptedException) {
+                System.out.println("publish interrupted.");
+            } catch (ExecutionException e) {
+                if (e.getCause() instanceof UnauthorizedError) {
+                    System.err.println("Unauthorized error while publishing to topic: " + topicName);
+                } else {
+                    throw e;
+                }
+            }
         } catch (ExecutionException e) {
-            System.err.println("Exception occurred when publishing to IoT Core.");
+            System.err.println("Exception occurred when using IPC.");
+            e.printStackTrace();
             System.exit(1);
-        } finally {
-            close();
         }
     }
 
@@ -288,7 +302,7 @@ public class NucleusAdapterIpcClientImpl implements NucleusAdapterIpc {
                 System.out.println("Successfully subscribed to topic: " + topic);
             } catch (ExecutionException e) {
                 if (e.getCause() instanceof UnauthorizedError) {
-                    System.err.println("Unauthorized error while publishing to topic: " + topic);
+                    System.err.println("Unauthorized error while subscribing to topic: " + topic);
                 } else {
                     throw e;
                 }

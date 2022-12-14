@@ -189,18 +189,20 @@ public class CLIEventStreamAgent {
             List<Topics> childrenToRemove = new ArrayList<>();
             AtomicInteger deploymentSucceeded = new AtomicInteger();
             localDeployments.forEach(topics -> {
-                Topics deploymentTopics = (Topics) topics;
-                Topic existingChild = deploymentTopics.find(DEPLOYMENT_STATUS_KEY_NAME);
-                String value = existingChild.getOnce().toString();
-                if (DeploymentStatus.SUCCEEDED.toString().equals(value)) {
-                    deploymentSucceeded.getAndIncrement();
-                    childrenToRemove.add(deploymentTopics);
+                if (topics instanceof Topics) {
+                    Topics deploymentTopics = (Topics) topics;
+                    String value = Coerce.toString(deploymentTopics.find(DEPLOYMENT_STATUS_KEY_NAME));
+                    if (DeploymentStatus.SUCCEEDED.toString().equals(value)) {
+                        deploymentSucceeded.getAndIncrement();
+                        childrenToRemove.add(deploymentTopics);
+                    }
                 }
             });
             // if more than PERSIST_LIMIT deployments are success, remove until PERSIST_LIMIT left
             if (deploymentSucceeded.get() > PERSIST_LIMIT) {
                 childrenToRemove.stream()
-                        .sorted(Comparator.comparingLong(t -> t.find(DEPLOYMENT_STATUS_KEY_NAME).getModtime()))
+                        .sorted(Comparator.comparingLong(t -> t.find(DEPLOYMENT_STATUS_KEY_NAME) == null ?
+                                0L : t.find(DEPLOYMENT_STATUS_KEY_NAME).getModtime()))
                         .limit(childrenToRemove.size() - PERSIST_LIMIT)
                         .forEach(Node::remove);
             }

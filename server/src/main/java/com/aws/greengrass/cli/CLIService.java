@@ -6,6 +6,8 @@
 package com.aws.greengrass.cli;
 
 import com.aws.greengrass.componentmanager.models.ComponentIdentifier;
+import com.aws.greengrass.config.CaseInsensitiveString;
+import com.aws.greengrass.config.Node;
 import com.aws.greengrass.config.PlatformResolver;
 import com.aws.greengrass.config.Topic;
 import com.aws.greengrass.config.Topics;
@@ -37,7 +39,9 @@ import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.StandardOpenOption;
+import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import javax.inject.Inject;
 
@@ -45,6 +49,8 @@ import static com.aws.greengrass.componentmanager.KernelConfigResolver.CONFIGURA
 import static com.aws.greengrass.componentmanager.KernelConfigResolver.VERSION_CONFIG_KEY;
 import static com.aws.greengrass.ipc.AuthenticationHandler.SERVICE_UNIQUE_ID_KEY;
 import static com.aws.greengrass.ipc.IPCEventStreamService.NUCLEUS_DOMAIN_SOCKET_FILEPATH;
+import static com.aws.greengrass.ipc.modules.MqttProxyIPCService.MQTT_PROXY_SERVICE_NAME;
+import static com.aws.greengrass.ipc.modules.PubSubIPCService.PUB_SUB_SERVICE_NAME;
 
 @ImplementsService(name = CLIService.CLI_SERVICE, autostart = true)
 public class CLIService extends PluginService {
@@ -62,6 +68,9 @@ public class CLIService extends PluginService {
 
     static final String USER_CLIENT_ID_PREFIX = "user-";
     static final String GROUP_CLIENT_ID_PREFIX = "group-";
+
+    static final String POLICY_NAME_PREFIX = "aws.greengrass.Cli:pubsub:";
+    static final String CLI_SERVICE_NAME_PREFIX = "greengrass-cli";
     static final FileSystemPermission DEFAULT_FILE_PERMISSION = new FileSystemPermission(null, null,
             true, true, false, false, false, false, false, false, false);
     public static final String DOMAIN_SOCKET_PATH = "domain_socket_path";
@@ -176,6 +185,20 @@ public class CLIService extends PluginService {
         }
     }
 
+    private void authorizePubSubPermission(String serviceName, String serviceIdentifier,
+                                           String policyName) {
+        List<String> list = new ArrayList<>();
+        list.add("*");
+        config.parent.lookup(serviceName, CONFIGURATION_CONFIG_KEY, ACCESS_CONTROL_NAMESPACE_TOPIC,
+                serviceIdentifier,
+                policyName, "resources").withValue(list);
+        config.parent.lookup(serviceName, CONFIGURATION_CONFIG_KEY, ACCESS_CONTROL_NAMESPACE_TOPIC,
+                serviceIdentifier, policyName, "operations").withValue(list);
+        config.parent.lookup(serviceName, CONFIGURATION_CONFIG_KEY, ACCESS_CONTROL_NAMESPACE_TOPIC,
+                serviceIdentifier, policyName, "policyDescription").withValue(
+                "Allows access to publish/subscribe topic.");
+    }
+
     private void setCliClientPermission(Path clientDir) {
         for (String bin : CLI_CLIENT_BINARIES) {
             Path binary = clientDir.resolve(CLI_CLIENT_BIN).resolve(bin);
@@ -227,6 +250,8 @@ public class CLIService extends PluginService {
             return;
         }
 
+        cleanUpCliTopics();
+
         Path authTokenDir = kernel.getNucleusPaths().cliIpcInfoPath();
         revokeOutdatedAuthTokens(authTokenDir);
 
@@ -238,6 +263,8 @@ public class CLIService extends PluginService {
             return;
         }
 
+        int counter = 10;
+
         for (String group : groups.split(",")) {
             group = group.trim();
             UserPlatform.BasicAttributes groupAttributes;
@@ -247,7 +274,10 @@ public class CLIService extends PluginService {
                 logger.atError().kv("group", group).log("Failed to get group ID", e);
                 continue;
             }
-            generateCliIpcInfoForGroup(groupAttributes, authTokenDir);
+
+            String tmpPolicyName = POLICY_NAME_PREFIX + counter;
+            generateCliIpcInfoForGroup(groupAttributes, authTokenDir, tmpPolicyName);
+            counter++;
         }
     }
 
@@ -257,16 +287,37 @@ public class CLIService extends PluginService {
             throws UnauthenticatedException, IOException {
         String defaultClientId =
                 USER_CLIENT_ID_PREFIX + Platform.getInstance().lookupCurrentUser().getPrincipalIdentifier();
-        Path ipcInfoFile = generateCliIpcInfoForClient(defaultClientId, directory);
+        Path ipcInfoFile = generateCliIpcInfoForClient(defaultClientId, directory,
+                POLICY_NAME_PREFIX + "1");
         if (ipcInfoFile == null) {
             return;
         }
         Platform.getInstance().setPermissions(DEFAULT_FILE_PERMISSION, ipcInfoFile);
     }
 
-    private synchronized void generateCliIpcInfoForGroup(UserPlatform.BasicAttributes group, Path directory)
+    private void cleanUpCliTopics() {
+        // Clear all authorization policies for the CLI.
+        Map<CaseInsensitiveString, Node> children = config.parent.children;
+
+        if (children != null) {
+            children.forEach((key, value) -> {
+                String keyNameStr = key.toString();
+                if (!Utils.isEmpty(keyNameStr) && keyNameStr.startsWith(CLI_SERVICE_NAME_PREFIX)) {
+                    Topics findResult = config.parent.findTopics(key.toString());
+
+                    if (findResult != null) {
+                        findResult.remove();
+                    }
+                }
+            });
+        }
+    }
+
+    private synchronized void generateCliIpcInfoForGroup(UserPlatform.BasicAttributes group, Path directory,
+                                                         String policyName)
             throws UnauthenticatedException, IOException {
-        Path ipcInfoFile = generateCliIpcInfoForClient(getClientIdForGroup(group.getPrincipalIdentifier()), directory);
+        Path ipcInfoFile = generateCliIpcInfoForClient(getClientIdForGroup(group.getPrincipalIdentifier()),
+                directory, policyName);
         if (ipcInfoFile == null) {
             return;
         }
@@ -285,12 +336,18 @@ public class CLIService extends PluginService {
         }
     }
 
-    private synchronized Path generateCliIpcInfoForClient(String clientId, Path directory)
+    private synchronized Path generateCliIpcInfoForClient(String clientId, Path directory, String policyName)
             throws UnauthenticatedException, IOException {
+        String serviceName = getAuthClientIdentifier(clientId);
+
         if (clientIdToAuthToken.containsKey(clientId)) {
             // Duplicate user input. No need to override auth token.
             return null;
         }
+
+        // authorize pub/sub for the cli
+        authorizePubSubPermission(serviceName, PUB_SUB_SERVICE_NAME, policyName);
+        authorizePubSubPermission(serviceName, MQTT_PROXY_SERVICE_NAME, policyName + "1000");
 
         String cliAuthToken = authenticationHandler.registerAuthenticationTokenForExternalClient(
                 Coerce.toString(getPrivateConfig().find(SERVICE_UNIQUE_ID_KEY)), getAuthClientIdentifier(clientId));

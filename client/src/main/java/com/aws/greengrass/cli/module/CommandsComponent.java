@@ -9,6 +9,8 @@ import com.aws.greengrass.cli.commands.ComponentCommand;
 import com.aws.greengrass.cli.commands.DeploymentCommand;
 import com.aws.greengrass.cli.commands.Logs;
 import com.aws.greengrass.cli.commands.PasswordCommand;
+import com.aws.greengrass.cli.commands.topic.IotCoreCommand;
+import com.aws.greengrass.cli.commands.topic.PubSubCommand;
 import dagger.Component;
 
 import javax.inject.Singleton;
@@ -26,4 +28,9 @@ public interface CommandsComponent {
     DeploymentCommand deployment();
 
     PasswordCommand password();
+
+    IotCoreCommand iotcore();
+
+    PubSubCommand pubsub();
+
 }

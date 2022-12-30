@@ -9,6 +9,8 @@ import com.aws.greengrass.cli.commands.ComponentCommand;
 import com.aws.greengrass.cli.commands.DeploymentCommand;
 import com.aws.greengrass.cli.commands.Logs;
 import com.aws.greengrass.cli.commands.PasswordCommand;
+import com.aws.greengrass.cli.commands.topic.IotCoreCommand;
+import com.aws.greengrass.cli.commands.topic.PubSubCommand;
 import com.aws.greengrass.cli.module.AdapterModule;
 import com.aws.greengrass.cli.module.CommandsComponent;
 import com.aws.greengrass.cli.module.DaggerCommandsComponent;
@@ -27,7 +29,7 @@ import java.util.ResourceBundle;
 @Command(name = "greengrass-cli",
         mixinStandardHelpOptions = true,
         subcommands = {HelpCommand.class, ComponentCommand.class, DeploymentCommand.class, Logs.class,
-                PasswordCommand.class},
+                PasswordCommand.class, PubSubCommand.class, IotCoreCommand.class},
         resourceBundle = "com.aws.greengrass.cli.CLI_messages",
         versionProvider = com.aws.greengrass.cli.module.VersionProvider.class)
 public class CLI implements Runnable {

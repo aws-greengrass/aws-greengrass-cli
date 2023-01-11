@@ -36,6 +36,7 @@ import software.amazon.awssdk.aws.greengrass.model.PublishToIoTCoreResponse;
 import software.amazon.awssdk.aws.greengrass.model.PublishToTopicRequest;
 import software.amazon.awssdk.aws.greengrass.model.PublishToTopicResponse;
 import software.amazon.awssdk.aws.greengrass.model.QOS;
+import software.amazon.awssdk.aws.greengrass.model.ReceiveMode;
 import software.amazon.awssdk.aws.greengrass.model.RestartComponentRequest;
 import software.amazon.awssdk.aws.greengrass.model.StopComponentRequest;
 import software.amazon.awssdk.aws.greengrass.model.SubscribeToIoTCoreRequest;
@@ -52,9 +53,6 @@ import software.amazon.awssdk.eventstreamrpc.EventStreamRPCConnectionConfig;
 import software.amazon.awssdk.eventstreamrpc.GreengrassConnectMessageSupplier;
 import software.amazon.awssdk.eventstreamrpc.StreamResponseHandler;
 
-import javax.annotation.Nullable;
-import javax.inject.Inject;
-import javax.inject.Named;
 import java.io.File;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
@@ -70,6 +68,9 @@ import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
+import javax.annotation.Nullable;
+import javax.inject.Inject;
+import javax.inject.Named;
 
 public class NucleusAdapterIpcClientImpl implements NucleusAdapterIpc {
 
@@ -401,6 +402,7 @@ public class NucleusAdapterIpcClientImpl implements NucleusAdapterIpc {
             , String topic, StreamResponseHandler<SubscriptionResponseMessage> streamResponseHandler) {
         SubscribeToTopicRequest subscribeToTopicRequest = new SubscribeToTopicRequest();
         subscribeToTopicRequest.setTopic(topic);
+        subscribeToTopicRequest.setReceiveMode(ReceiveMode.RECEIVE_ALL_MESSAGES);
         return greengrassCoreIPCClient.subscribeToTopic(subscribeToTopicRequest,
                 Optional.of(streamResponseHandler));
     }

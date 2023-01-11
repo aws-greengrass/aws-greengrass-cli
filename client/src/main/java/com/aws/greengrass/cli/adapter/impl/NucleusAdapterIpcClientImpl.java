@@ -68,6 +68,8 @@ import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 import javax.annotation.Nullable;
 import javax.inject.Inject;
 import javax.inject.Named;
@@ -498,6 +500,8 @@ public class NucleusAdapterIpcClientImpl implements NucleusAdapterIpc {
                 socketOptions, null, ipcServerSocketPath, 8033,
                 GreengrassConnectMessageSupplier.connectMessageSupplier(authToken));
         final CompletableFuture<Void> connected = new CompletableFuture<>();
+        // Disable silly info logs (ERROR_SUCCESS) which aren't helpful to us. Important messages will still be logged.
+        Logger.getLogger(EventStreamRPCConnection.class.getName()).setLevel(Level.WARNING);
         final EventStreamRPCConnection connection = new EventStreamRPCConnection(config);
 
         connection.connect(new EventStreamRPCConnection.LifecycleHandler() {

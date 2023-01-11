@@ -36,6 +36,7 @@ import software.amazon.awssdk.aws.greengrass.model.PublishToIoTCoreResponse;
 import software.amazon.awssdk.aws.greengrass.model.PublishToTopicRequest;
 import software.amazon.awssdk.aws.greengrass.model.PublishToTopicResponse;
 import software.amazon.awssdk.aws.greengrass.model.QOS;
+import software.amazon.awssdk.aws.greengrass.model.ReceiveMode;
 import software.amazon.awssdk.aws.greengrass.model.RestartComponentRequest;
 import software.amazon.awssdk.aws.greengrass.model.StopComponentRequest;
 import software.amazon.awssdk.aws.greengrass.model.SubscribeToIoTCoreRequest;
@@ -52,9 +53,6 @@ import software.amazon.awssdk.eventstreamrpc.EventStreamRPCConnectionConfig;
 import software.amazon.awssdk.eventstreamrpc.GreengrassConnectMessageSupplier;
 import software.amazon.awssdk.eventstreamrpc.StreamResponseHandler;
 
-import javax.annotation.Nullable;
-import javax.inject.Inject;
-import javax.inject.Named;
 import java.io.File;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
@@ -70,6 +68,11 @@ import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
+import java.util.logging.Level;
+import java.util.logging.Logger;
+import javax.annotation.Nullable;
+import javax.inject.Inject;
+import javax.inject.Named;
 
 public class NucleusAdapterIpcClientImpl implements NucleusAdapterIpc {
 
@@ -291,12 +294,12 @@ public class NucleusAdapterIpcClientImpl implements NucleusAdapterIpc {
     @Override
     public void subscribeToTopic(String topic) {
         try {
+            CompletableFuture<Void> cf = new CompletableFuture<>();
             StreamResponseHandler<SubscriptionResponseMessage> streamResponseHandler =
-                    new SubscriptionResponseHandler(topic);
+                    new SubscriptionResponseHandler(cf);
             SubscribeToTopicResponseHandler responseHandler =
                     subscribeToTopic(getIpcClient(), topic, streamResponseHandler);
-            CompletableFuture<SubscribeToTopicResponse> futureResponse =
-                    responseHandler.getResponse();
+            CompletableFuture<SubscribeToTopicResponse> futureResponse = responseHandler.getResponse();
             try {
                 futureResponse.get();
                 System.out.println("Successfully subscribed to topic: " + topic);
@@ -308,17 +311,8 @@ public class NucleusAdapterIpcClientImpl implements NucleusAdapterIpc {
                 }
             }
 
-            // Keep the main thread alive, or the process will exit.
-            try {
-                while (true) {
-                    Thread.sleep(10000);
-                }
-            } catch (InterruptedException e) {
-                System.out.println("Subscribe interrupted.");
-            }
+            cf.get();
 
-            // To stop subscribing, close the stream.
-            responseHandler.closeStream();
         } catch (InterruptedException e) {
             System.out.println("IPC interrupted.");
         } catch (ExecutionException e) {
@@ -330,13 +324,14 @@ public class NucleusAdapterIpcClientImpl implements NucleusAdapterIpc {
 
     @Override
     public void subscribeToIoTCore(String topicName, String qos) {
-        try{
-            StreamResponseHandler<IoTCoreMessage> streamResponseHandler = new SubscriptionMqttResponseHandler();
+        try {
+            CompletableFuture<Void> cf = new CompletableFuture<>();
+            StreamResponseHandler<IoTCoreMessage> streamResponseHandler = new SubscriptionMqttResponseHandler(cf);
             SubscribeToIoTCoreRequest subscribeToIoTCoreRequest = new SubscribeToIoTCoreRequest();
             subscribeToIoTCoreRequest.setTopicName(topicName);
             subscribeToIoTCoreRequest.setQos(qos);
-            SubscribeToIoTCoreResponseHandler responseHandler = getIpcClient().subscribeToIoTCore(subscribeToIoTCoreRequest,
-                    Optional.of(streamResponseHandler));
+            SubscribeToIoTCoreResponseHandler responseHandler =
+                    getIpcClient().subscribeToIoTCore(subscribeToIoTCoreRequest, Optional.of(streamResponseHandler));
             CompletableFuture<SubscribeToIoTCoreResponse> futureResponse = responseHandler.getResponse();
             try {
                 futureResponse.get();
@@ -349,17 +344,7 @@ public class NucleusAdapterIpcClientImpl implements NucleusAdapterIpc {
                 }
             }
 
-            // Keep the main thread alive, or the process will exit.
-            try {
-                while (true) {
-                    Thread.sleep(10000);
-                }
-            } catch (InterruptedException e) {
-                System.out.println("Subscribe interrupted.");
-            }
-
-            // To stop subscribing, close the stream.
-            responseHandler.closeStream();
+            cf.get();
         } catch (InterruptedException e) {
             System.out.println("IPC interrupted.");
         } catch (ExecutionException e) {
@@ -370,6 +355,12 @@ public class NucleusAdapterIpcClientImpl implements NucleusAdapterIpc {
     }
 
     public static class SubscriptionMqttResponseHandler implements StreamResponseHandler<IoTCoreMessage> {
+
+        private final CompletableFuture<Void> fut;
+
+        public SubscriptionMqttResponseHandler(CompletableFuture<Void> cf) {
+            this.fut = cf;
+        }
 
         @Override
         public void onStreamEvent(IoTCoreMessage ioTCoreMessage) {
@@ -394,6 +385,7 @@ public class NucleusAdapterIpcClientImpl implements NucleusAdapterIpc {
         @Override
         public void onStreamClosed() {
             System.out.println("Subscribe to IoT Core stream closed.");
+            fut.complete(null);
         }
     }
 
@@ -401,18 +393,17 @@ public class NucleusAdapterIpcClientImpl implements NucleusAdapterIpc {
             , String topic, StreamResponseHandler<SubscriptionResponseMessage> streamResponseHandler) {
         SubscribeToTopicRequest subscribeToTopicRequest = new SubscribeToTopicRequest();
         subscribeToTopicRequest.setTopic(topic);
+        subscribeToTopicRequest.setReceiveMode(ReceiveMode.RECEIVE_ALL_MESSAGES);
         return greengrassCoreIPCClient.subscribeToTopic(subscribeToTopicRequest,
                 Optional.of(streamResponseHandler));
     }
 
 
     public static class SubscriptionResponseHandler implements StreamResponseHandler<SubscriptionResponseMessage> {
+        private final CompletableFuture<Void> fut;
 
-        private final String topic;
-        private static final ObjectMapper SERIALIZER = new ObjectMapper();
-
-        public SubscriptionResponseHandler(String topic) {
-            this.topic = topic;
+        public SubscriptionResponseHandler(CompletableFuture<Void> cf) {
+            this.fut = cf;
         }
 
         @Override
@@ -444,11 +435,8 @@ public class NucleusAdapterIpcClientImpl implements NucleusAdapterIpc {
         @Override
         public void onStreamClosed() {
             System.out.println("Subscribe to topic stream closed.");
+            fut.complete(null);
         }
-    }
-
-    public static void onStreamClosed() {
-        System.out.println("Subscribe to topic stream closed.");
     }
 
     private String getGgcRoot() {
@@ -512,6 +500,8 @@ public class NucleusAdapterIpcClientImpl implements NucleusAdapterIpc {
                 socketOptions, null, ipcServerSocketPath, 8033,
                 GreengrassConnectMessageSupplier.connectMessageSupplier(authToken));
         final CompletableFuture<Void> connected = new CompletableFuture<>();
+        // Disable silly info logs (ERROR_SUCCESS) which aren't helpful to us. Important messages will still be logged.
+        Logger.getLogger(EventStreamRPCConnection.class.getName()).setLevel(Level.WARNING);
         final EventStreamRPCConnection connection = new EventStreamRPCConnection(config);
 
         connection.connect(new EventStreamRPCConnection.LifecycleHandler() {

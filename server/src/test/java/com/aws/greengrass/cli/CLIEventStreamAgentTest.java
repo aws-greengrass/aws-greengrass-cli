@@ -36,6 +36,7 @@ import software.amazon.awssdk.aws.greengrass.model.CreateDebugPasswordRequest;
 import software.amazon.awssdk.aws.greengrass.model.CreateDebugPasswordResponse;
 import software.amazon.awssdk.aws.greengrass.model.CreateLocalDeploymentRequest;
 import software.amazon.awssdk.aws.greengrass.model.DeploymentStatus;
+import software.amazon.awssdk.aws.greengrass.model.FailureHandlingPolicy;
 import software.amazon.awssdk.aws.greengrass.model.GetComponentDetailsRequest;
 import software.amazon.awssdk.aws.greengrass.model.GetComponentDetailsResponse;
 import software.amazon.awssdk.aws.greengrass.model.GetLocalDeploymentStatusRequest;
@@ -298,6 +299,7 @@ class CLIEventStreamAgentTest {
         request.setGroupName(MOCK_GROUP);
         request.setRootComponentVersionsToAdd(ImmutableMap.of(TEST_SERVICE, "1.0.0"));
         request.setRootComponentsToRemove(Arrays.asList("SomeService"));
+        request.setFailureHandlingPolicy(FailureHandlingPolicy.ROLLBACK.getValue());
         Map<String, String> componentConfigToMerge = new HashMap<>();
         componentConfigToMerge.put("param1", "value1");
         Map<String, Map<String, Object>> action = new HashMap<>();
@@ -312,6 +314,7 @@ class CLIEventStreamAgentTest {
         assertTrue(localOverrideRequest.getComponentsToMerge().containsKey(TEST_SERVICE));
         assertTrue(localOverrideRequest.getComponentsToMerge().containsValue("1.0.0"));
         assertTrue(localOverrideRequest.getComponentsToRemove().contains("SomeService"));
+        assertEquals(localOverrideRequest.getFailureHandlingPolicy().getValue(), FailureHandlingPolicy.ROLLBACK.getValue());
         assertNotNull(localOverrideRequest.getConfigurationUpdate().get(TEST_SERVICE));
         assertEquals("value1",
                 localOverrideRequest.getConfigurationUpdate().get(TEST_SERVICE).getValueToMerge().get("param1"));

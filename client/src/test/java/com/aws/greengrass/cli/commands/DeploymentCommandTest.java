@@ -20,6 +20,7 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import picocli.CommandLine;
 import software.amazon.awssdk.aws.greengrass.model.CreateLocalDeploymentRequest;
+import software.amazon.awssdk.aws.greengrass.model.FailureHandlingPolicy;
 import software.amazon.awssdk.aws.greengrass.model.RunWithInfo;
 import software.amazon.awssdk.aws.greengrass.model.SystemResourceLimits;
 
@@ -48,6 +49,7 @@ class DeploymentCommandTest {
     private static final Map<String, String> ROOT_COMPONENTS =
             ImmutableMap.of(NEW_COMPONENT_1, "1.0.0", NEW_COMPONENT_2, "2.0.0");
 
+    private static final FailureHandlingPolicy FAILURE_HANDLING_POLICY = FailureHandlingPolicy.ROLLBACK;
     private final ObjectMapper mapper = new ObjectMapper();
 
     @Mock
@@ -172,6 +174,25 @@ class DeploymentCommandTest {
 
         verify(nucleusAdapteripc).createLocalDeployment(request);
         assertThat(exitCode, is(0));
+    }
+
+    @Test
+    void GIVEN_WHEN_failure_handling_policy_is_provided_THEN_request_contains_provided_failure_handling_policy() {
+        int exitCode = runCommandLine("deployment", "create", "-fp", FAILURE_HANDLING_POLICY.getValue());
+
+        CreateLocalDeploymentRequest request = new CreateLocalDeploymentRequest();
+        request.setFailureHandlingPolicy(FAILURE_HANDLING_POLICY);
+        verify(nucleusAdapteripc).createLocalDeployment(request);
+        assertThat(exitCode, is(0));
+    }
+
+    @Test
+    void GIVEN_WHEN_failure_handling_policy_provided_with_invalid_words_THEN_invalid_request_is_returned() {
+        int exitCode =
+                runCommandLine("deployment", "create", "-fp", "Hello World");
+
+        verify(nucleusAdapteripc, never()).createLocalDeployment(any());
+        assertThat(exitCode, is(2));
     }
 
     private int runCommandLine(String... args) {

@@ -19,7 +19,7 @@
     <packaging>pom</packaging>
     <properties>
         <maven.compiler.useIncrementalCompilation>false</maven.compiler.useIncrementalCompilation>
-        <nucleus.version>2.6.0-SNAPSHOT</nucleus.version>
+        <nucleus.version>2.10.0-SNAPSHOT</nucleus.version>
         <lombok.version>1.18.24</lombok.version>
     </properties>
 </project>

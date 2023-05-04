@@ -11,6 +11,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.type.MapType;
 import picocli.CommandLine;
 import software.amazon.awssdk.aws.greengrass.model.CreateLocalDeploymentRequest;
+import software.amazon.awssdk.aws.greengrass.model.FailureHandlingPolicy;
 import software.amazon.awssdk.aws.greengrass.model.LocalDeployment;
 import software.amazon.awssdk.aws.greengrass.model.RunWithInfo;
 import software.amazon.awssdk.aws.greengrass.model.SystemResourceLimits;
@@ -55,7 +56,8 @@ public class DeploymentCommand extends BaseCommand {
      @CommandLine.Option(names = {"-a", "--artifactDir"}, paramLabel = "Artifacts directory") String artifactDir,
      @CommandLine.Option(names = {"--runWith"}, paramLabel = "Component user and/or group") Map<String, String> runWithOptions,
      @CommandLine.Option(names = {"--systemLimits"}, paramLabel = "Component system resource limits") String systemLimits,
-     @CommandLine.Option(names = {"-c", "--update-config"}, paramLabel = "Component configuration") String configUpdate)
+     @CommandLine.Option(names = {"-c", "--update-config"}, paramLabel = "Component configuration") String configUpdate,
+     @CommandLine.Option(names = {"-fp", "--failure-handling-policy"}, paramLabel = "Failure handling policy") FailureHandlingPolicy failureHandlingPolicy)
             throws IOException {
         // GG_NEEDS_REVIEW: TODO Validate folder exists and folder structure
 
@@ -125,6 +127,9 @@ public class DeploymentCommand extends BaseCommand {
         Optional<Path> artifactDirPath = deTilde(artifactDir);
         createLocalDeploymentRequest.setArtifactsDirectoryPath(artifactDirPath.isPresent() ?
                 artifactDirPath.get().toString() : null);
+        if (failureHandlingPolicy != null) {
+            createLocalDeploymentRequest.setFailureHandlingPolicy(failureHandlingPolicy);
+        }
         String deploymentId = nucleusAdapterIpc.createLocalDeployment(createLocalDeploymentRequest);
         System.out.println("Local deployment submitted! Deployment Id: " + deploymentId);
         return 0;

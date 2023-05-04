@@ -474,6 +474,7 @@ public class CLIEventStreamAgent {
                         .artifactsDirectoryPath(request.getArtifactsDirectoryPath())
                         .requestTimestamp(System.currentTimeMillis())
                         .groupName(request.getGroupName())
+                        .failureHandlingPolicy(request.getFailureHandlingPolicy())
                         .configurationUpdate(configUpdate).build();
                 String deploymentDocument;
                 try {

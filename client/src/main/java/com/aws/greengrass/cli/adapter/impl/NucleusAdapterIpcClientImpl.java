@@ -17,6 +17,8 @@ import software.amazon.awssdk.aws.greengrass.PublishToTopicResponseHandler;
 import software.amazon.awssdk.aws.greengrass.SubscribeToIoTCoreResponseHandler;
 import software.amazon.awssdk.aws.greengrass.SubscribeToTopicResponseHandler;
 import software.amazon.awssdk.aws.greengrass.model.BinaryMessage;
+import software.amazon.awssdk.aws.greengrass.model.CancelLocalDeploymentRequest;
+import software.amazon.awssdk.aws.greengrass.model.CancelLocalDeploymentResponse;
 import software.amazon.awssdk.aws.greengrass.model.ComponentDetails;
 import software.amazon.awssdk.aws.greengrass.model.CreateDebugPasswordRequest;
 import software.amazon.awssdk.aws.greengrass.model.CreateDebugPasswordResponse;
@@ -196,6 +198,23 @@ public class NucleusAdapterIpcClientImpl implements NucleusAdapterIpc {
                     getIpcClient().createLocalDeployment(createLocalDeploymentRequest, Optional.empty()).getResponse()
                             .get(DEFAULT_TIMEOUT_IN_SEC, TimeUnit.SECONDS);
             return createLocalDeploymentResponse.getDeploymentId();
+        } catch (ExecutionException | TimeoutException | InterruptedException e) {
+            //TODO: update when the sdk method signature includes exceptions
+            throw new RuntimeException(e);
+        } finally {
+            close();
+        }
+
+    }
+
+    @Override
+    public String cancelLocalDeployment(CancelLocalDeploymentRequest cancelLocalDeploymentRequest)  {
+        try {
+
+            CancelLocalDeploymentResponse cancelLocalDeploymentResponse =
+                    getIpcClient().cancelLocalDeployment(cancelLocalDeploymentRequest, Optional.empty())
+                            .getResponse().get(DEFAULT_TIMEOUT_IN_SEC, TimeUnit.SECONDS);
+            return cancelLocalDeploymentResponse.getMessage();
         } catch (ExecutionException | TimeoutException | InterruptedException e) {
             //TODO: update when the sdk method signature includes exceptions
             throw new RuntimeException(e);

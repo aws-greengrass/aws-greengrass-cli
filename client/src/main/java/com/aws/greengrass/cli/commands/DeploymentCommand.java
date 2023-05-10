@@ -10,6 +10,7 @@ import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.type.MapType;
 import picocli.CommandLine;
+import software.amazon.awssdk.aws.greengrass.model.CancelLocalDeploymentRequest;
 import software.amazon.awssdk.aws.greengrass.model.CreateLocalDeploymentRequest;
 import software.amazon.awssdk.aws.greengrass.model.FailureHandlingPolicy;
 import software.amazon.awssdk.aws.greengrass.model.LocalDeployment;
@@ -132,6 +133,20 @@ public class DeploymentCommand extends BaseCommand {
         }
         String deploymentId = nucleusAdapterIpc.createLocalDeployment(createLocalDeploymentRequest);
         System.out.println("Local deployment submitted! Deployment Id: " + deploymentId);
+        return 0;
+    }
+
+    @CommandLine.Command(name = "cancel",
+            description = "Cancel a local deployment", mixinStandardHelpOptions = true,
+            versionProvider = com.aws.greengrass.cli.module.VersionProvider.class)
+    public int cancel(@CommandLine.Option(names = {"-i", "--deploymentId"}, paramLabel = "Deployment ID"
+            , required = true) String deploymentId) {
+        CancelLocalDeploymentRequest cancelLocalDeploymentRequest = new CancelLocalDeploymentRequest();
+        if (deploymentId != null) {
+            cancelLocalDeploymentRequest.setDeploymentId(deploymentId);
+        }
+        String message = nucleusAdapterIpc.cancelLocalDeployment(cancelLocalDeploymentRequest);
+        System.out.printf("%s%n", message);
         return 0;
     }
 

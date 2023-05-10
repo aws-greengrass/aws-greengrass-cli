@@ -6,6 +6,8 @@
 package com.aws.greengrass.cli.adapter;
 
 
+import software.amazon.awssdk.aws.greengrass.model.CancelLocalDeploymentRequest;
+import software.amazon.awssdk.aws.greengrass.model.CancelLocalDeploymentResponse;
 import software.amazon.awssdk.aws.greengrass.model.ComponentDetails;
 import software.amazon.awssdk.aws.greengrass.model.CreateDebugPasswordResponse;
 import software.amazon.awssdk.aws.greengrass.model.CreateLocalDeploymentRequest;
@@ -39,4 +41,6 @@ public interface NucleusAdapterIpc {
     void subscribeToTopic(String topicName) throws IOException;
 
     void subscribeToIoTCore(String topicName, String qos) throws IOException;
+
+    String cancelLocalDeployment(CancelLocalDeploymentRequest cancelLocalDeploymentRequest);
 }

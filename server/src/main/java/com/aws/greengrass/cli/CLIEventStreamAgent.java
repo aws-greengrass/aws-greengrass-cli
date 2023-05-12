@@ -580,7 +580,7 @@ public class CLIEventStreamAgent {
                 // queued deployments if it has the same ids.
                 Deployment deployment = new Deployment(Deployment.DeploymentType.LOCAL, deploymentId, true);
                 if (deploymentQueue == null) {
-                    logger.atError().log("Deployments queue not initialized");
+                    logger.atError().log(DEPLOYMENTS_QUEUE_NOT_INITIALIZED);
                     throw new ServiceError(DEPLOYMENTS_QUEUE_NOT_INITIALIZED);
                 } else {
                     // if this deployment is still queued, it will be cancelled so we should clean now.

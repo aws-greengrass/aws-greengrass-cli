@@ -19,6 +19,7 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import picocli.CommandLine;
+import software.amazon.awssdk.aws.greengrass.model.CancelLocalDeploymentRequest;
 import software.amazon.awssdk.aws.greengrass.model.CreateLocalDeploymentRequest;
 import software.amazon.awssdk.aws.greengrass.model.FailureHandlingPolicy;
 import software.amazon.awssdk.aws.greengrass.model.RunWithInfo;
@@ -192,6 +193,22 @@ class DeploymentCommandTest {
                 runCommandLine("deployment", "create", "-fp", "Hello World");
 
         verify(nucleusAdapteripc, never()).createLocalDeployment(any());
+        assertThat(exitCode, is(2));
+    }
+
+    @Test
+    void GIVEN_deployment_cancel_When_deploymentId_provided_THEN_request_sent() {
+        int exitCode = runCommandLine("deployment", "cancel", "-i", "uuid");
+        CancelLocalDeploymentRequest request = new CancelLocalDeploymentRequest();
+        request.setDeploymentId("uuid");
+        verify(nucleusAdapteripc).cancelLocalDeployment(request);
+        assertThat(exitCode, is(0));
+    }
+
+    @Test
+    void GIVEN_deployment_cancel_When_deploymentId_not_provided_THEN_request_sent() {
+        int exitCode = runCommandLine("deployment", "cancel");
+        verify(nucleusAdapteripc, never()).cancelLocalDeployment(any());
         assertThat(exitCode, is(2));
     }
 

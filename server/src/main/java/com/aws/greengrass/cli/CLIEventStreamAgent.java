@@ -31,6 +31,7 @@ import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
+import software.amazon.awssdk.aws.greengrass.GeneratedAbstractCancelLocalDeploymentOperationHandler;
 import software.amazon.awssdk.aws.greengrass.GeneratedAbstractCreateDebugPasswordOperationHandler;
 import software.amazon.awssdk.aws.greengrass.GeneratedAbstractCreateLocalDeploymentOperationHandler;
 import software.amazon.awssdk.aws.greengrass.GeneratedAbstractGetComponentDetailsOperationHandler;
@@ -39,6 +40,8 @@ import software.amazon.awssdk.aws.greengrass.GeneratedAbstractListComponentsOper
 import software.amazon.awssdk.aws.greengrass.GeneratedAbstractListLocalDeploymentsOperationHandler;
 import software.amazon.awssdk.aws.greengrass.GeneratedAbstractRestartComponentOperationHandler;
 import software.amazon.awssdk.aws.greengrass.GeneratedAbstractStopComponentOperationHandler;
+import software.amazon.awssdk.aws.greengrass.model.CancelLocalDeploymentRequest;
+import software.amazon.awssdk.aws.greengrass.model.CancelLocalDeploymentResponse;
 import software.amazon.awssdk.aws.greengrass.model.ComponentDetails;
 import software.amazon.awssdk.aws.greengrass.model.CreateDebugPasswordRequest;
 import software.amazon.awssdk.aws.greengrass.model.CreateDebugPasswordResponse;
@@ -96,6 +99,7 @@ import static com.aws.greengrass.deployment.DeploymentStatusKeeper.DEPLOYMENT_TY
 import static com.aws.greengrass.ipc.common.ExceptionUtil.translateExceptions;
 import static com.aws.greengrass.ipc.common.IPCErrorStrings.DEPLOYMENTS_QUEUE_FULL;
 import static com.aws.greengrass.ipc.common.IPCErrorStrings.DEPLOYMENTS_QUEUE_NOT_INITIALIZED;
+import static software.amazon.awssdk.aws.greengrass.GreengrassCoreIPCServiceModel.CANCEL_LOCAL_DEPLOYMENT;
 import static software.amazon.awssdk.aws.greengrass.GreengrassCoreIPCServiceModel.CREATE_DEBUG_PASSWORD;
 import static software.amazon.awssdk.aws.greengrass.GreengrassCoreIPCServiceModel.CREATE_LOCAL_DEPLOYMENT;
 import static software.amazon.awssdk.aws.greengrass.GreengrassCoreIPCServiceModel.GET_COMPONENT_DETAILS;
@@ -151,6 +155,11 @@ public class CLIEventStreamAgent {
     public CreateLocalDeploymentHandler getCreateLocalDeploymentHandler(OperationContinuationHandlerContext context,
                                                                         Topics cliServiceConfig) {
         return new CreateLocalDeploymentHandler(context, cliServiceConfig);
+    }
+
+    public CancelLocalDeploymentHandler getCancelLocalDeploymentHandler(OperationContinuationHandlerContext context,
+                                                                        Topics cliServiceConfig) {
+        return new CancelLocalDeploymentHandler(context, cliServiceConfig);
     }
 
     public GetLocalDeploymentStatusHandler getGetLocalDeploymentStatusHandler(
@@ -517,6 +526,99 @@ public class CLIEventStreamAgent {
         @Override
         public void handleStreamEvent(EventStreamJsonMessage streamRequestEvent) {
             //NA
+        }
+    }
+
+    class CancelLocalDeploymentHandler extends GeneratedAbstractCancelLocalDeploymentOperationHandler {
+        private final Topics cliServiceConfig;
+        private final String componentName;
+
+        public CancelLocalDeploymentHandler(OperationContinuationHandlerContext context, Topics cliServiceConfig) {
+            super(context);
+            this.cliServiceConfig = cliServiceConfig;
+            this.componentName = context.getAuthenticationData().getIdentityLabel();
+        }
+
+        @Override
+        protected void onStreamClosed() {
+
+        }
+
+        @Override
+        public CancelLocalDeploymentResponse handleRequest(CancelLocalDeploymentRequest request) {
+            return translateExceptions(() -> {
+                validateCancelLocalDeploymentRequest(request);
+                authorizeRequest(Permission.builder()
+                        .principal(componentName)
+                        .resource(AuthorizationHandler.ANY_REGEX)
+                        .operation(CANCEL_LOCAL_DEPLOYMENT)
+                        .build());
+
+                String deploymentId = request.getDeploymentId();
+                Topics localDeployments = cliServiceConfig.findTopics(PERSISTENT_LOCAL_DEPLOYMENTS);
+
+                // if deployment id cannot be found in persisted config, then return directly
+                if (localDeployments == null || localDeployments.findTopics(deploymentId) == null) {
+                    ResourceNotFoundError rnf = new ResourceNotFoundError();
+                    rnf.setMessage("Cannot find the deployment id provided " + deploymentId);
+                    rnf.setResourceType(LOCAL_DEPLOYMENT_RESOURCE);
+                    rnf.setResourceName(request.getDeploymentId());
+                    throw rnf;
+                }
+
+                // if deployment is already finished, return directly
+                Topics deploymentTopics = localDeployments.findTopics(request.getDeploymentId());
+                DeploymentStatus status =
+                        deploymentStatusFromString(Coerce.toString(deploymentTopics.find(DEPLOYMENT_STATUS_KEY_NAME)));
+                if (!DeploymentStatus.IN_PROGRESS.equals(status) && !DeploymentStatus.QUEUED.equals(status)) {
+                    CancelLocalDeploymentResponse response = new CancelLocalDeploymentResponse();
+                    response.setMessage("Cancellation request is not processed because deployment is already finished");
+                    return response;
+                }
+
+                // reuse the previous deployment id and set isCancelled=true, because deployment queue replaces
+                // queued deployments if it has the same ids.
+                Deployment deployment = new Deployment(Deployment.DeploymentType.LOCAL, deploymentId, true);
+                if (deploymentQueue == null) {
+                    logger.atError().log(DEPLOYMENTS_QUEUE_NOT_INITIALIZED);
+                    throw new ServiceError(DEPLOYMENTS_QUEUE_NOT_INITIALIZED);
+                } else {
+                    // if this deployment is still queued, it will be cancelled so we should clean now.
+                    // on extremely rare occasions, if it shows as queued now but later become in progress before
+                    // cancellation is processed, it will report in-progress later and update the status, so
+                    // cleaning up now doesn't matter.
+                    cleanUpQueuedDeployments(cliServiceConfig);
+                    if (deploymentQueue.offer(deployment)) {
+                        logger.atInfo().kv(DEPLOYMENT_ID_LOG_KEY, deploymentId)
+                                .log("Submitted local deployment cancellation request");
+                        CancelLocalDeploymentResponse response = new CancelLocalDeploymentResponse();
+                        response.setMessage("Cancel request submitted. Deployment ID: " + deploymentId);
+                        return response;
+                    } else {
+                        // this should never happen because we don't set a cap on the queue size, and we never drop
+                        // duplicate cancellation requests
+                        logger.atError().kv(DEPLOYMENT_ID_LOG_KEY, deploymentId)
+                                .log("Failed to submit local cancel deployment request because deployment queue is "
+                                        + "full");
+                        throw new ServiceError(DEPLOYMENTS_QUEUE_FULL);
+                    }
+                }
+            });
+        }
+
+
+        @Override
+        public void handleStreamEvent(EventStreamJsonMessage streamRequestEvent) {
+            //NA
+        }
+
+        @SuppressWarnings("PMD.PreserveStackTrace")
+        private void validateCancelLocalDeploymentRequest(CancelLocalDeploymentRequest request) {
+            try {
+                UUID.fromString(request.getDeploymentId());
+            } catch (IllegalArgumentException e) {
+                throw new InvalidArgumentsError("Invalid deploymentId format received. DeploymentId is a UUID");
+            }
         }
     }
 

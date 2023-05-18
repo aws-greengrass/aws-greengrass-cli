@@ -152,6 +152,8 @@ public class CLIService extends PluginService {
                 -> cliEventStreamAgent.getStopComponentsHandler(context));
         greengrassCoreIPCService.setCreateLocalDeploymentHandler((context)
                 -> cliEventStreamAgent.getCreateLocalDeploymentHandler(context, this.getRuntimeConfig()));
+        greengrassCoreIPCService.setCancelLocalDeploymentHandler((context)
+                -> cliEventStreamAgent.getCancelLocalDeploymentHandler(context, this.getRuntimeConfig()));
         greengrassCoreIPCService.setGetLocalDeploymentStatusHandler((context)
                 -> cliEventStreamAgent.getGetLocalDeploymentStatusHandler(context, this.getRuntimeConfig()));
         greengrassCoreIPCService.setListLocalDeploymentsHandler((context)

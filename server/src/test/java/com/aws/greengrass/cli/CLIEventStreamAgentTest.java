@@ -31,6 +31,8 @@ import org.mockito.ArgumentCaptor;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import software.amazon.awssdk.aws.greengrass.model.CancelLocalDeploymentRequest;
+import software.amazon.awssdk.aws.greengrass.model.CancelLocalDeploymentResponse;
 import software.amazon.awssdk.aws.greengrass.model.ComponentDetails;
 import software.amazon.awssdk.aws.greengrass.model.CreateDebugPasswordRequest;
 import software.amazon.awssdk.aws.greengrass.model.CreateDebugPasswordResponse;
@@ -389,6 +391,77 @@ class CLIEventStreamAgentTest {
         cliServiceConfig.lookup(PERSISTENT_LOCAL_DEPLOYMENTS, "4f3d2572-e8fb-4b7b-b4b6-4f774b5d16bd",
                 "DeploymentStatusDetails", "detailed-deployment-status").withNewerValue(100, "SUCCEEDED");
         return cliServiceConfig;
+    }
+
+    @Test
+    void testCancelLocalDeployment_invalidDeploymentId() {
+        Topics mockCliConfig = mock(Topics.class);
+        CancelLocalDeploymentRequest request = new CancelLocalDeploymentRequest();
+        request.setDeploymentId("InvalidId");
+        assertThrows(InvalidArgumentsError.class,
+                () -> cliEventStreamAgent.getCancelLocalDeploymentHandler(mockContext, mockCliConfig)
+                        .handleRequest(request));
+    }
+
+    @Test
+    void testCancelLocalDeployment_deploymentId_not_exist() {
+        Topics localDeployments = mock(Topics.class);
+        Topics mockCliConfig = mock(Topics.class);
+        String deploymentId = UUID.randomUUID().toString();
+        when(mockCliConfig.findTopics(PERSISTENT_LOCAL_DEPLOYMENTS)).thenReturn(localDeployments);
+        when(localDeployments.findTopics(deploymentId)).thenReturn(null);
+        CancelLocalDeploymentRequest request = new CancelLocalDeploymentRequest();
+        request.setDeploymentId(deploymentId);
+        assertThrows(ResourceNotFoundError.class,
+                () -> cliEventStreamAgent.getCancelLocalDeploymentHandler(mockContext, mockCliConfig)
+                        .handleRequest(request));
+    }
+
+    @Test
+    void testCancelLocalDeployment_deployment_already_finished() throws IOException {
+        Topics localDeployments = mock(Topics.class);
+        Topics mockCliConfig = mock(Topics.class);
+        try (Context context = new Context()) {
+            String deploymentId = UUID.randomUUID().toString();
+            Topics mockLocalDeployment = Topics.of(context, deploymentId, null);
+            mockLocalDeployment.lookup(DEPLOYMENT_STATUS_KEY_NAME).withValue(DeploymentStatus.SUCCEEDED.toString());
+            when(mockCliConfig.findTopics(PERSISTENT_LOCAL_DEPLOYMENTS)).thenReturn(localDeployments);
+            when(localDeployments.findTopics(deploymentId)).thenReturn(mockLocalDeployment);
+            CancelLocalDeploymentRequest request = new CancelLocalDeploymentRequest();
+            request.setDeploymentId(deploymentId);
+            CancelLocalDeploymentResponse response =
+                    cliEventStreamAgent.getCancelLocalDeploymentHandler(mockContext, mockCliConfig)
+                            .handleRequest(request);
+            assertEquals("Cancellation request is not processed because deployment is already finished",
+                    response.getMessage());
+        }
+    }
+
+    @Test
+    void testCancelLocalDeployment_cancellation_submitted() throws IOException {
+        Topics localDeployments = mock(Topics.class);
+        Topics mockCliConfig = mock(Topics.class);
+        when(deploymentQueue.offer(any())).thenReturn(true);
+        cliEventStreamAgent.setDeploymentQueue(deploymentQueue);
+        try (Context context = new Context()) {
+            String deploymentId = UUID.randomUUID().toString();
+            Topics mockLocalDeployment = Topics.of(context, deploymentId, null);
+            mockLocalDeployment.lookup(DEPLOYMENT_STATUS_KEY_NAME).withValue(DeploymentStatus.IN_PROGRESS.toString());
+            when(mockCliConfig.findTopics(PERSISTENT_LOCAL_DEPLOYMENTS)).thenReturn(localDeployments);
+            when(localDeployments.findTopics(deploymentId)).thenReturn(mockLocalDeployment);
+            CancelLocalDeploymentRequest request = new CancelLocalDeploymentRequest();
+            request.setDeploymentId(deploymentId);
+            CancelLocalDeploymentResponse response =
+                    cliEventStreamAgent.getCancelLocalDeploymentHandler(mockContext, mockCliConfig)
+                            .handleRequest(request);
+            assertEquals("Cancel request submitted. Deployment ID: " + deploymentId,
+                    response.getMessage());
+            ArgumentCaptor<Deployment> deploymentCaptor = ArgumentCaptor.forClass(Deployment.class);
+            verify(deploymentQueue).offer(deploymentCaptor.capture());
+            Deployment deployment = deploymentCaptor.getValue();
+            assertTrue(deployment.isCancelled());
+            assertEquals(deploymentId, deployment.getId());
+        }
     }
 
     @Test

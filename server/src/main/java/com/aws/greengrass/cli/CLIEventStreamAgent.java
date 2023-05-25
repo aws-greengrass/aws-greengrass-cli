@@ -48,6 +48,8 @@ import software.amazon.awssdk.aws.greengrass.model.CreateDebugPasswordResponse;
 import software.amazon.awssdk.aws.greengrass.model.CreateLocalDeploymentRequest;
 import software.amazon.awssdk.aws.greengrass.model.CreateLocalDeploymentResponse;
 import software.amazon.awssdk.aws.greengrass.model.DeploymentStatus;
+import software.amazon.awssdk.aws.greengrass.model.DeploymentStatusDetails;
+import software.amazon.awssdk.aws.greengrass.model.DetailedDeploymentStatus;
 import software.amazon.awssdk.aws.greengrass.model.GetComponentDetailsRequest;
 import software.amazon.awssdk.aws.greengrass.model.GetComponentDetailsResponse;
 import software.amazon.awssdk.aws.greengrass.model.GetLocalDeploymentStatusRequest;
@@ -60,6 +62,7 @@ import software.amazon.awssdk.aws.greengrass.model.ListComponentsResponse;
 import software.amazon.awssdk.aws.greengrass.model.ListLocalDeploymentsRequest;
 import software.amazon.awssdk.aws.greengrass.model.ListLocalDeploymentsResponse;
 import software.amazon.awssdk.aws.greengrass.model.LocalDeployment;
+import software.amazon.awssdk.aws.greengrass.model.LocalDeploymentStatus;
 import software.amazon.awssdk.aws.greengrass.model.RequestStatus;
 import software.amazon.awssdk.aws.greengrass.model.ResourceNotFoundError;
 import software.amazon.awssdk.aws.greengrass.model.RestartComponentRequest;
@@ -76,11 +79,15 @@ import java.nio.file.Paths;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.security.SecureRandom;
+import java.text.SimpleDateFormat;
 import java.time.Duration;
 import java.time.Instant;
+import java.time.ZoneId;
+import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.Base64;
 import java.util.Collection;
+import java.util.Date;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -93,7 +100,12 @@ import static com.aws.greengrass.cli.CLIService.GREENGRASS_CLI_CLIENT_ID_PREFIX;
 import static com.aws.greengrass.componentmanager.KernelConfigResolver.CONFIGURATION_CONFIG_KEY;
 import static com.aws.greengrass.componentmanager.KernelConfigResolver.VERSION_CONFIG_KEY;
 import static com.aws.greengrass.deployment.DeploymentConfigMerger.DEPLOYMENT_ID_LOG_KEY;
+import static com.aws.greengrass.deployment.DeploymentService.DEPLOYMENT_DETAILED_STATUS_KEY;
+import static com.aws.greengrass.deployment.DeploymentService.DEPLOYMENT_ERROR_STACK_KEY;
+import static com.aws.greengrass.deployment.DeploymentService.DEPLOYMENT_ERROR_TYPES_KEY;
+import static com.aws.greengrass.deployment.DeploymentService.DEPLOYMENT_FAILURE_CAUSE_KEY;
 import static com.aws.greengrass.deployment.DeploymentStatusKeeper.DEPLOYMENT_ID_KEY_NAME;
+import static com.aws.greengrass.deployment.DeploymentStatusKeeper.DEPLOYMENT_STATUS_DETAILS_KEY_NAME;
 import static com.aws.greengrass.deployment.DeploymentStatusKeeper.DEPLOYMENT_STATUS_KEY_NAME;
 import static com.aws.greengrass.deployment.DeploymentStatusKeeper.DEPLOYMENT_TYPE_KEY_NAME;
 import static com.aws.greengrass.ipc.common.ExceptionUtil.translateExceptions;
@@ -112,8 +124,11 @@ import static software.amazon.awssdk.aws.greengrass.GreengrassCoreIPCServiceMode
 @SuppressWarnings("PMD.CouplingBetweenObjects")
 public class CLIEventStreamAgent {
     public static final String PERSISTENT_LOCAL_DEPLOYMENTS = "LocalDeployments";
+    public static final String DEPLOYMENT_STATUS_DETAILS_KEY_NAME = "DeploymentStatusDetails";
+    public static final String DETAILED_DEPLOYMENT_STATUS_KEY =  "detailed-deployment-status";
     public static final String LOCAL_DEPLOYMENT_RESOURCE = "LocalDeployment";
-
+    public static final String LOCAL_DEPLOYMENT_CREATED_ON = "CreatedOn";
+    public static final String LOCAL_DEPLOYMENT_CREATED_ON_FORMATTER = "dd-MM-uuuu HH:mm:ss z";
     private static final Logger logger = LogManager.getLogger(CLIEventStreamAgent.class);
     private static final ObjectMapper OBJECT_MAPPER =
             new ObjectMapper().disable(DeserializationFeature.FAIL_ON_INVALID_SUBTYPE)
@@ -187,6 +202,10 @@ public class CLIEventStreamAgent {
         Topics localDeployments = serviceConfig.lookupTopics(PERSISTENT_LOCAL_DEPLOYMENTS);
         String deploymentId = (String) deploymentDetails.get(DEPLOYMENT_ID_KEY_NAME);
         Topics localDeploymentDetails = localDeployments.lookupTopics(deploymentId);
+        if (localDeploymentDetails.find(LOCAL_DEPLOYMENT_CREATED_ON) != null) {
+            deploymentDetails.put(LOCAL_DEPLOYMENT_CREATED_ON,
+                    Coerce.toLong(localDeploymentDetails.find(LOCAL_DEPLOYMENT_CREATED_ON)));
+        }
         localDeploymentDetails.replaceAndWait(deploymentDetails);
         // TODO: [P41178971]: Implement a limit on no of local deployments to persist status for
     }
@@ -503,6 +522,7 @@ public class CLIEventStreamAgent {
                     localDeploymentDetails.setDeploymentId(deploymentId);
                     localDeploymentDetails.setDeploymentType(Deployment.DeploymentType.LOCAL);
                     localDeploymentDetails.setStatus(DeploymentStatus.QUEUED);
+                    localDeploymentDetails.setCreatedOn(System.currentTimeMillis());
                     cleanUpQueuedDeployments(cliServiceConfig);
 
                     persistLocalDeployment(cliServiceConfig, localDeploymentDetails.convertToMapOfObject());
@@ -657,13 +677,40 @@ public class CLIEventStreamAgent {
                     throw rnf;
                 } else {
                     Topics deployment = localDeployments.findTopics(request.getDeploymentId());
+                    LocalDeploymentStatus localDeploymentStatus = new LocalDeploymentStatus();
+                    localDeploymentStatus.setDeploymentId(request.getDeploymentId());
+                    localDeploymentStatus.setCreatedOn(Instant.ofEpochMilli(
+                            Coerce.toLong(deployment.find(LOCAL_DEPLOYMENT_CREATED_ON)))
+                            .atZone(ZoneId.of("UTC"))
+                            .format(DateTimeFormatter.ofPattern(LOCAL_DEPLOYMENT_CREATED_ON_FORMATTER)));
                     DeploymentStatus status =
                             deploymentStatusFromString(Coerce.toString(deployment.find(DEPLOYMENT_STATUS_KEY_NAME)));
+                    localDeploymentStatus.setStatus(status);
+                    if (deployment.findTopics(DEPLOYMENT_STATUS_DETAILS_KEY_NAME) != null) {
+                        Topics deploymentStatusDetailsTopics =
+                                deployment.findTopics(DEPLOYMENT_STATUS_DETAILS_KEY_NAME);
+                        DeploymentStatusDetails deploymentStatusDetails = new DeploymentStatusDetails();
+                        DetailedDeploymentStatus detailedDeploymentStatus = detailedDeploymentStatusFromString(
+                                Coerce.toString(deploymentStatusDetailsTopics.find(DETAILED_DEPLOYMENT_STATUS_KEY)));
+                        deploymentStatusDetails.setDetailedDeploymentStatus(detailedDeploymentStatus);
+                        if (deploymentStatusDetailsTopics.find(DEPLOYMENT_ERROR_STACK_KEY) != null) {
+                            deploymentStatusDetails.setDeploymentErrorStack(
+                                    (List<String>) deploymentStatusDetailsTopics.find(DEPLOYMENT_ERROR_STACK_KEY)
+                                            .getOnce());
+                        }
+                        if (deploymentStatusDetailsTopics.find(DEPLOYMENT_ERROR_TYPES_KEY) != null) {
+                            deploymentStatusDetails.setDeploymentErrorTypes(
+                                    (List<String>) deploymentStatusDetailsTopics.find(DEPLOYMENT_ERROR_TYPES_KEY)
+                                            .getOnce());
+                        }
+                        if (deploymentStatusDetailsTopics.find(DEPLOYMENT_FAILURE_CAUSE_KEY) != null) {
+                            deploymentStatusDetails.setDeploymentFailureCause(
+                                    Coerce.toString(deploymentStatusDetailsTopics.find(DEPLOYMENT_FAILURE_CAUSE_KEY)));
+                        }
+                        localDeploymentStatus.setDeploymentStatusDetails(deploymentStatusDetails);
+                    }
                     GetLocalDeploymentStatusResponse response = new GetLocalDeploymentStatusResponse();
-                    LocalDeployment localDeployment = new LocalDeployment();
-                    localDeployment.setDeploymentId(request.getDeploymentId());
-                    localDeployment.setStatus(status);
-                    response.setDeployment(localDeployment);
+                    response.setDeployment(localDeploymentStatus);
                     return response;
                 }
             });
@@ -703,6 +750,7 @@ public class CLIEventStreamAgent {
         @Override
         public ListLocalDeploymentsResponse handleRequest(ListLocalDeploymentsRequest request) {
             return translateExceptions(() -> {
+                logger.atDebug().log("Listing persisted local deployments");
                 authorizeRequest(Permission.builder()
                         .principal(componentName)
                         .resource(AuthorizationHandler.ANY_REGEX)
@@ -718,6 +766,10 @@ public class CLIEventStreamAgent {
                         localDeployment.setDeploymentId(topics.getName());
                         localDeployment.setStatus(
                                 deploymentStatusFromString(Coerce.toString(topics.find(DEPLOYMENT_STATUS_KEY_NAME))));
+                        localDeployment.setCreatedOn(Instant.ofEpochMilli(
+                                        Coerce.toLong(topics.find(LOCAL_DEPLOYMENT_CREATED_ON)))
+                                .atZone(ZoneId.of("UTC"))
+                                .format(DateTimeFormatter.ofPattern(LOCAL_DEPLOYMENT_CREATED_ON_FORMATTER)));
                         persistedDeployments.add(localDeployment);
                     });
                 }
@@ -795,6 +847,15 @@ public class CLIEventStreamAgent {
         }
     }
 
+    private DetailedDeploymentStatus detailedDeploymentStatusFromString(String detailedDeploymentStatus) {
+        for (DetailedDeploymentStatus ds : DetailedDeploymentStatus.values()) {
+            if (ds.getValue().equals(detailedDeploymentStatus.toUpperCase())) {
+                return ds;
+            }
+        }
+        return null;
+    }
+
     private DeploymentStatus deploymentStatusFromString(String status) {
         for (DeploymentStatus ds : DeploymentStatus.values()) {
             if (ds.getValue().equals(status.toUpperCase())) {
@@ -849,6 +910,8 @@ public class CLIEventStreamAgent {
         private DeploymentStatus status;
         @JsonProperty(DEPLOYMENT_TYPE_KEY_NAME)
         private Deployment.DeploymentType deploymentType;
+        @JsonProperty(LOCAL_DEPLOYMENT_CREATED_ON)
+        private long createdOn;
 
         /**
          * Returns a map of string to object representing the deployment details.
@@ -860,6 +923,7 @@ public class CLIEventStreamAgent {
             deploymentDetails.put(DEPLOYMENT_ID_KEY_NAME, deploymentId);
             deploymentDetails.put(DEPLOYMENT_STATUS_KEY_NAME, status.getValue());
             deploymentDetails.put(DEPLOYMENT_TYPE_KEY_NAME, Coerce.toString(deploymentType));
+            deploymentDetails.put(LOCAL_DEPLOYMENT_CREATED_ON, createdOn);
             return deploymentDetails;
         }
     }

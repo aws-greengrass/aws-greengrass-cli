@@ -13,6 +13,7 @@ import com.aws.greengrass.dependency.Context;
 import com.aws.greengrass.dependency.State;
 import com.aws.greengrass.deployment.DeploymentQueue;
 import com.aws.greengrass.deployment.model.Deployment;
+import com.aws.greengrass.deployment.model.DeploymentResult;
 import com.aws.greengrass.deployment.model.LocalOverrideRequest;
 import com.aws.greengrass.lifecyclemanager.GreengrassService;
 import com.aws.greengrass.lifecyclemanager.Kernel;
@@ -60,16 +61,27 @@ import software.amazon.awssdk.utils.ImmutableMap;
 
 import java.io.IOException;
 import java.nio.file.Path;
+import java.time.Instant;
+import java.time.ZoneId;
+import java.time.format.DateTimeFormatter;
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.UUID;
 
+import static com.aws.greengrass.cli.CLIEventStreamAgent.LOCAL_DEPLOYMENT_CREATED_ON;
+import static com.aws.greengrass.cli.CLIEventStreamAgent.LOCAL_DEPLOYMENT_CREATED_ON_FORMATTER;
 import static com.aws.greengrass.cli.CLIEventStreamAgent.PERSISTENT_LOCAL_DEPLOYMENTS;
 import static com.aws.greengrass.cli.CLIService.CLI_SERVICE;
 import static com.aws.greengrass.cli.CLIService.GREENGRASS_CLI_CLIENT_ID_FMT;
 import static com.aws.greengrass.componentmanager.KernelConfigResolver.CONFIGURATION_CONFIG_KEY;
 import static com.aws.greengrass.componentmanager.KernelConfigResolver.VERSION_CONFIG_KEY;
+import static com.aws.greengrass.deployment.DeploymentService.DEPLOYMENT_DETAILED_STATUS_KEY;
+import static com.aws.greengrass.deployment.DeploymentService.DEPLOYMENT_ERROR_STACK_KEY;
+import static com.aws.greengrass.deployment.DeploymentService.DEPLOYMENT_ERROR_TYPES_KEY;
+import static com.aws.greengrass.deployment.DeploymentService.DEPLOYMENT_FAILURE_CAUSE_KEY;
+import static com.aws.greengrass.deployment.DeploymentStatusKeeper.DEPLOYMENT_STATUS_DETAILS_KEY_NAME;
 import static com.aws.greengrass.deployment.DeploymentStatusKeeper.DEPLOYMENT_STATUS_KEY_NAME;
 import static com.aws.greengrass.ipc.common.IPCErrorStrings.DEPLOYMENTS_QUEUE_NOT_INITIALIZED;
 import static com.aws.greengrass.testcommons.testutilities.ExceptionLogProtector.ignoreExceptionOfType;
@@ -489,8 +501,68 @@ class CLIEventStreamAgentTest {
     }
 
     @Test
+    void testGetLocalDeploymentStatus_deployment_completes_succeeded() throws IOException {
+        Topics localDeployments = mock(Topics.class);
+        Topics mockCliConfig = mock(Topics.class);
+        try (Context context = new Context()) {
+            String deploymentId = UUID.randomUUID().toString();
+            Topics mockLocalDeployment = Topics.of(context, deploymentId, null);
+            long creationTime = System.currentTimeMillis();
+            mockLocalDeployment.lookup(LOCAL_DEPLOYMENT_CREATED_ON).withValue(creationTime);
+            mockLocalDeployment.lookup(DEPLOYMENT_STATUS_KEY_NAME).withValue(DeploymentStatus.SUCCEEDED.toString());
+            Topics mockLocalDeploymentStatusDetails = mockLocalDeployment.createInteriorChild(DEPLOYMENT_STATUS_DETAILS_KEY_NAME);
+            mockLocalDeploymentStatusDetails.lookup(DEPLOYMENT_DETAILED_STATUS_KEY).withValue(DeploymentResult.DeploymentStatus.SUCCESSFUL.toString());
+            when(mockCliConfig.findTopics(PERSISTENT_LOCAL_DEPLOYMENTS)).thenReturn(localDeployments);
+            when(localDeployments.findTopics(deploymentId)).thenReturn(mockLocalDeployment);
+            GetLocalDeploymentStatusRequest request = new GetLocalDeploymentStatusRequest();
+            request.setDeploymentId(deploymentId);
+            GetLocalDeploymentStatusResponse response =
+                    cliEventStreamAgent.getGetLocalDeploymentStatusHandler(mockContext, mockCliConfig)
+                            .handleRequest(request);
+            assertEquals(deploymentId, response.getDeployment().getDeploymentId());
+            assertEquals(Instant.ofEpochMilli(creationTime).atZone(ZoneId.of("UTC"))
+                    .format(DateTimeFormatter.ofPattern(LOCAL_DEPLOYMENT_CREATED_ON_FORMATTER)), response.getDeployment().getCreatedOn());
+            assertEquals(DeploymentStatus.SUCCEEDED, response.getDeployment().getStatus());
+            assertEquals(DeploymentResult.DeploymentStatus.SUCCESSFUL.toString(),
+                    response.getDeployment().getDeploymentStatusDetails().getDetailedDeploymentStatus().toString());
+        }
+    }
+
+    @Test
+    void testGetLocalDeploymentStatus_deployment_completes_failed() throws IOException {
+        Topics localDeployments = mock(Topics.class);
+        Topics mockCliConfig = mock(Topics.class);
+        try (Context context = new Context()) {
+            String deploymentId = UUID.randomUUID().toString();
+            Topics mockLocalDeployment = Topics.of(context, deploymentId, null);
+            mockLocalDeployment.lookup(DEPLOYMENT_STATUS_KEY_NAME).withValue(DeploymentStatus.FAILED.toString());
+            Topics mockLocalDeploymentStatusDetails = mockLocalDeployment.createInteriorChild(DEPLOYMENT_STATUS_DETAILS_KEY_NAME);
+            mockLocalDeploymentStatusDetails.lookup(DEPLOYMENT_DETAILED_STATUS_KEY).withValue(DeploymentResult.DeploymentStatus.FAILED_NO_STATE_CHANGE.toString());
+            mockLocalDeploymentStatusDetails.lookup(DEPLOYMENT_ERROR_STACK_KEY).withValue(Collections.singletonList("ERROR_STACK_1, ERROR_STACK_2, ERROR_STACK_3"));
+            mockLocalDeploymentStatusDetails.lookup(DEPLOYMENT_ERROR_TYPES_KEY).withValue(Collections.singletonList("ERROR_TYPE_1"));
+            mockLocalDeploymentStatusDetails.lookup(DEPLOYMENT_FAILURE_CAUSE_KEY).withValue("FAILURE_CAUSE");
+            when(mockCliConfig.findTopics(PERSISTENT_LOCAL_DEPLOYMENTS)).thenReturn(localDeployments);
+            when(localDeployments.findTopics(deploymentId)).thenReturn(mockLocalDeployment);
+            GetLocalDeploymentStatusRequest request = new GetLocalDeploymentStatusRequest();
+            request.setDeploymentId(deploymentId);
+            GetLocalDeploymentStatusResponse response =
+                    cliEventStreamAgent.getGetLocalDeploymentStatusHandler(mockContext, mockCliConfig)
+                            .handleRequest(request);
+            assertEquals(deploymentId, response.getDeployment().getDeploymentId());
+            assertEquals(DeploymentStatus.FAILED, response.getDeployment().getStatus());
+            assertEquals(DeploymentResult.DeploymentStatus.FAILED_NO_STATE_CHANGE.toString(),
+                    response.getDeployment().getDeploymentStatusDetails().getDetailedDeploymentStatus().toString());
+            assertEquals(Collections.singletonList("ERROR_STACK_1, ERROR_STACK_2, ERROR_STACK_3"),
+                    response.getDeployment().getDeploymentStatusDetails().getDeploymentErrorStack());
+            assertEquals(Collections.singletonList("ERROR_TYPE_1"),
+                    response.getDeployment().getDeploymentStatusDetails().getDeploymentErrorTypes());
+            assertEquals("FAILURE_CAUSE", response.getDeployment().getDeploymentStatusDetails().getDeploymentFailureCause());
+        }
+    }
+
+    @Test
     @SuppressWarnings("PMD.CloseResource")
-    void testGetLocalDeploymentStatus_successful() throws IOException {
+    void testGetLocalDeploymentStatus_deployment_in_progress() throws IOException {
         Topics localDeployments = mock(Topics.class);
         Topics mockCliConfig = mock(Topics.class);
         try (Context context = new Context()) {

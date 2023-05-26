@@ -12,7 +12,6 @@ import software.amazon.awssdk.aws.greengrass.model.ComponentDetails;
 import software.amazon.awssdk.aws.greengrass.model.CreateDebugPasswordResponse;
 import software.amazon.awssdk.aws.greengrass.model.CreateLocalDeploymentRequest;
 import software.amazon.awssdk.aws.greengrass.model.LocalDeployment;
-import software.amazon.awssdk.aws.greengrass.model.LocalDeploymentStatus;
 
 import java.io.IOException;
 import java.util.List;
@@ -25,7 +24,7 @@ public interface NucleusAdapterIpc {
 
     void stopComponent(String... componentNames);
 
-    LocalDeploymentStatus getLocalDeploymentStatus(String deploymentId);
+    LocalDeployment getLocalDeploymentStatus(String deploymentId);
 
     List<LocalDeployment> listLocalDeployments();
 

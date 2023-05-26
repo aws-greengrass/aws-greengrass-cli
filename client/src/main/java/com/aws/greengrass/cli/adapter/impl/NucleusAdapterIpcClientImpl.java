@@ -32,7 +32,6 @@ import software.amazon.awssdk.aws.greengrass.model.ListComponentsResponse;
 import software.amazon.awssdk.aws.greengrass.model.ListLocalDeploymentsRequest;
 import software.amazon.awssdk.aws.greengrass.model.ListLocalDeploymentsResponse;
 import software.amazon.awssdk.aws.greengrass.model.LocalDeployment;
-import software.amazon.awssdk.aws.greengrass.model.LocalDeploymentStatus;
 import software.amazon.awssdk.aws.greengrass.model.PublishMessage;
 import software.amazon.awssdk.aws.greengrass.model.PublishToIoTCoreRequest;
 import software.amazon.awssdk.aws.greengrass.model.PublishToIoTCoreResponse;
@@ -157,13 +156,13 @@ public class NucleusAdapterIpcClientImpl implements NucleusAdapterIpc {
     }
 
     @Override
-    public LocalDeploymentStatus getLocalDeploymentStatus(String deploymentId) {
+    public LocalDeployment getLocalDeploymentStatus(String deploymentId) {
 
         try {
             GetLocalDeploymentStatusRequest request = new GetLocalDeploymentStatusRequest();
             request.setDeploymentId(deploymentId);
             GetLocalDeploymentStatusResponseHandler localDeploymentStatus = getIpcClient().getLocalDeploymentStatus(request, Optional.empty());
-            LocalDeploymentStatus deployment = localDeploymentStatus.getResponse()
+            LocalDeployment deployment = localDeploymentStatus.getResponse()
                     .get(DEFAULT_TIMEOUT_IN_SEC, TimeUnit.SECONDS).getDeployment();
             return deployment;
         } catch (ExecutionException | TimeoutException | InterruptedException e) {

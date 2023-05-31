@@ -38,6 +38,9 @@ To send us a pull request, please:
 
 GitHub provides additional document on [forking a repository](https://help.github.com/articles/fork-a-repo/) and
 [creating a pull request](https://help.github.com/articles/creating-a-pull-request/).
+#### Note
+The Server module imports the [aws.greengrass.Nucleus](https://github.com/aws-greengrass/aws-greengrass-nucleus) as a maven dependency so it is recommended to update
+dependency versions in the Nucleus repository (if exists) before adding dependencies to the Server module.
 
 
 ## Finding contributions to work on

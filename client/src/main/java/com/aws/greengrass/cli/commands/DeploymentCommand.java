@@ -12,8 +12,11 @@ import com.fasterxml.jackson.databind.type.MapType;
 import picocli.CommandLine;
 import software.amazon.awssdk.aws.greengrass.model.CancelLocalDeploymentRequest;
 import software.amazon.awssdk.aws.greengrass.model.CreateLocalDeploymentRequest;
+import software.amazon.awssdk.aws.greengrass.model.DeploymentStatus;
+import software.amazon.awssdk.aws.greengrass.model.DeploymentStatusDetails;
 import software.amazon.awssdk.aws.greengrass.model.FailureHandlingPolicy;
 import software.amazon.awssdk.aws.greengrass.model.LocalDeployment;
+import software.amazon.awssdk.aws.greengrass.model.LocalDeploymentStatus;
 import software.amazon.awssdk.aws.greengrass.model.RunWithInfo;
 import software.amazon.awssdk.aws.greengrass.model.SystemResourceLimits;
 
@@ -21,6 +24,7 @@ import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.InvalidPathException;
 import java.nio.file.Path;
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -151,23 +155,78 @@ public class DeploymentCommand extends BaseCommand {
     }
 
     // GG_NEEDS_REVIEW: TODO: input validation and better error handling https://sim.amazon.com/issues/P39478724
+    /*
+    Output example:
+    Deployment ID: Deployment UUID
+    Created on: Time in UTC when the deployment was created (dd-MM-uuuu HH:mm:ss UTC)
+    Status: DEPLOYMENT_STATUS
+    Deployment Error Stack: [List, of, deployment, error, if, any] (null if successful deployment)
+    Deployment Error Types: [List, of, deployment, error, types, if, any] (null if successful deployment)
+    Deployment Failure Cause: Deployment failure cause in text (null if successful deployment)
+     */
     @CommandLine.Command(name = "status",
             description = "Retrieve the status of a specific deployment", mixinStandardHelpOptions = true,
             versionProvider = com.aws.greengrass.cli.module.VersionProvider.class)
     public int status(@CommandLine.Option(names = {"-i", "--deploymentId"}, paramLabel = "Deployment ID",
             required = true) String deploymentId) {
 
-        LocalDeployment status = nucleusAdapterIpc.getLocalDeploymentStatus(deploymentId);
-        System.out.printf("%s: %s%n", status.getDeploymentId(), status.getStatus());
+        LocalDeploymentStatus status = nucleusAdapterIpc.getLocalDeploymentStatus(deploymentId);
+        StringBuilder statusBuilder = new StringBuilder();
+        DeploymentStatus deploymentStatus = status.getStatus();
+        statusBuilder.append(String.format("%s: %s\n", status.getDeploymentId(), deploymentStatus));
+        statusBuilder.append(String.format(
+                "Created on: %s\n", status.getCreatedOn()));
+        if (DeploymentStatus.FAILED.equals(deploymentStatus)) {
+            DeploymentStatusDetails deploymentStatusDetails = status.getDeploymentStatusDetails();
+            if (deploymentStatusDetails != null) {
+                statusBuilder.append(String.format("Detailed Status: %s\n",
+                        deploymentStatusDetails.getDetailedDeploymentStatusAsString()));
+                if (deploymentStatusDetails.getDeploymentErrorStack() != null &&
+                        !deploymentStatusDetails.getDeploymentErrorStack().isEmpty()) {
+                    statusBuilder.append(String.format("Deployment Error Stack: %s\n",
+                            String.join(", ", deploymentStatusDetails.getDeploymentErrorStack())));
+                }
+                if (deploymentStatusDetails.getDeploymentErrorTypes() != null &&
+                        !deploymentStatusDetails.getDeploymentErrorTypes().isEmpty()) {
+                    statusBuilder.append(String.format("Deployment Error Types: %s\n",
+                            String.join(", ", deploymentStatusDetails.getDeploymentErrorTypes())));
+                }
+                if (deploymentStatusDetails.getDeploymentFailureCause() != null &&
+                        !deploymentStatusDetails.getDeploymentFailureCause().trim().isEmpty()) {
+                    statusBuilder.append(String.format(
+                            "Deployment Failure Cause: %s\n", deploymentStatusDetails.getDeploymentFailureCause()));
+                }
+            }
+        }
+        System.out.printf(statusBuilder.toString());
         return 0;
     }
 
     // GG_NEEDS_REVIEW: TODO: input validation and better error handling https://sim.amazon.com/issues/P39478724
+    /*
+    Output example:
+    Deployment ID: Deployment UUID 1
+    Created on: Time in UTC when the deployment was created (dd-MM-uuuu HH:mm:ss UTC)
+    Status: DEPLOYMENT_STATUS_1
+
+    Deployment ID: Deployment UUID 2
+    Created on: Time in UTC when the deployment was created (dd-MM-uuuu HH:mm:ss UTC)
+    Status: DEPLOYMENT_STATUS_2
+
+    ...
+     */
     @CommandLine.Command(name = "list", description = "Retrieve the status of local deployments",
             mixinStandardHelpOptions = true, versionProvider = com.aws.greengrass.cli.module.VersionProvider.class)
     public int list() {
         List<LocalDeployment> localDeployments = nucleusAdapterIpc.listLocalDeployments();
-        localDeployments.forEach((status) -> System.out.println(status.getDeploymentId() + ": " + status.getStatus()));
+        List<String> localDeploymentShortStatuses = new ArrayList<>();
+        for (LocalDeployment localDeployment : localDeployments) {
+            String statusBuilder = String.format("Deployment ID: %s\n", localDeployment.getDeploymentId()) +
+                    String.format("Created on: %s\n", localDeployment.getCreatedOn()) +
+                    String.format("Status: %s\n", localDeployment.getStatus());
+            localDeploymentShortStatuses.add(statusBuilder);
+        }
+        System.out.printf(String.join("\n", localDeploymentShortStatuses));
         return 0;
     }
 

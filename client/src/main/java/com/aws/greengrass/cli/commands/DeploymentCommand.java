@@ -179,8 +179,11 @@ public class DeploymentCommand extends BaseCommand {
         if (DeploymentStatus.FAILED.equals(deploymentStatus)) {
             DeploymentStatusDetails deploymentStatusDetails = status.getDeploymentStatusDetails();
             if (deploymentStatusDetails != null) {
-                statusBuilder.append(String.format("Detailed Status: %s\n",
-                        deploymentStatusDetails.getDetailedDeploymentStatusAsString()));
+                if (deploymentStatusDetails.getDetailedDeploymentStatusAsString() != null &&
+                        !deploymentStatusDetails.getDetailedDeploymentStatusAsString().trim().isEmpty()) {
+                    statusBuilder.append(String.format("Detailed Status: %s\n",
+                            deploymentStatusDetails.getDetailedDeploymentStatusAsString()));
+                }
                 if (deploymentStatusDetails.getDeploymentErrorStack() != null &&
                         !deploymentStatusDetails.getDeploymentErrorStack().isEmpty()) {
                     statusBuilder.append(String.format("Deployment Error Stack: %s\n",

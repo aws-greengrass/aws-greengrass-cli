@@ -687,8 +687,11 @@ public class CLIEventStreamAgent {
                                 deployment.findTopics(DEPLOYMENT_STATUS_DETAILS_KEY_NAME);
                         DeploymentStatusDetails deploymentStatusDetails = new DeploymentStatusDetails();
                         DetailedDeploymentStatus detailedDeploymentStatus = detailedDeploymentStatusFromString(
-                                Coerce.toString(deploymentStatusDetailsTopics.find(DEPLOYMENT_DETAILED_STATUS_KEY)));
-                        deploymentStatusDetails.setDetailedDeploymentStatus(detailedDeploymentStatus);
+                                Coerce.toString(deploymentStatusDetailsTopics
+                                        .find(DEPLOYMENT_DETAILED_STATUS_KEY)));
+                        if (detailedDeploymentStatus != null) {
+                            deploymentStatusDetails.setDetailedDeploymentStatus(detailedDeploymentStatus);
+                        }
                         if (deploymentStatusDetailsTopics.find(DEPLOYMENT_ERROR_STACK_KEY) != null) {
                             deploymentStatusDetails.setDeploymentErrorStack(Coerce.toStringList(
                                     deploymentStatusDetailsTopics.find(DEPLOYMENT_ERROR_STACK_KEY)));
@@ -842,6 +845,9 @@ public class CLIEventStreamAgent {
     }
 
     private DetailedDeploymentStatus detailedDeploymentStatusFromString(String detailedDeploymentStatus) {
+        if (detailedDeploymentStatus == null || detailedDeploymentStatus.trim().isEmpty()) {
+            return null;
+        }
         for (DetailedDeploymentStatus ds : DetailedDeploymentStatus.values()) {
             if (ds.getValue().equals(detailedDeploymentStatus.toUpperCase())) {
                 return ds;

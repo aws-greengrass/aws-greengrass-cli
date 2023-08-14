@@ -62,7 +62,6 @@ import software.amazon.awssdk.aws.greengrass.model.ListComponentsResponse;
 import software.amazon.awssdk.aws.greengrass.model.ListLocalDeploymentsRequest;
 import software.amazon.awssdk.aws.greengrass.model.ListLocalDeploymentsResponse;
 import software.amazon.awssdk.aws.greengrass.model.LocalDeployment;
-import software.amazon.awssdk.aws.greengrass.model.LocalDeploymentStatus;
 import software.amazon.awssdk.aws.greengrass.model.RequestStatus;
 import software.amazon.awssdk.aws.greengrass.model.ResourceNotFoundError;
 import software.amazon.awssdk.aws.greengrass.model.RestartComponentRequest;
@@ -673,7 +672,7 @@ public class CLIEventStreamAgent {
                     throw rnf;
                 } else {
                     Topics deployment = localDeployments.findTopics(request.getDeploymentId());
-                    LocalDeploymentStatus localDeploymentStatus = new LocalDeploymentStatus();
+                    LocalDeployment localDeploymentStatus = new LocalDeployment();
                     localDeploymentStatus.setDeploymentId(request.getDeploymentId());
                     localDeploymentStatus.setCreatedOn(Instant.ofEpochMilli(
                             Coerce.toLong(deployment.find(LOCAL_DEPLOYMENT_CREATED_ON)))

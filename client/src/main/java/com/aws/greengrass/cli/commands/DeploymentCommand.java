@@ -16,7 +16,6 @@ import software.amazon.awssdk.aws.greengrass.model.DeploymentStatus;
 import software.amazon.awssdk.aws.greengrass.model.DeploymentStatusDetails;
 import software.amazon.awssdk.aws.greengrass.model.FailureHandlingPolicy;
 import software.amazon.awssdk.aws.greengrass.model.LocalDeployment;
-import software.amazon.awssdk.aws.greengrass.model.LocalDeploymentStatus;
 import software.amazon.awssdk.aws.greengrass.model.RunWithInfo;
 import software.amazon.awssdk.aws.greengrass.model.SystemResourceLimits;
 
@@ -170,7 +169,7 @@ public class DeploymentCommand extends BaseCommand {
     public int status(@CommandLine.Option(names = {"-i", "--deploymentId"}, paramLabel = "Deployment ID",
             required = true) String deploymentId) {
 
-        LocalDeploymentStatus status = nucleusAdapterIpc.getLocalDeploymentStatus(deploymentId);
+        LocalDeployment status = nucleusAdapterIpc.getLocalDeploymentStatus(deploymentId);
         StringBuilder statusBuilder = new StringBuilder();
         DeploymentStatus deploymentStatus = status.getStatus();
         statusBuilder.append(String.format("%s: %s\n", status.getDeploymentId(), deploymentStatus));

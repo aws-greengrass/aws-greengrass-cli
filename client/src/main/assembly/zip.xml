@@ -25,7 +25,7 @@
     </fileSets>
     <files>
         <file>
-            <source>${project.build.directory}/${project.artifactId}-${project.version}-dependency.jar</source>
+            <source>${project.build.directory}/${project.artifactId}-${project.parent.version}-dependency.jar</source>
             <outputDirectory>lib</outputDirectory>
         </file>
         <file>

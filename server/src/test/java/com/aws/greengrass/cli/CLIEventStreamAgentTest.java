@@ -136,8 +136,8 @@ class CLIEventStreamAgentTest {
 
     @BeforeEach
     void setup() throws AuthorizationException {
-        when(mockContext.getContinuation()).thenReturn(mock(ServerConnectionContinuation.class));
-        when(mockContext.getAuthenticationData()).thenReturn(() -> String.format(GREENGRASS_CLI_CLIENT_ID_FMT, "abc"));
+        lenient().when(mockContext.getContinuation()).thenReturn(mock(ServerConnectionContinuation.class));
+        lenient().when(mockContext.getAuthenticationData()).thenReturn(() -> String.format(GREENGRASS_CLI_CLIENT_ID_FMT, "abc"));
         lenient().when(authorizationHandler.isAuthorized(eq(CLI_SERVICE), any()))
                 .thenThrow(new AuthorizationException("bad"));
     }
@@ -683,5 +683,32 @@ class CLIEventStreamAgentTest {
             assertEquals("ABCD", response.getCertificateSHA1Hash());
             assertEquals("ABCDE", response.getCertificateSHA256Hash());
         }
+    }
+
+    @Test
+    void test_persist_last_five_successful_local_deployments() throws InterruptedException {
+        Context context = new Context();
+        Topics cliServiceConfig = Topics.of(context, TEST_SERVICE, null);
+
+        CLIEventStreamAgent.LocalDeploymentDetails localDeploymentDetails = new CLIEventStreamAgent.LocalDeploymentDetails();
+        for (int i = 1; i <= 7; i++) {
+            String deploymentId = "deploymentId" + i;
+            localDeploymentDetails.setDeploymentId(deploymentId);
+            localDeploymentDetails.setDeploymentType(Deployment.DeploymentType.LOCAL);
+            if (i == 3) {
+                localDeploymentDetails.setStatus(DeploymentStatus.FAILED);
+            } else {
+                localDeploymentDetails.setStatus(DeploymentStatus.SUCCEEDED);
+            }
+            cliEventStreamAgent.persistLocalDeployment(cliServiceConfig, localDeploymentDetails.convertToMapOfObject());
+            // to ensure topic add as order
+            Thread.sleep(1);
+            context.waitForPublishQueueToClear();
+        }
+
+        Topics localDeployments = cliServiceConfig.findTopics(PERSISTENT_LOCAL_DEPLOYMENTS);
+
+        assertEquals(6, localDeployments.size());
+        assertNull(localDeployments.findNode("deploymentId1"));
     }
 }

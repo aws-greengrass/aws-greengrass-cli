@@ -489,6 +489,10 @@ public class CLIEventStreamAgent {
                     }
                 }
 
+                if (request.getGroupName().contains(":")) {
+                    throw new InvalidArgumentsError("Thing group name cannot contain colon characters");
+                }
+
                 LocalOverrideRequest localOverrideRequest = LocalOverrideRequest.builder().requestId(deploymentId)
                         .componentsToMerge(request.getRootComponentVersionsToAdd())
                         .componentsToRemove(request.getRootComponentsToRemove())

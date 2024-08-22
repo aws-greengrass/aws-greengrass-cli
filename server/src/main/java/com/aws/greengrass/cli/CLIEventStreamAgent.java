@@ -488,9 +488,7 @@ public class CLIEventStreamAgent {
                     }
                 }
 
-                if (request.getGroupName().contains(":")) {
-                    throw new InvalidArgumentsError("Thing group name cannot contain colon characters");
-                }
+                validateThingGroupName(request);
 
                 String deploymentId = UUID.randomUUID().toString();
                 LocalOverrideRequest localOverrideRequest = LocalOverrideRequest.builder().requestId(deploymentId)
@@ -541,6 +539,11 @@ public class CLIEventStreamAgent {
             });
         }
 
+        private void validateThingGroupName(CreateLocalDeploymentRequest request) {
+            if (!Utils.isEmpty(request.getGroupName()) && request.getGroupName().contains(":")) {
+                throw new InvalidArgumentsError("Thing group name cannot contain colon characters");
+            }
+        }
 
         @Override
         public void handleStreamEvent(EventStreamJsonMessage streamRequestEvent) {

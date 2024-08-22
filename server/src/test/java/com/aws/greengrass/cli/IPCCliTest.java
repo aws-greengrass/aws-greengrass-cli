@@ -36,6 +36,8 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.TestMethodOrder;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.junit.jupiter.api.extension.ExtensionContext;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.ValueSource;
 import software.amazon.awssdk.aws.greengrass.GreengrassCoreIPCClient;
 import software.amazon.awssdk.aws.greengrass.GreengrassCoreIPCClientV2;
 import software.amazon.awssdk.aws.greengrass.model.ComponentDetails;
@@ -451,6 +453,28 @@ class IPCCliTest extends BaseITCase {
         }
     }
 
+    @Order(11)
+    @ParameterizedTest
+    @ValueSource(strings = {"group:", "group:1", "group:1:1"})
+    void GIVEN_kernel_running_WHEN_local_deployment_with_invalid_thing_group_THEN_deployment_fails(String invalidThingGroupName, ExtensionContext context) throws Exception {
+        ignoreExceptionOfType(context, SdkClientException.class);
+        ignoreExceptionOfType(context, PackageDownloadException.class);
+        ignoreExceptionOfType(context, ComponentVersionNegotiationException.class);
+
+        Path recipesPath = Paths.get(this.getClass().getResource("recipes").toURI());
+        Path artifactsPath = Paths.get(this.getClass().getResource("artifacts").toURI());
+
+        CreateLocalDeploymentRequest createLocalDeploymentRequest = new CreateLocalDeploymentRequest();
+        createLocalDeploymentRequest.setGroupName(invalidThingGroupName);
+        createLocalDeploymentRequest.setRootComponentVersionsToAdd(Collections.singletonMap("Component1", "1.0.0"));
+        createLocalDeploymentRequest.setRecipeDirectoryPath(recipesPath.toAbsolutePath().toString());
+        createLocalDeploymentRequest.setArtifactsDirectoryPath(artifactsPath.toAbsolutePath().toString());
+
+        ExecutionException executionException = assertThrows(ExecutionException.class, () ->
+                clientConnection.createLocalDeployment(createLocalDeploymentRequest, Optional.empty())
+                        .getResponse().get(DEFAULT_TIMEOUT_IN_SEC, TimeUnit.SECONDS));
+        assertEquals(InvalidArgumentsError.class, executionException.getCause().getClass());
+    }
 
     private String getAuthTokenFromInfoFile() throws IOException {
         File[] authFiles = kernel.getNucleusPaths().cliIpcInfoPath().toFile().listFiles();

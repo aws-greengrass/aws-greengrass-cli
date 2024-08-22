@@ -463,7 +463,6 @@ public class CLIEventStreamAgent {
                         .resource(AuthorizationHandler.ANY_REGEX)
                         .operation(CREATE_LOCAL_DEPLOYMENT)
                         .build());
-                String deploymentId = UUID.randomUUID().toString();
                 //All inputs are valid. If all inputs are empty, then user might just want to retrigger the deployment
                 // with new recipes set using the updateRecipesAndArtifacts API.
                 Map<String, ConfigurationUpdateOperation> configUpdate = null;
@@ -493,6 +492,7 @@ public class CLIEventStreamAgent {
                     throw new InvalidArgumentsError("Thing group name cannot contain colon characters");
                 }
 
+                String deploymentId = UUID.randomUUID().toString();
                 LocalOverrideRequest localOverrideRequest = LocalOverrideRequest.builder().requestId(deploymentId)
                         .componentsToMerge(request.getRootComponentVersionsToAdd())
                         .componentsToRemove(request.getRootComponentsToRemove())

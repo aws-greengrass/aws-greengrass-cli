@@ -32,7 +32,7 @@ jobs:
         run: mvn -U -ntp clean verify
         if: matrix.os != 'windows-latest'
       - name: Upload Failed Test Report
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         if: failure()
         with:
           name: Failed Test Report ${{ matrix.os }}
@@ -43,13 +43,13 @@ jobs:
           python3 ./.github/scripts/cover2cover.py server/target/jacoco-report/jacoco.xml src/main/java > server/target/jacoco-report/cobertura.xml
         if: matrix.os == 'ubuntu-latest'
       - name: Upload Client Coverage
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         if: matrix.os == 'ubuntu-latest'
         with:
           name: Client Coverage Report
           path: client/target/jacoco-report
       - name: Upload Server Coverage
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         if: matrix.os == 'ubuntu-latest'
         with:
           name: Server Coverage Report
@@ -65,7 +65,7 @@ jobs:
           cp server/target/jacoco-report/cobertura.xml ./pr/server/jacoco-report/cobertura.xml
         if: github.event_name == 'pull_request' && matrix.os == 'ubuntu-latest'
       - name: Upload files
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
           name: pr
           path: pr/

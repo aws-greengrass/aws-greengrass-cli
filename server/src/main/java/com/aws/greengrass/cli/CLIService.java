@@ -134,10 +134,10 @@ public class CLIService extends PluginService {
 
 
         config.lookup(CONFIGURATION_CONFIG_KEY, AUTHORIZED_POSIX_GROUPS).subscribe((why, newv) -> {
-            requestReinstall();
+            requestRestart();
         });
         config.lookup(CONFIGURATION_CONFIG_KEY, AUTHORIZED_WINDOWS_GROUPS).subscribe((why, newv) -> {
-            requestReinstall();
+            requestRestart();
         });
     }
 

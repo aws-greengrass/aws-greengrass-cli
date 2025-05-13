@@ -5,4 +5,4 @@ The Greengrass CLI component provides a local command-line interface that you ca
 
 ## License
 
-This library is licensed under the Apache 2.0 License. 
+This library is licensed under the Apache 2.0 License. See the [./LICENSE](./LICENSE) file for more information.

@@ -36,7 +36,9 @@ import software.amazon.awssdk.aws.greengrass.model.DeploymentStatus;
 import java.io.File;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
+import java.nio.file.FileAlreadyExistsException;
 import java.nio.file.Files;
+import java.nio.file.InvalidPathException;
 import java.nio.file.Path;
 import java.nio.file.StandardOpenOption;
 import java.util.ArrayList;
@@ -164,9 +166,19 @@ public class CLIService extends PluginService {
 
     @Override
     protected void install() {
+        // Try to install the CLI client binary.
+        // Failure to install the CLI client binary should not throw an error or otherwise fail the installation of the
+        // CLI component as a whole, because the CLI server can still function without the client.
         try {
-            Path clientArtifact = kernel.getNucleusPaths().unarchiveArtifactPath(new ComponentIdentifier(CLI_SERVICE,
-                    new Semver(Coerce.toString(getConfig().find(VERSION_CONFIG_KEY)))), CLI_CLIENT_ARTIFACT);
+            String version = Coerce.toString(getConfig().find(VERSION_CONFIG_KEY));
+            if (version == null) {
+                logger.atError().log(
+                        "Unable to find the CLI component version, aborting installation of CLI binary");
+                return;
+            }
+            Path clientArtifact = kernel.getNucleusPaths().unarchiveArtifactPath(
+                    new ComponentIdentifier(CLI_SERVICE, new Semver(version)),
+                    CLI_CLIENT_ARTIFACT);
             if (!Files.exists(clientArtifact)) {
                 logger.atWarn().kv("path", clientArtifact)
                         .log("Unable to locate CLI binary. Make sure CLI component is properly deployed");
@@ -182,8 +194,8 @@ public class CLIService extends PluginService {
                 Files.createSymbolicLink(link, binary);
                 logger.atInfo().kv("binary", binary).kv("link", link).log("Set up symlink to CLI binary");
             }
-        } catch (IOException | SemverException e) {
-            logger.atError().log("Failed to set up symlink to CLI binary", e);
+        } catch (IOException | SecurityException | SemverException e) {
+            logger.atError().log("Failed to set up CLI binary", e);
         }
     }
 

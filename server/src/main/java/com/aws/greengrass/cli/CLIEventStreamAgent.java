@@ -9,6 +9,8 @@ import com.aws.greengrass.authorization.AuthorizationHandler;
 import com.aws.greengrass.authorization.Permission;
 import com.aws.greengrass.authorization.exceptions.AuthorizationException;
 import com.aws.greengrass.componentmanager.ComponentStore;
+import com.aws.greengrass.config.Node;
+import com.aws.greengrass.config.Topic;
 import com.aws.greengrass.config.Topics;
 import com.aws.greengrass.deployment.DeploymentQueue;
 import com.aws.greengrass.deployment.model.ConfigurationUpdateOperation;
@@ -85,10 +87,12 @@ import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.Base64;
 import java.util.Collection;
+import java.util.Comparator;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
+import java.util.concurrent.atomic.AtomicInteger;
 import java.util.stream.Collectors;
 import javax.inject.Inject;
 
@@ -132,6 +136,7 @@ public class CLIEventStreamAgent {
     private static final int DEBUG_PASSWORD_LENGTH_REQUIREMENT = 32;
     private static final String DEBUG_USERNAME = "debug";
     private static final Duration DEBUG_PASSWORD_EXPIRATION = Duration.ofHours(8);
+    private static final int PERSIST_LIMIT = 5;
     protected static final String CERT_FINGERPRINT_NAMESPACE = "_certificateFingerprint";
 
     @Inject
@@ -202,7 +207,29 @@ public class CLIEventStreamAgent {
                     Coerce.toLong(localDeploymentDetails.find(LOCAL_DEPLOYMENT_CREATED_ON)));
         }
         localDeploymentDetails.replaceAndWait(deploymentDetails);
-        // TODO: [P41178971]: Implement a limit on no of local deployments to persist status for
+        // #P39046999 Persist last (5) successful local deployments as part of CLI application code.
+        if (localDeployments.size() > PERSIST_LIMIT) {
+            List<Topics> childrenToRemove = new ArrayList<>();
+            AtomicInteger deploymentSucceeded = new AtomicInteger();
+            localDeployments.forEach(topics -> {
+                if (topics instanceof Topics) {
+                    Topics deploymentTopics = (Topics) topics;
+                    String value = Coerce.toString(deploymentTopics.find(DEPLOYMENT_STATUS_KEY_NAME));
+                    if (DeploymentStatus.SUCCEEDED.toString().equals(value)) {
+                        deploymentSucceeded.getAndIncrement();
+                        childrenToRemove.add(deploymentTopics);
+                    }
+                }
+            });
+            // if more than PERSIST_LIMIT deployments are success, remove until PERSIST_LIMIT left
+            if (deploymentSucceeded.get() > PERSIST_LIMIT) {
+                childrenToRemove.stream()
+                        .sorted(Comparator.comparingLong(t -> t.find(DEPLOYMENT_STATUS_KEY_NAME) == null ?
+                                0L : t.find(DEPLOYMENT_STATUS_KEY_NAME).getModtime()))
+                        .limit(childrenToRemove.size() - PERSIST_LIMIT)
+                        .forEach(Node::remove);
+            }
+        }
     }
 
     @SuppressFBWarnings("SIC_INNER_SHOULD_BE_STATIC")

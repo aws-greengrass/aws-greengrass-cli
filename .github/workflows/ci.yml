@@ -53,11 +53,14 @@ jobs:
           name: Server Coverage Report
           path: server/target/jacoco-report
       - name: Save PR number
+        env:
+          PR_NUMBER: ${{ github.event.number }}
+          PR_SHA: ${{ github.event.pull_request.head.sha }}
         run: |
           mkdir -p ./pr/client/jacoco-report
           mkdir -p ./pr/server/jacoco-report
-          echo ${{ github.event.number }} > ./pr/NR
-          echo ${{ github.event.pull_request.head.sha }} > ./pr/SHA
+          echo "$PR_NUMBER" | tr -cd '0-9' > ./pr/NR
+          echo "$PR_SHA" | tr -cd 'a-fA-F0-9' > ./pr/SHA
 
           cp client/target/jacoco-report/cobertura.xml ./pr/client/jacoco-report/cobertura.xml
           cp server/target/jacoco-report/cobertura.xml ./pr/server/jacoco-report/cobertura.xml

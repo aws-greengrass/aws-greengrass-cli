@@ -61,8 +61,8 @@ jobs:
         run: |
           mkdir -p ./pr/client/jacoco-report
           mkdir -p ./pr/server/jacoco-report
-          echo "$PR_NUMBER" > ./pr/NR
-          echo "$PR_SHA" > ./pr/SHA
+          echo "$PR_NUMBER" | tr -cd '0-9' > ./pr/NR
+          echo "$PR_SHA" | tr -cd 'a-fA-F0-9' > ./pr/SHA
 
           cp client/target/jacoco-report/cobertura.xml ./pr/client/jacoco-report/cobertura.xml
           cp server/target/jacoco-report/cobertura.xml ./pr/server/jacoco-report/cobertura.xml
